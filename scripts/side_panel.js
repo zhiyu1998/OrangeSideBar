@@ -12,7 +12,7 @@ async function verifyApiKeyConfigured(model) {
     sloganDiv.style.display = 'none';
     const featureDiv = document.querySelector('.feature-container');
     featureDiv.style.display = 'none';
-    // 初始化对话内容 
+    // 初始化对话内容
     var contentDiv = document.querySelector('.chat-content');
     contentDiv.innerHTML = DEFAULT_TIPS;
     return false;
@@ -57,9 +57,9 @@ async function clearAndGenerate(model, inputText, base64Images) {
 
 /**
  * 调用模型 & 更新ui
- * @param {string} model 
- * @param {string} inputText 
- * @param {Array} base64Images 
+ * @param {string} model
+ * @param {string} inputText
+ * @param {Array} base64Images
  */
 async function chatLLMAndUIUpdate(model, inputText, base64Images) {
   // loading
@@ -67,7 +67,7 @@ async function chatLLMAndUIUpdate(model, inputText, base64Images) {
 
   // submit & generating button
   hideSubmitBtnAndShowGenBtn();
-  
+
   // 创建或获取AI回答div
   const contentDiv = document.querySelector('.chat-content');
   let aiMessageDiv = contentDiv.lastElementChild;
@@ -78,7 +78,7 @@ async function chatLLMAndUIUpdate(model, inputText, base64Images) {
   } else {
     aiMessageDiv.innerHTML = ''; // Clear existing content if regenerating
   }
-    
+
   try {
     const completeText = await chatWithLLM(model, inputText, base64Images, CHAT_TYPE);
     createCopyButton(completeText);
@@ -94,7 +94,7 @@ async function chatLLMAndUIUpdate(model, inputText, base64Images) {
 
 /**
  * 生成复制按钮
- * @param {string} completeText 
+ * @param {string} completeText
  */
 function createCopyButton(completeText) {
   const copySvg = document.querySelector('.icon-copy').cloneNode(true);
@@ -147,7 +147,7 @@ function showSubmitBtnAndHideGenBtn() {
 
 /**
  * 根据选择的模型判断是否支持上传图像或文件
- * @param {string} selectedModel 
+ * @param {string} selectedModel
  */
 function toggleImageUpload(selectedModel) {
   const imageUploadDiv = document.getElementById('image-upload-div');
@@ -529,7 +529,7 @@ function initResultPage() {
       // 展示推荐内容
       showRecommandContent();
     });
-  
+
     // 摘要逻辑
     var summaryButton = document.querySelector('#my-extension-summary-btn');
     summaryButton.addEventListener('click', async function() {
@@ -627,7 +627,7 @@ function initResultPage() {
         displayErrorMessage(`视频翻译失败: ${error.message}`);
         return;
       }
-     
+
       await clearAndGenerate(model, SUBTITLE2CHN_PROMPT + inputText, null);
     });
 
@@ -662,7 +662,7 @@ function initResultPage() {
           console.error('Some images failed to load:', error);
           return;
         }
-         
+
         // 保存原始样式
         var originalStyle = {
             height: contentDiv.style.height,
@@ -738,7 +738,7 @@ function initResultPage() {
           `;
 
           const explanationText = document.createElement('p');
-          explanationText.textContent = 'FisherAI — Your Best Summary Copilot';
+          explanationText.textContent = '🐈 OrangeSideBar';
           explanationText.style.cssText = `
             margin: 0;
             color: #2c3e50;
@@ -882,7 +882,7 @@ function initResultPage() {
     // 使回车键触发提交按钮点击
     if (userInput) {
       userInput.addEventListener('keypress', function(event) {
-          if (event.key === 'Enter') { 
+          if (event.key === 'Enter') {
             event.preventDefault(); // 阻止默认事件
             if (userInput.value.trim() !== '') {
               submitButton.click();
@@ -895,7 +895,7 @@ function initResultPage() {
 
 /**
  * 是否是视频页面
- * @returns 
+ * @returns
  */
 function isVideoUrl(url) {
   const patterns = [
@@ -903,24 +903,24 @@ function isVideoUrl(url) {
     /^https?:\/\/(?:www\.)?bilibili\.com\/video\//, // 匹配 Bilibili 视频页面
     /^https?:\/\/(?:www\.)?bilibili\.com\/list\/watchlater/ // 匹配 Bilibili 稍后再看页
   ];
-  
+
   return patterns.some(pattern => pattern.test(url));
 }
 
 /**
  * 显示错误信息
- * @param {string} message 
+ * @param {string} message
  */
 function displayErrorMessage(message) {
   hideRecommandContent();
   const contentDiv = document.querySelector('.chat-content');
   contentDiv.innerHTML = `<div class="error-message">${message}</div>`;
 }
- 
+
 
 /**
  * 主程序
- */ 
+ */
 document.addEventListener('DOMContentLoaded', function() {
   initResultPage();
 });
