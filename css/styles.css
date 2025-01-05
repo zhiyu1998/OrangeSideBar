@@ -49,7 +49,7 @@
 }
 
 .my-extension-content h1 {
-  color: #28a745;
+  color: #F6B352;
   font-size: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 10px 0;
@@ -57,7 +57,7 @@
 }
 
 .my-extension-content h2,h3,h4 {
-  color: #28a745;
+  color: #F6B352;
   font-weight: bold;
   font-size: 17px;
   padding: 10px 0;
@@ -203,7 +203,7 @@
   font-size: 20px;
   margin-top: 20px;
   margin-left: 10px;
-  color: #28a745
+  color: #F6B352
 }
 
 .my-extension-note {
@@ -430,7 +430,7 @@
 }
 
 .model-params h2 {
-  color: #28a745;
+  color: #F6B352;
   padding-left: 15px;
 }
 
@@ -462,7 +462,7 @@
 }
 
 .tool-store h2 {
-  color: #28a745;
+  color: #F6B352;
   padding-left: 15px;
 }
 
@@ -500,8 +500,8 @@
 }
 
 .tool-item input[type="checkbox"]:checked {
-  background-color: #28a745;
-  border-color: #28a745;
+  background-color: #F6B352;
+  border-color: #F6B352;
 }
 
 .tool-item input[type="checkbox"]:checked::before {
@@ -528,7 +528,7 @@
 .user-message {
   position: relative;
   align-self: flex-end;
-  color: #28a745;
+  color: #F6B352;
   font-size: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 10px 0;

@@ -4,6 +4,10 @@
 
 大橘 AI 侧边栏：一个开源的网页侧边栏对话总结工具，支持 OpenAI、Gemini 规范的 API，支持自动摘要、网页及视频翻译、多轮对话等功能
 
+![](./public/sidebar.png)
+
+![](./public/settings.png)
+
 ## 功能支持
 - [x] 一键自动摘要
 - [x] 一键网页翻译
