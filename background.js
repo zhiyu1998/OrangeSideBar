@@ -34,10 +34,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
 chrome.runtime.onInstalled.addListener(function() {
   chrome.contextMenus.create({
     id: "mainMenu",
-    title: "FisherAI",
+    title: "OrangeSideBar",
     contexts: ["all"]
   });
-  
+
   chrome.contextMenus.create({
     id: "downloadSubtitles",
     title: "下载视频字幕文件(SRT)",
@@ -61,7 +61,7 @@ chrome.runtime.onInstalled.addListener(function() {
     contexts: ["all"],
     parentId: "mainMenu"
   });
-  
+
 });
 
 // 监听菜单项的点击事件

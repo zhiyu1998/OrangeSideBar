@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "FisherAI - Your Best Summary Copilot, Supporting ChatGPT & Gemini",
-    "version": "1.1.16",
-    "description": "Your Best Summary Copilot",
+    "name": "OrangeSideBar",
+    "version": "1.0.0",
+    "description": "Your Best Summary SideBar",
     "icons": {
       "16": "images/logo_16.png",
       "32": "images/logo_32.png",
@@ -14,7 +14,7 @@
     ],
     "action": {
         "default_popup": "",
-        "default_title": "FisherAI",
+        "default_title": "OrangeSideBar",
         "default_icon": {
           "16": "images/logo_16.png",
           "32": "images/logo_32.png",
@@ -26,7 +26,7 @@
       "service_worker": "./background.js"
     },
     "permissions": [
-        "storage", 
+        "storage",
         "sidePanel",
         "tabs",
         "activeTab",
@@ -38,13 +38,13 @@
       {
         "matches": ["<all_urls>"],
         "js": [
-          "scripts/third/Readability.js", 
-          "scripts/third/youtube-transcript.js", 
-          "scripts/third/marked.min.js", 
-          "scripts/third/pdf.worker.min.js", 
-          "scripts/third/pdf.min.js", 
-          "scripts/constants.js", 
-          "scripts/utils.js", 
+          "scripts/third/Readability.js",
+          "scripts/third/youtube-transcript.js",
+          "scripts/third/marked.min.js",
+          "scripts/third/pdf.worker.min.js",
+          "scripts/third/pdf.min.js",
+          "scripts/constants.js",
+          "scripts/utils.js",
           "scripts/llm.js",
           "scripts/content.js" ]
       }
