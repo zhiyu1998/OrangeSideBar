@@ -416,7 +416,7 @@ function cancelEdit(messageDiv, originalText) {
 
 async function getBaseUrlAndApiKey(model) {
     return new Promise((resolve) => {
-        chrome.storage.sync.get([model], function (result) {
+        chrome.storage.local.get([model], function (result) {
             const modelInfo = result[model] || {};
             resolve({
                 baseUrl: modelInfo.baseUrl,

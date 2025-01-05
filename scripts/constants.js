@@ -29,6 +29,9 @@ const OPENAI_BASE_URL = "https://api.openai.com";
 const OPENAI_CHAT_API_PATH = "/v1/chat/completions";
 const OPENAI_DALLE_API_PATH = "/v1/images/generations";
 
+const SILICONFLOW_BASE_URL = "https://api.siliconflow.cn";
+const SILICONFLOW_CHAT_API_PATH = "/v1/chat/completions";
+
 const AZURE_OPENAI_BASE_URL = "https://{YOUR_RESOURCE_NAME}.openai.azure.com";
 const AZURE_OPENAI_CHAT_API_PATH = "/openai/deployments/{MODEL_NAME}/chat/completions?api-version=2024-04-01-preview";
 
@@ -48,6 +51,7 @@ const OLLAMA_LIST_MODEL_PATH = "/api/tags";
 
 // 模型名称包含的关键字
 const GPT_MODEL = "gpt";
+const SILICONFLOW_MODEL = "siliconflow";
 const AZURE_MODEL = "azure";
 const GEMINI_MODEL = 'gemini';
 const CLAUDE_MODEL = 'claude';
@@ -74,7 +78,13 @@ const MODEL_MAPPINGS = [
     provider: 'gpt'
   },
 
-  // Azure OpenAI Models  
+  // Siliconflow Models
+  {
+    prefix: ['siliconflow-'],
+    provider: 'siliconflow'
+  },
+
+  // Azure OpenAI Models
   {
     prefix: ['azure-'],
     provider: 'azure'
@@ -93,19 +103,13 @@ const MODEL_MAPPINGS = [
   }
 ];
 
-// 模型后缀
-const MODEL_POSTFIX = {
-  GROQ: '-' + GROQ_MODEL,
-  OLLAMA: '-' + OLLAMA_MODEL
-};
-
 // 默认模型
 const GPT_DEFAULT_MODEL = "gpt-3.5-turbo";
 const AZURE_GPT_DEFAULT_MODEL = "azure-gpt-35-turbo";
 const GEMINI_DEFAULT_MODEL = "gemini-2.0-flash-exp";
 const GROQ_DEFAULT_MODEL = "llama-3.2-1b-preview";
 const MISTRA_DEFAULTL_MODEL = "open-mixtral-8x7b";
-
+const SILICONFLOW_DEFAULT_MODEL = "Qwen/Qwen2.5-7B-Instruct";
 
 // 支持图像的模型
 const IMAGE_SUPPORT_MODELS = ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'azure-gpt-4-turbo', 'azure-gpt-4o', 'gemini-1.0-pro-vision-latest', 'gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'glm-4v', 'chatgpt-4o-latest'];
@@ -116,6 +120,7 @@ const DEFAULT_FILE_LOGO_PATH = "/images/file.png";
 const DEFAULT_LLM_URLS = [
   { key: AZURE_MODEL, baseUrl: AZURE_OPENAI_BASE_URL, apiPath: AZURE_OPENAI_CHAT_API_PATH, defaultModel: AZURE_GPT_DEFAULT_MODEL },
   { key: GPT_MODEL, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: GPT_DEFAULT_MODEL },
+  { key: SILICONFLOW_MODEL, baseUrl: SILICONFLOW_BASE_URL, apiPath: SILICONFLOW_CHAT_API_PATH, defaultModel: SILICONFLOW_DEFAULT_MODEL },
   { key: CLAUDE_MODEL, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: 'claude-3-opus-20240229' },
   { key: GEMINI_MODEL, baseUrl: GEMINI_BASE_URL, apiPath: GEMINI_CHA_API_PAH, defaultModel: GEMINI_DEFAULT_MODEL },
   { key: GROQ_MODEL, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL },

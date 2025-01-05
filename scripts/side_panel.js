@@ -19,6 +19,8 @@ async function verifyApiKeyConfigured(model) {
     provider = 'ollama';
   } else if (model.includes(GROQ_MODEL)) {
     provider = 'groq';
+  } else if (model.includes(SILICONFLOW_MODEL)) {
+    provider = 'siliconflow';
   }
 
   const { baseUrl, apiKey } = await getBaseUrlAndApiKey(provider);
@@ -45,11 +47,8 @@ async function verifyApiKeyConfigured(model) {
       anthropic: 'Anthropic',
       groq: 'Groq',
       mistral: 'Mistral AI',
-      zhipu: 'Zhipu AI',
-      moonshot: 'Moonshot AI',
-      deepseek: 'DeepSeek',
-      yi: 'Yi',
-      ollama: 'Ollama'
+      ollama: 'Ollama',
+      siliconflow: 'Siliconflow'
     }[provider] || provider.toUpperCase();
 
     // 初始化对话内容
@@ -311,7 +310,7 @@ function handleUploadFiles(event) {
 
 // 检测是否启用ollama，拉去ollama模型列表并追加到模型选择列表中
 function loadOllamaModels(callback) {
-  chrome.storage.sync.get(OLLAMA_MODEL, function (result) {
+  chrome.storage.local.get(OLLAMA_MODEL, function (result) {
     const modelInfo = result[OLLAMA_MODEL];
     if (modelInfo) {
       const baseUrl = modelInfo.baseUrl || OLLAMA_CHAT_BASE_URL;
@@ -348,7 +347,7 @@ function loadOllamaModels(callback) {
 // 模型选择变更逻辑
 function handleModelSelection() {
   const modelSelection = document.getElementById('model-selection');
-  chrome.storage.sync.get(['selectedModel'], function (result) {
+  chrome.storage.local.get(['selectedModel'], function (result) {
     if (result.selectedModel) {
       modelSelection.value = result.selectedModel;
     }
@@ -357,7 +356,7 @@ function handleModelSelection() {
 
   modelSelection.addEventListener('change', function () {
     toggleImageUpload(this.value);
-    chrome.storage.sync.set({ 'selectedModel': this.value });
+    chrome.storage.local.set({ 'selectedModel': this.value });
   });
 }
 
@@ -370,7 +369,7 @@ function saveModelParams() {
   const frequency_penalty = document.getElementById('frequency_penalty').value;
   const presence_penalty = document.getElementById('presence_penalty').value;
 
-  chrome.storage.sync.set({
+  chrome.storage.local.set({
     temperature: temperature,
     top_p: top_p,
     max_tokens: max_tokens,
@@ -384,7 +383,7 @@ function saveModelParams() {
 
 // 从chrome storage 加载自定义的模型参数
 function loadModelParams() {
-  chrome.storage.sync.get(['temperature', 'top_p', 'max_tokens'], function (items) {
+  chrome.storage.local.get(['temperature', 'top_p', 'max_tokens'], function (items) {
     if (items.temperature !== undefined) {
       document.getElementById('temperature').value = items.temperature;
     }
@@ -404,7 +403,7 @@ function loadModelParams() {
 }
 
 function loadToolsSelectedStatus() {
-  chrome.storage.sync.get([SERPAPI, DALLE], (result) => {
+  chrome.storage.local.get([SERPAPI, DALLE], (result) => {
     if (result.serpapi !== undefined) {
       document.getElementById(SERPAPI).checked = result.serpapi;
     }
@@ -444,12 +443,9 @@ function updateModelSelection(globalModels) {
     'azure',         // Azure OpenAI
     'gemini',        // Google Gemini
     'anthropic',     // Anthropic (Claude)
+    'siliconflow',   // Siliconflow AI
     'groq',          // Groq
     'mistral',       // Mistral AI
-    'zhipu',         // Zhipu AI
-    'moonshot',      // Moonshot AI
-    'deepseek',      // DeepSeek
-    'yi',            // Yi
     'ollama'         // Ollama
   ];
 
@@ -459,12 +455,9 @@ function updateModelSelection(globalModels) {
     azure: 'Azure OpenAI',
     gemini: 'Google Gemini',
     anthropic: 'Anthropic',
+    siliconflow: '硅基流动',
     groq: 'Groq',
     mistral: 'Mistral AI',
-    zhipu: 'Zhipu AI',
-    moonshot: 'Moonshot AI',
-    deepseek: 'DeepSeek',
-    yi: 'Yi',
     ollama: 'Ollama'
   };
 
@@ -491,7 +484,7 @@ function updateModelSelection(globalModels) {
   });
 
   // 恢复之前选择的模型
-  chrome.storage.sync.get(['selectedModel'], function (result) {
+  chrome.storage.local.get(['selectedModel'], function (result) {
     if (result.selectedModel) {
       modelSelection.value = result.selectedModel;
     }
@@ -503,7 +496,7 @@ function updateModelSelection(globalModels) {
  */
 function initResultPage() {
   // 加载全局模型列表
-  chrome.storage.sync.get('globalModels', function (result) {
+  chrome.storage.local.get('globalModels', function (result) {
     console.log('Loaded global models:', result.globalModels); // 添加日志
     if (result.globalModels) {
       updateModelSelection(result.globalModels);
@@ -587,7 +580,7 @@ function initResultPage() {
 
       let storageObject = {};
       storageObject[toolId] = isChecked;
-      chrome.storage.sync.set(storageObject, () => {
+      chrome.storage.local.set(storageObject, () => {
         // console.log(`Saved ${toolId} state: ${isChecked}`);
       });
     });

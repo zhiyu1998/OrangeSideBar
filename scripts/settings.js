@@ -6,7 +6,7 @@ function storeParams(tabName, param1, param2, saveMessage, models = null) {
   }); // 添加日志
 
   // 获取已存储的数据
-  chrome.storage.sync.get(tabName, function (result) {
+  chrome.storage.local.get(tabName, function (result) {
     let modelInfo = result[tabName] || {};
     console.log('Current stored model info:', modelInfo); // 添加日志
 
@@ -30,14 +30,10 @@ function storeParams(tabName, param1, param2, saveMessage, models = null) {
         'anthropic',     // Anthropic (Claude)
         'groq',          // Groq
         'mistral',       // Mistral AI
-        'zhipu',         // Zhipu AI
-        'moonshot',      // Moonshot AI
-        'deepseek',      // DeepSeek
-        'yi',            // Yi
-        'ollama'         // Ollama
+        'siliconflow',   // siliconflow
       ].includes(tabName)) {
         // 保存到全局模型列表
-        chrome.storage.sync.get('globalModels', function (result) {
+        chrome.storage.local.get('globalModels', function (result) {
           let globalModels = result.globalModels || {};
           console.log('Current global models:', globalModels); // 添加日志
 
@@ -61,10 +57,10 @@ function storeParams(tabName, param1, param2, saveMessage, models = null) {
           }
 
           console.log('Updated global models:', globalModels); // 添加日志
-          chrome.storage.sync.set({ globalModels }, () => {
+          chrome.storage.local.set({ globalModels }, () => {
             console.log('Saved global models successfully'); // 添加日志
             // 检查存储的数据
-            chrome.storage.sync.get('globalModels', (result) => {
+            chrome.storage.local.get('globalModels', (result) => {
               console.log('Verified stored global models:', result.globalModels);
             });
           });
@@ -73,7 +69,7 @@ function storeParams(tabName, param1, param2, saveMessage, models = null) {
     }
 
     // 保存到 Chrome 存储
-    chrome.storage.sync.set({ [tabName]: modelInfo }, function () {
+    chrome.storage.local.set({ [tabName]: modelInfo }, function () {
       console.log('Saved:', { [tabName]: modelInfo });
 
       // 显示保存成功消息
@@ -107,7 +103,7 @@ function openTab(evt, tabName) {
   evt.currentTarget.className += " active";
 
   // 从Chrome存储获取配置
-  chrome.storage.sync.get(tabName, function (result) {
+  chrome.storage.local.get(tabName, function (result) {
     console.log('Loading tab data for:', tabName, result);
 
     const modelInfo = result[tabName];
@@ -273,6 +269,9 @@ async function getModelList(baseUrl, model, apiKey) {
   } else if (model.includes(GROQ_MODEL)) {
     apiUrl += GROQ_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(SILICONFLOW_MODEL)) {
+    apiUrl += OPENAI_MODELS_API_PATH;  // 确保使用正确的 API 路径
+    headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (model.includes(MISTRAL_MODEL)) {
     apiUrl += MISTRAL_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
@@ -341,6 +340,13 @@ async function getModelList(baseUrl, model, apiKey) {
         object: model.object,
         owned_by: model.owned_by
       }));
+    } else if (model.includes(SILICONFLOW_MODEL)) {
+      // Siliconflow 格式处理
+      return data.data.map(model => ({
+        id: `siliconflow-${model.id}`,
+        object: model.object,
+        owned_by: model.owned_by
+      }));
     } else {
       // 其他供应商的格式处理
       return data.data || data.models || [];
@@ -380,12 +386,12 @@ function updateModelSelect(models, tabName) {
   console.log('Generated model items:', modelItems); // 调试日志
 
   // 保存模型列表到存储
-  chrome.storage.sync.get(tabName, function (result) {
+  chrome.storage.local.get(tabName, function (result) {
     const modelInfo = result[tabName] || {};
     modelInfo.models = models;
 
     // 保留原有的配置
-    chrome.storage.sync.set({
+    chrome.storage.local.set({
       [tabName]: modelInfo
     }, function () {
       // 更新列表
@@ -543,7 +549,7 @@ document.addEventListener('DOMContentLoaded', function () {
       let currentModels = [];
       if (modelList) {
         // 从存储中获取当前的模型列表
-        chrome.storage.sync.get(tabId, function (result) {
+        chrome.storage.local.get(tabId, function (result) {
           currentModels = result[tabId]?.models || [];
           console.log('Saving values:', { tabId, baseUrl, apiKey, models: currentModels });
           // 保存所有数据

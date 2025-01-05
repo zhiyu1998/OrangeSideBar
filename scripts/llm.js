@@ -42,8 +42,8 @@ function initChatHistory() {
 
 /**
  * 根据不同的模型，选择对应的接口地址
- * @param {string} model 
- * @returns 
+ * @param {string} model
+ * @returns
  */
 async function getBaseUrlAndApiKey(model) {
   // 先检查精确匹配的前缀
@@ -87,7 +87,7 @@ async function getBaseUrlAndApiKey(model) {
 
 async function getModelInfoFromChromeStorage(modelKey) {
   return new Promise((resolve, reject) => {
-    chrome.storage.sync.get(modelKey, function (result) {
+    chrome.storage.local.get(modelKey, function (result) {
       if (chrome.runtime.lastError) {
         reject(chrome.runtime.lastError);
       } else {
@@ -108,7 +108,7 @@ async function getModelInfoFromChromeStorage(modelKey) {
 
 async function getValueFromChromeStorage(key) {
   return new Promise((resolve, reject) => {
-    chrome.storage.sync.get(key, function (result) {
+    chrome.storage.local.get(key, function (result) {
       if (chrome.runtime.lastError) {
         reject(chrome.runtime.lastError);
       } else {
@@ -125,9 +125,9 @@ async function getValueFromChromeStorage(key) {
 
 /**
  * 动态构建请求头部和请求体的函数
- * @param {object} additionalHeaders 
- * @param {object} body 
- * @returns 
+ * @param {object} additionalHeaders
+ * @param {object} body
+ * @returns
  */
 function createRequestParams(additionalHeaders, body) {
   let headers = {
@@ -151,11 +151,11 @@ function createRequestParams(additionalHeaders, body) {
 
 /**
  * call llm
- * @param {string} model 
- * @param {string} inputText 
- * @param {Array} base64Images 
- * @param {string} type 
- * @returns 
+ * @param {string} model
+ * @param {string} inputText
+ * @param {Array} base64Images
+ * @param {string} type
+ * @returns
  */
 async function chatWithLLM(model, inputText, base64Images, type) {
   var { baseUrl, apiKey } = await getBaseUrlAndApiKey(model);
@@ -313,20 +313,19 @@ async function parseFunctionCalling(result, baseUrl, apiKey, model, type) {
 
 /**
  * 处理 OpenAI 兼容数据格式
- * @param {string} baseUrl 
- * @param {string} apiKey 
- * @param {string} modelName 
- * @param {string} type 
- * @returns 
+ * @param {string} baseUrl
+ * @param {string} apiKey
+ * @param {string} modelName
+ * @param {string} type
+ * @returns
  */
 async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
-  let realModelName = modelName
-    .replace(new RegExp(MODEL_POSTFIX.GROQ, 'g'), "")
-    .replace(new RegExp(MODEL_POSTFIX.OLLAMA, 'g'), "");
-
+  let realModelName = modelName;
   // 如果是 groq 模型,去掉 groq- 前缀
   if (modelName.startsWith('groq-')) {
     realModelName = realModelName.replace('groq-', '');
+  } else if (modelName.startsWith('siliconflow-')) {
+    realModelName = realModelName.replace('siliconflow-', '');
   }
 
   const { temperature, topP, maxTokens, frequencyPenalty, presencePenalty } = await getModelParameters();
@@ -383,10 +382,10 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
 
 /**
  * 处理 gemini 接口数据格式
- * @param {string} baseUrl 
- * @param {string} modelName 
- * @param {string} type 
- * @returns 
+ * @param {string} baseUrl
+ * @param {string} modelName
+ * @param {string} type
+ * @returns
  */
 async function chatWithGemini(baseUrl, modelName, type) {
   const { temperature, topP, maxTokens } = await getModelParameters();
@@ -436,7 +435,7 @@ async function chatWithGemini(baseUrl, modelName, type) {
 
 /**
  * 从 chrome storage 中获取模型参数
- * @returns 
+ * @returns
  */
 async function getModelParameters() {
   return {
@@ -450,11 +449,11 @@ async function getModelParameters() {
 
 /**
  * LLM 接口请求 & 解析
- * @param {string} baseUrl 
- * @param {string} params 
- * @param {string} modelName 
- * @param {string} type 
- * @returns 
+ * @param {string} baseUrl
+ * @param {string} params
+ * @param {string} modelName
+ * @param {string} type
+ * @returns
  */
 async function fetchAndHandleResponse(baseUrl, params, modelName, type) {
   let result = { resultString: '', resultArray: [] };
@@ -483,11 +482,11 @@ async function fetchAndHandleResponse(baseUrl, params, modelName, type) {
 
 /**
  * 将输入转为适合 LLM 接口需要的数据需格式
- * @param {string} role 
- * @param {string} partsKey 
- * @param {string} text 
- * @param {string} images 
- * @returns 
+ * @param {string} role
+ * @param {string} partsKey
+ * @param {string} text
+ * @param {string} images
+ * @returns
  */
 function createDialogueEntry(role, partsKey, text, images, model) {
   const entry = { "role": role };
@@ -540,7 +539,7 @@ function createDialogueEntry(role, partsKey, text, images, model) {
 
 /**
  * 更新对话历史
- * @param {string} text 
+ * @param {string} text
  */
 function updateChatHistory(text) {
   dialogueHistory.push({
@@ -608,7 +607,7 @@ function updateToolCallChatHistory(tool, content) {
 
 /**
  * 获取正文
- * @returns 
+ * @returns
  */
 async function fetchPageContent(format = FORMAT_HTML) {
   try {
@@ -642,7 +641,7 @@ async function fetchPageContent(format = FORMAT_HTML) {
 
 /**
  * 获取当前打开的页面 URL
- * @returns 
+ * @returns
  */
 async function getCurrentURL() {
   try {
@@ -671,10 +670,10 @@ async function getCurrentURL() {
 
 /**
  * 解析模型返回结果，并更新到对话界面中
- * @param {object} response 
- * @param {string} modelName 
+ * @param {object} response
+ * @param {string} modelName
  * @param {string} type
- * @returns 
+ * @returns
  */
 async function parseAndUpdateChatContent(response, modelName, type) {
   // 使用长轮询，服务器会持续发送数据
@@ -784,7 +783,7 @@ async function parseAndUpdateChatContent(response, modelName, type) {
 
 /**
  * 更新内容界面
- * @param {string} completeText 
+ * @param {string} completeText
  * @param {string} type
  */
 function updateChatContent(completeText, type) {

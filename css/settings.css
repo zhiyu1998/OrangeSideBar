@@ -282,6 +282,8 @@ input:checked + .slider:before {
   padding: 0;
   margin: 10px 0;
   max-width: 1200px;
+  max-height: 300px;
+  overflow-y: auto;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

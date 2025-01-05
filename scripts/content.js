@@ -35,7 +35,7 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
 const QUICK_TRANS = "quick-trans";
 
 // 是否开启快捷翻译
-chrome.storage.sync.get(QUICK_TRANS, function(config) {
+chrome.storage.local.get(QUICK_TRANS, function(config) {
   const enabled = config[QUICK_TRANS].enabled;
   if(enabled == false) {
     return;
@@ -55,7 +55,7 @@ chrome.storage.sync.get(QUICK_TRANS, function(config) {
   const image = document.createElement('img');
   if(image) {
     image.src = chrome.runtime.getURL('images/logo_48.png');
-    image.style.width = '20px'; 
+    image.style.width = '20px';
     image.style.height = '20px';
   }
 
@@ -82,7 +82,7 @@ chrome.storage.sync.get(QUICK_TRANS, function(config) {
     document.body.appendChild(button);
     // 监听按钮点击事件
     button.addEventListener('click', function () {
-      chrome.storage.sync.get([QUICK_TRANS], async function(config) {
+      chrome.storage.local.get([QUICK_TRANS], async function(config) {
         translationPopup.innerHTML = '';
         const selection = window.getSelection();
         const range = selection.getRangeAt(0);
@@ -122,7 +122,7 @@ chrome.storage.sync.get(QUICK_TRANS, function(config) {
           }
           const {baseUrl, apiKey} = await getBaseUrlAndApiKey(model);
           if(baseUrl && apiKey) {
-            chatWithLLM(model, TRANSLATE2CHN_PROMPT + selectedText, null, HUACI_TRANS_TYPE); 
+            chatWithLLM(model, TRANSLATE2CHN_PROMPT + selectedText, null, HUACI_TRANS_TYPE);
           } else {
             translationPopup.innerHTML = DEFAULT_TIPS;
           }
@@ -135,7 +135,7 @@ chrome.storage.sync.get(QUICK_TRANS, function(config) {
         button.style.display = 'none';
       });
 
-    }); 
+    });
   }
 
   // 监听选中事件
@@ -163,9 +163,9 @@ chrome.storage.sync.get(QUICK_TRANS, function(config) {
     // 获取选中文本
     const selection = window.getSelection();
     const selectedText = selection.toString().trim();
-    
+
     // 如果点击的是编辑器的按钮或选中了文本，则不清除选区
-    if (event.target.tagName !== 'BUTTON' && selectedText === '') { 
+    if (event.target.tagName !== 'BUTTON' && selectedText === '') {
       if (event.target !== button && !button.contains(event.target) &&
           event.target !== translationPopup && !translationPopup.contains(event.target)) {
         if (selection) {
