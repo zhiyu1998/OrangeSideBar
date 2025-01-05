@@ -5,27 +5,14 @@
 async function verifyApiKeyConfigured(model) {
   // 根据模型名称判断使用哪个供应商的配置
   let provider = '';
-  if (model.startsWith('gpt-') || model.includes('gpt')) {
-    provider = 'gpt';
-  } else if (model.startsWith('gemini-')) {
-    provider = 'gemini';
-  } else if (model.startsWith('azure-')) {
-    provider = 'azure';
-  } else if (model.startsWith('claude-')) {
-    provider = 'anthropic';
-  } else if (model.includes('groq')) {
-    provider = 'groq';
-  } else if (model.includes('mixtral')) {
+
+  // 先检查精确匹配的前缀
+  const mapping = MODEL_MAPPINGS.find(m => model.startsWith(m.prefix));
+  if (mapping) {
+    provider = mapping.provider;
+  } else if (model.includes(MISTRAL_MODEL)) {
     provider = 'mistral';
-  } else if (model.includes('glm-')) {
-    provider = 'zhipu';
-  } else if (model.includes('moonshot-')) {
-    provider = 'moonshot';
-  } else if (model.includes('deepseek-')) {
-    provider = 'deepseek';
-  } else if (model.includes('yi-')) {
-    provider = 'yi';
-  } else if (model.includes('ollama')) {
+  } else if (model.includes(OLLAMA_MODEL)) {
     provider = 'ollama';
   }
 
@@ -34,12 +21,11 @@ async function verifyApiKeyConfigured(model) {
   // 检查是否需要 API Key（Ollama 不需要）
   const needsApiKey = !model.includes(OLLAMA_MODEL);
 
-  console.log(baseUrl == null || (needsApiKey && apiKey == null));
-  console.log(baseUrl);
-
+  // 如果是 Claude 模型，使用 OpenAI 的 baseUrl
+  let effectiveBaseUrl = baseUrl;
 
   // 检查配置是否完整
-  if (baseUrl == null || (needsApiKey && apiKey == null)) {
+  if (effectiveBaseUrl == null || (needsApiKey && apiKey == null)) {
     // 隐藏初始推荐内容
     const sloganDiv = document.querySelector('.my-extension-slogan');
     sloganDiv.style.display = 'none';

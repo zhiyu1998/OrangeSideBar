@@ -296,7 +296,7 @@ async function getModelList(baseUrl, model, apiKey) {
   }
 
   try {
-    console.log('Fetching models from:', apiUrl); // 添加日志
+    console.log('Fetching models from:', apiUrl);
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: headers
@@ -307,23 +307,41 @@ async function getModelList(baseUrl, model, apiKey) {
     }
 
     const data = await response.json();
-    console.log('Received models data:', data); // 添加日志
+    console.log('Received models data:', data);
 
     // 处理不同的返回格式
-    if (model === 'gpt') {  // 修改这里，使用严格相等
+    if (model === 'gpt') {
       // OpenAI 格式处理
       const filteredModels = data.data
-        .filter(model =>
-          model.id.startsWith('gpt-') &&
-          !model.id.includes('instruct') &&
-          !model.id.includes('deprecated')
-        )
+        .filter(model => {
+          // 包含所有主流模型
+          const validPrefixes = [
+            'gpt-',
+            'claude-',     // Anthropic Claude
+            'text-',       // 文本相关模型
+            'dall-e-',     // DALL-E 图像模型
+            'tts-',        // 语音模型
+            'whisper-'     // Whisper 语音识别
+          ];
+
+          // 检查是否以任一前缀开头
+          const hasValidPrefix = validPrefixes.some(prefix =>
+            model.id.startsWith(prefix)
+          );
+
+          // 排除废弃和测试模型
+          const isNotDeprecated = !model.id.includes('deprecated');
+          const isNotTest = !model.id.includes('test');
+
+          return hasValidPrefix && isNotDeprecated && isNotTest;
+        })
         .map(model => ({
           id: model.id,
           object: model.object,
           owned_by: model.owned_by
         }));
-      console.log('Filtered OpenAI models:', filteredModels); // 添加日志
+
+      console.log('Filtered OpenAI models:', filteredModels);
       return filteredModels;
     } else if (model.includes(GEMINI_MODEL)) {
       // Gemini 格式处理

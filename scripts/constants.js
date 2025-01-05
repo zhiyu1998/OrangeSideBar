@@ -62,15 +62,69 @@ const OLLAMA_LIST_MODEL_PATH = "/api/tags";
 const GPT_MODEL = "gpt";
 const AZURE_MODEL = "azure";
 const GEMINI_MODEL = 'gemini';
+const CLAUDE_MODEL = 'claude';
 const GROQ_MODEL = "groq";
-const GROQ_MODEL_POSTFIX = "-" + GROQ_MODEL;
 const MISTRAL_MODEL = "open-mixtral";
 const ZHIPU_MODEL = "glm";
 const MOONSHOT_MODEL = "moonshot";
 const DEEPSEEK_MODEL = 'deepseek';
 const YI_MODEL = "yi";
 const OLLAMA_MODEL = "ollama";
-const OLLAMA_MODEL_POSTFIX = "-" + OLLAMA_MODEL;
+
+// 模型映射配置
+const MODEL_MAPPINGS = [
+  {
+    prefix: 'gpt-',
+    provider: 'gpt',
+    displayName: 'OpenAI'
+  },
+  {
+    prefix: 'azure-',
+    provider: 'azure',
+    displayName: 'Azure OpenAI'
+  },
+  {
+    prefix: 'gemini-',
+    provider: 'gemini',
+    displayName: 'Google Gemini'
+  },
+  {
+    prefix: 'claude-',
+    provider: 'gpt',  // 使用 OpenAI 的配置
+    displayName: 'Anthropic'
+  },
+  {
+    prefix: 'groq-',
+    provider: 'groq',
+    displayName: 'Groq'
+  },
+  {
+    prefix: 'glm-',
+    provider: 'zhipu',
+    displayName: 'Zhipu AI'
+  },
+  {
+    prefix: 'moonshot-',
+    provider: 'moonshot',
+    displayName: 'Moonshot AI'
+  },
+  {
+    prefix: 'deepseek-',
+    provider: 'deepseek',
+    displayName: 'DeepSeek'
+  },
+  {
+    prefix: 'yi-',
+    provider: 'yi',
+    displayName: 'Yi'
+  }
+];
+
+// 模型后缀
+const MODEL_POSTFIX = {
+  GROQ: '-' + GROQ_MODEL,
+  OLLAMA: '-' + OLLAMA_MODEL
+};
 
 // 默认模型
 const GPT_DEFAULT_MODEL = "gpt-3.5-turbo";
@@ -95,8 +149,9 @@ const DEFAULT_FILE_LOGO_PATH = "/images/file.png";
 const DEFAULT_LLM_URLS = [
   { key: AZURE_MODEL, baseUrl: AZURE_OPENAI_BASE_URL, apiPath: AZURE_OPENAI_CHAT_API_PATH, defaultModel: AZURE_GPT_DEFAULT_MODEL },
   { key: GPT_MODEL, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: GPT_DEFAULT_MODEL },
+  { key: CLAUDE_MODEL, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: 'claude-3-opus-20240229' },
   { key: GEMINI_MODEL, baseUrl: GEMINI_BASE_URL, apiPath: GEMINI_CHA_API_PAH, defaultModel: GEMINI_DEFAULT_MODEL },
-  { key: GROQ_MODEL, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL }, // groq 要放在 mistral 之前，因为 groq 部署的开源名称会和 mistral 等开源模型一样，区别在最后的后缀'-groq'，需要优先判断
+  { key: GROQ_MODEL, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL },
   { key: OLLAMA_MODEL, baseUrl: OLLAMA_BASE_URL, apiPath: OLLAMA_CHAT_API_PATH, defaultModel: '' },
   { key: MISTRAL_MODEL, baseUrl: MISTRAL_BASE_URL, apiPath: MISTRAL_CHAT_API_PATH, defaultModel: MISTRA_DEFAULTL_MODEL },
   { key: ZHIPU_MODEL, baseUrl: ZHIPU_BASE_URL, apiPath: ZHIPU_CHAT_API_PATH, defaultModel: ZHIPU_DEFAULT_MODEL },
