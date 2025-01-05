@@ -52,10 +52,14 @@ async function getBaseUrlAndApiKey(model) {
     // 如果找到匹配的映射，使用对应的 provider 配置
     const providerInfo = await getModelInfoFromChromeStorage(mapping.provider);
     if (providerInfo) {
-      return {
-        baseUrl: `${providerInfo.baseUrl || OPENAI_BASE_URL}${OPENAI_CHAT_API_PATH}`,
-        apiKey: providerInfo.apiKey
-      };
+      // 根据不同的 provider 使用不同的 API 路径
+      const defaultConfig = DEFAULT_LLM_URLS.find(url => url.key === mapping.provider);
+      if (defaultConfig) {
+        return {
+          baseUrl: `${providerInfo.baseUrl || defaultConfig.baseUrl}${defaultConfig.apiPath}`,
+          apiKey: providerInfo.apiKey
+        };
+      }
     }
   }
 
