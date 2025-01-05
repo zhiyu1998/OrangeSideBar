@@ -1,7 +1,14 @@
 function storeParams(tabName, param1, param2, saveMessage, models = null) {
+  console.log('Storing params for tab:', tabName, {
+    baseUrl: param1,
+    apiKey: '***',
+    models: models
+  }); // 添加日志
+
   // 获取已存储的数据
   chrome.storage.sync.get(tabName, function (result) {
     let modelInfo = result[tabName] || {};
+    console.log('Current stored model info:', modelInfo); // 添加日志
 
     if (tabName == 'quick-trans') {
       modelInfo.enabled = param1;
@@ -14,6 +21,55 @@ function storeParams(tabName, param1, param2, saveMessage, models = null) {
         apiKey: param2,
         models: models || modelInfo.models || [] // 如果传入了新的模型列表就使用新的，否则保留现有的
       };
+
+      // 如果是支持的模型供应商，更新全局模型列表
+      if (models && [
+        'gpt',           // OpenAI
+        'azure',         // Azure OpenAI
+        'gemini',        // Google Gemini
+        'anthropic',     // Anthropic (Claude)
+        'groq',          // Groq
+        'mistral',       // Mistral AI
+        'zhipu',         // Zhipu AI
+        'moonshot',      // Moonshot AI
+        'deepseek',      // DeepSeek
+        'yi',            // Yi
+        'ollama'         // Ollama
+      ].includes(tabName)) {
+        // 保存到全局模型列表
+        chrome.storage.sync.get('globalModels', function (result) {
+          let globalModels = result.globalModels || {};
+          console.log('Current global models:', globalModels); // 添加日志
+
+          // 根据不同供应商处理模型数据
+          if (tabName === 'gpt') {
+            // OpenAI 模型处理
+            globalModels[tabName] = models
+              .filter(model => model.id && !model.id.includes('deprecated'))
+              .map(model => ({
+                value: model.id,
+                label: model.id,
+                provider: tabName
+              }));
+          } else {
+            // 其他供应商的模型处理
+            globalModels[tabName] = models.map(model => ({
+              value: model.id,
+              label: model.id,
+              provider: tabName
+            }));
+          }
+
+          console.log('Updated global models:', globalModels); // 添加日志
+          chrome.storage.sync.set({ globalModels }, () => {
+            console.log('Saved global models successfully'); // 添加日志
+            // 检查存储的数据
+            chrome.storage.sync.get('globalModels', (result) => {
+              console.log('Verified stored global models:', result.globalModels);
+            });
+          });
+        });
+      }
     }
 
     // 保存到 Chrome 存储
@@ -206,7 +262,10 @@ async function getModelList(baseUrl, model, apiKey) {
   };
 
   // 根据不同模型供应商设置不同的API路径和headers
-  if (model.includes(AZURE_MODEL)) {
+  if (model === 'gpt') {  // 修改这里，使用严格相等
+    apiUrl += OPENAI_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(AZURE_MODEL)) {
     apiUrl += AZURE_MODELS_API_PATH;
     headers['api-key'] = apiKey;
   } else if (model.includes(GEMINI_MODEL)) {
@@ -237,6 +296,7 @@ async function getModelList(baseUrl, model, apiKey) {
   }
 
   try {
+    console.log('Fetching models from:', apiUrl); // 添加日志
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: headers
@@ -247,9 +307,25 @@ async function getModelList(baseUrl, model, apiKey) {
     }
 
     const data = await response.json();
+    console.log('Received models data:', data); // 添加日志
 
     // 处理不同的返回格式
-    if (model.includes(GEMINI_MODEL)) {
+    if (model === 'gpt') {  // 修改这里，使用严格相等
+      // OpenAI 格式处理
+      const filteredModels = data.data
+        .filter(model =>
+          model.id.startsWith('gpt-') &&
+          !model.id.includes('instruct') &&
+          !model.id.includes('deprecated')
+        )
+        .map(model => ({
+          id: model.id,
+          object: model.object,
+          owned_by: model.owned_by
+        }));
+      console.log('Filtered OpenAI models:', filteredModels); // 添加日志
+      return filteredModels;
+    } else if (model.includes(GEMINI_MODEL)) {
       // Gemini 格式处理
       return data.models.map(model => ({
         id: model.name.replace('models/', ''),  // 移除 'models/' 前缀
@@ -257,8 +333,8 @@ async function getModelList(baseUrl, model, apiKey) {
         owned_by: 'google'
       }));
     } else {
-      // OpenAI 兼容格式
-      return data.data || [];
+      // 其他供应商的格式处理
+      return data.data || data.models || [];
     }
   } catch (error) {
     console.error('Error fetching models:', error);
@@ -356,15 +432,29 @@ function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
         getModelList(baseUrl, model, apiKey)
           .then(models => {
             if (models && models.length > 0) {
-              console.log('Retrieved models:', models);
+              console.log('Retrieved models for', model, ':', models); // 添加日志
 
               // 保存配置和模型列表
               const tabContent = resultElement.closest('.tab-content');
               const tabId = tabContent.id;
+              console.log('Saving models for tab:', tabId); // 添加日志
+
               // 使用正确的 saveMessage 元素
               const saveMessage = tabContent.querySelector('.save-message');
+
+              // 检查模型数据格式
+              const formattedModels = models.map(model => {
+                console.log('Processing model:', model); // 添加日志
+                return {
+                  id: model.id,
+                  object: model.object || 'model',
+                  owned_by: model.owned_by || 'unknown'
+                };
+              });
+              console.log('Formatted models:', formattedModels); // 添加日志
+
               // 直接使用 storeParams 函数保存所有数据
-              storeParams(tabId, baseUrl, apiKey, saveMessage, models);
+              storeParams(tabId, baseUrl, apiKey, saveMessage, formattedModels);
             } else {
               console.warn('No models returned from API');
             }

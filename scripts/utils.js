@@ -7,10 +7,10 @@ function extractContent(format) {
     const article = new Readability(document.cloneNode(true)).parse();
     const title = article.title;
     var content = article.content;
-    if(format === FORMAT_TEXT) {
+    if (format === FORMAT_TEXT) {
         content = article.textContent;
     }
-    const result =  title + "\n" + content;
+    const result = title + "\n" + content;
     return result;
 }
 
@@ -19,10 +19,10 @@ function extractContent(format) {
  * @param {string} url 
  * @returns 
  */
-async function extractSubtitles(url, format=FORMAT_SRT) {
-    if(url.includes('youtube.com')) {
+async function extractSubtitles(url, format = FORMAT_SRT) {
+    if (url.includes('youtube.com')) {
         return extractYoutubeSubtitles(url, format);
-    } else if(url.includes('bilibili.com')) {
+    } else if (url.includes('bilibili.com')) {
         return extractBilibiliSubtitles(url, format);
     }
 }
@@ -33,7 +33,7 @@ async function extractSubtitles(url, format=FORMAT_SRT) {
  */
 async function extractYoutubeSubtitles(url, format) {
     try {
-        const subtitles = await YoutubeTranscript.fetchTranscript(url, {lang: 'en'});
+        const subtitles = await YoutubeTranscript.fetchTranscript(url, { lang: 'en' });
         const formattedSubtitles = youtubeSubtitlesJSONToFormat(subtitles, format);
         return formattedSubtitles;
     } catch (error) {
@@ -59,67 +59,67 @@ async function extractBilibiliSubtitles(paramURL, format) {
     if (!aidOrBvid) {
         let path = url.pathname
         if (path.endsWith('/')) {
-          path = path.slice(0, -1)
+            path = path.slice(0, -1)
         }
         const paths = path.split('/')
         aidOrBvid = paths[paths.length - 1]
-      }
+    }
 
     let aid = aidOrBvid;
     let cid;
-  
+
     if (aidOrBvid.toLowerCase().startsWith('bv')) {
-      // 如果是bv号，需要转换获取aid和cid
-      const bvidResponse = await fetch(
-        `https://api.bilibili.com/x/web-interface/view?bvid=${aidOrBvid}`,
-        { headers: {'User-Agent': USER_AGENT}, credentials: 'include' }
+        // 如果是bv号，需要转换获取aid和cid
+        const bvidResponse = await fetch(
+            `https://api.bilibili.com/x/web-interface/view?bvid=${aidOrBvid}`,
+            { headers: { 'User-Agent': USER_AGENT }, credentials: 'include' }
         );
-      const bvidData = await bvidResponse.json();
-      aid = bvidData.data.aid;
-      cid = bvidData.data.cid;
+        const bvidData = await bvidResponse.json();
+        aid = bvidData.data.aid;
+        cid = bvidData.data.cid;
     } else if (aidOrBvid.toLowerCase().startsWith('av')) {
-      // 如果是av号，直接使用
-      aid = videoId.slice(2); // 去掉"av"
+        // 如果是av号，直接使用
+        aid = videoId.slice(2); // 去掉"av"
     }
-  
+
     // 获取第一个视频分P的cid
     const pageListResponse = await fetch(
         `https://api.bilibili.com/x/player/pagelist?aid=${aid}`,
-        { headers: {'User-Agent': USER_AGENT}, credentials: 'include' }
+        { headers: { 'User-Agent': USER_AGENT }, credentials: 'include' }
     );
     const pageListData = await pageListResponse.json();
     cid = pageListData.data[0].cid;
-  
+
     // 获取字幕信息
     const subtitleResponse = await fetch(
         `https://api.bilibili.com/x/player/v2?aid=${aid}&cid=${cid}`,
-        { headers: {'User-Agent': USER_AGENT}, credentials: 'include' }
+        { headers: { 'User-Agent': USER_AGENT }, credentials: 'include' }
     );
     const subtitleData = await subtitleResponse.json();
     console.log(subtitleData);
 
-    if(subtitleData.code != 0) {
+    if (subtitleData.code != 0) {
         throw new Error('视频字幕获取失败，原因：字幕获取接口暂不可用！');
     }
 
     const subtitleList = subtitleData.data.subtitle.subtitles;
-    if(subtitleData.data.need_login_subtitle && subtitleList.length == 0) {
+    if (subtitleData.data.need_login_subtitle && subtitleList.length == 0) {
         throw new Error('视频字幕获取失败，原因：需要登录才能获取字幕！');
     }
 
-    if(subtitleList.length == 0) {
+    if (subtitleList.length == 0) {
         throw new Error('视频字幕获取失败，原因：该视频暂未提供字幕！');
     }
 
     let subtitleUrl = subtitleList[0].subtitle_url;
     if (subtitleUrl.startsWith('//')) {
-        subtitleUrl = 'https:' + subtitleUrl; 
+        subtitleUrl = 'https:' + subtitleUrl;
     }
 
     // 获取字幕json
     const subtitleJSONResponse = await fetch(
         subtitleUrl,
-        { headers: {'User-Agent': USER_AGENT} }
+        { headers: { 'User-Agent': USER_AGENT } }
     );
     const subtitleJSONData = await subtitleJSONResponse.json();
     const formattedSubtitles = bilibiliSubtitlesJSONToFormat(subtitleJSONData, format);
@@ -137,7 +137,7 @@ function downloadSubtitles(subtitles) {
     // 创建 shadow host
     const shadowHost = document.createElement('div');
     document.body.appendChild(shadowHost);
-    
+
     // 将 shadow root 附加到 host
     const shadowRoot = shadowHost.attachShadow({ mode: 'open' });
 
@@ -165,12 +165,12 @@ function downloadSubtitles(subtitles) {
  */
 function youtubeSubtitlesJSONToFormat(subtitles, format) {
     return subtitles.map((sub, index) => {
-        if(format == FORMAT_SRT) {
+        if (format == FORMAT_SRT) {
             const startTime = formatTime(sub.offset);
             const endTime = formatTime(sub.offset + sub.duration);
-    
+
             return `${index + 1}\n${startTime} --> ${endTime}\n${sub.text}\n`;
-        } else if(format == FORMAT_TEXT) {
+        } else if (format == FORMAT_TEXT) {
             return `${sub.text}`;
         }
     }).join('\n');
@@ -184,17 +184,17 @@ function youtubeSubtitlesJSONToFormat(subtitles, format) {
 function bilibiliSubtitlesJSONToFormat(subtitles, format) {
     const subtitlesBody = subtitles.body;
     return subtitlesBody.map((sub, index) => {
-        if(format == FORMAT_SRT) {
+        if (format == FORMAT_SRT) {
             const startTime = formatTime(sub.from);
             const endTime = formatTime(sub.to);
 
             return `${index + 1}\n${startTime} --> ${endTime}\n${sub.content}\n`;
-        } else if(format == FORMAT_TEXT) {
+        } else if (format == FORMAT_TEXT) {
             return `${sub.content}`;
         }
     }).join('\n');
 }
-  
+
 function formatTime(seconds) {
     const date = new Date(seconds * 1000);
     const hh = pad(date.getUTCHours());
@@ -204,7 +204,7 @@ function formatTime(seconds) {
 
     return `${hh}:${mm}:${ss},${ms.toString().padStart(3, '0')}`;
 }
-  
+
 function pad(number) {
     return number.toString().padStart(2, '0');
 }
@@ -212,12 +212,12 @@ function pad(number) {
 function generateTimestamp() {
     const date = new Date();
     return date.getFullYear().toString() +
-                      (date.getMonth() + 1).toString().padStart(2, '0') +
-                      date.getDate().toString().padStart(2, '0') +
-                      '_' +
-                      date.getHours().toString().padStart(2, '0') +
-                      date.getMinutes().toString().padStart(2, '0') +
-                      date.getSeconds().toString().padStart(2, '0');
+        (date.getMonth() + 1).toString().padStart(2, '0') +
+        date.getDate().toString().padStart(2, '0') +
+        '_' +
+        date.getHours().toString().padStart(2, '0') +
+        date.getMinutes().toString().padStart(2, '0') +
+        date.getSeconds().toString().padStart(2, '0');
 }
 
 
@@ -255,7 +255,7 @@ async function extractPDFText(pdfUrl) {
  */
 function isPDFUrl(url) {
     url = url.toLowerCase();
-    if(url.endsWith('.pdf')) {
+    if (url.endsWith('.pdf')) {
         return true;
     }
     // arxiv 的特殊处理一下，它不是以.pdf后缀结束的
@@ -269,18 +269,18 @@ function isPDFUrl(url) {
  * @returns 
  */
 function parseBase64Image(base64String) {
-  // 正则表达式用于匹配Base64字符串的格式
-  const regex = /^data:(.+);base64,(.*)$/;
-  const matches = base64String.match(regex);
+    // 正则表达式用于匹配Base64字符串的格式
+    const regex = /^data:(.+);base64,(.*)$/;
+    const matches = base64String.match(regex);
 
-  if (matches && matches.length === 3) {
-      return {
-          mimeType: matches[1],
-          data: matches[2]
-      };
-  } else {
-      throw new Error('Invalid Base64 string');
-  }
+    if (matches && matches.length === 3) {
+        return {
+            mimeType: matches[1],
+            data: matches[2]
+        };
+    } else {
+        throw new Error('Invalid Base64 string');
+    }
 }
 
 // 创建AI回复div
@@ -331,7 +331,7 @@ function generateUniqueId() {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
     for (let i = 0; i < 24; i++) {
-      result += characters.charAt(Math.floor(Math.random() * characters.length));
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
     }
     return result;
 }
@@ -341,7 +341,7 @@ function editUserMessage(messageDiv, originalText) {
     const textArea = document.createElement('textarea');
     textArea.value = originalText;
     textArea.className = 'edit-message-textarea';
-    
+
     const saveButton = document.createElement('button');
     saveButton.className = 'save-message-btn';
     saveButton.innerHTML = `
@@ -351,7 +351,7 @@ function editUserMessage(messageDiv, originalText) {
         <polyline points="7 3 7 8 15 8"></polyline>
       </svg>
     `;
-    
+
     const cancelButton = document.createElement('button');
     cancelButton.className = 'cancel-message-btn';
     cancelButton.innerHTML = `
@@ -360,19 +360,19 @@ function editUserMessage(messageDiv, originalText) {
         <line x1="6" y1="6" x2="18" y2="18"></line>
       </svg>
     `;
-    
+
     messageDiv.innerHTML = '';
     messageDiv.appendChild(textArea);
     messageDiv.appendChild(saveButton);
     messageDiv.appendChild(cancelButton);
-    
+
     saveButton.onclick = () => saveEditedMessage(messageDiv, textArea.value);
     cancelButton.onclick = () => cancelEdit(messageDiv, originalText);
-  }
-  
-  function saveEditedMessage(messageDiv, newText) {
+}
+
+function saveEditedMessage(messageDiv, newText) {
     messageDiv.innerHTML = newText;
-    
+
     // Add edit button back
     const editButton = document.createElement('button');
     editButton.className = 'edit-message-btn';
@@ -384,23 +384,23 @@ function editUserMessage(messageDiv, originalText) {
     `;
     editButton.onclick = () => editUserMessage(messageDiv, newText);
     messageDiv.appendChild(editButton);
-    
+
     // Remove all subsequent messages
     let nextElement = messageDiv.nextElementSibling;
     while (nextElement) {
-      const elementToRemove = nextElement;
-      nextElement = nextElement.nextElementSibling;
-      elementToRemove.remove();
+        const elementToRemove = nextElement;
+        nextElement = nextElement.nextElementSibling;
+        elementToRemove.remove();
     }
-    
+
     // Trigger new AI response
     const modelSelection = document.getElementById('model-selection');
     chatLLMAndUIUpdate(modelSelection.value, newText, []);
-  }
-  
-  function cancelEdit(messageDiv, originalText) {
+}
+
+function cancelEdit(messageDiv, originalText) {
     messageDiv.innerHTML = originalText;
-    
+
     // Add edit button back
     const editButton = document.createElement('button');
     editButton.className = 'edit-message-btn';
@@ -412,4 +412,16 @@ function editUserMessage(messageDiv, originalText) {
     `;
     editButton.onclick = () => editUserMessage(messageDiv, originalText);
     messageDiv.appendChild(editButton);
+}
+
+async function getBaseUrlAndApiKey(model) {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get([model], function (result) {
+            const modelInfo = result[model] || {};
+            resolve({
+                baseUrl: modelInfo.baseUrl,
+                apiKey: modelInfo.apiKey
+            });
+        });
+    });
 }
