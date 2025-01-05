@@ -7,13 +7,18 @@ async function verifyApiKeyConfigured(model) {
   let provider = '';
 
   // 先检查精确匹配的前缀
-  const mapping = MODEL_MAPPINGS.find(m => model.startsWith(m.prefix));
+  const mapping = MODEL_MAPPINGS.find(m =>
+    m.prefix.some(p => model.startsWith(p))
+  );
+
   if (mapping) {
     provider = mapping.provider;
   } else if (model.includes(MISTRAL_MODEL)) {
     provider = 'mistral';
   } else if (model.includes(OLLAMA_MODEL)) {
     provider = 'ollama';
+  } else if (model.includes(GROQ_MODEL)) {
+    provider = 'groq';
   }
 
   const { baseUrl, apiKey } = await getBaseUrlAndApiKey(provider);

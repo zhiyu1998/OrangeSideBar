@@ -47,7 +47,9 @@ function initChatHistory() {
  */
 async function getBaseUrlAndApiKey(model) {
   // 先检查精确匹配的前缀
-  const mapping = MODEL_MAPPINGS.find(m => model.startsWith(m.prefix));
+  const mapping = MODEL_MAPPINGS.find(m =>
+    m.prefix.some(p => model.startsWith(p))
+  );
   if (mapping) {
     // 如果找到匹配的映射，使用对应的 provider 配置
     const providerInfo = await getModelInfoFromChromeStorage(mapping.provider);
@@ -321,6 +323,11 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
   let realModelName = modelName
     .replace(new RegExp(MODEL_POSTFIX.GROQ, 'g'), "")
     .replace(new RegExp(MODEL_POSTFIX.OLLAMA, 'g'), "");
+
+  // 如果是 groq 模型,去掉 groq- 前缀
+  if (modelName.startsWith('groq-')) {
+    realModelName = realModelName.replace('groq-', '');
+  }
 
   const { temperature, topP, maxTokens, frequencyPenalty, presencePenalty } = await getModelParameters();
 

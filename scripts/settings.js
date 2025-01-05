@@ -305,7 +305,8 @@ async function getModelList(baseUrl, model, apiKey) {
           // 从 MODEL_MAPPINGS 获取所有 OpenAI 相关的前缀
           const validPrefixes = MODEL_MAPPINGS
             .filter(m => m.provider === 'gpt')
-            .map(m => m.prefix);
+            .map(m => m.prefix)
+            .flat();  // 展平数组
 
           // 检查是否以任一前缀开头
           const hasValidPrefix = validPrefixes.some(prefix =>
@@ -332,6 +333,13 @@ async function getModelList(baseUrl, model, apiKey) {
         id: model.name.replace('models/', ''),  // 移除 'models/' 前缀
         object: 'model',
         owned_by: 'google'
+      }));
+    } else if (model.includes(GROQ_MODEL)) {
+      // Groq 格式处理 - 添加 groq- 前缀
+      return data.data.map(model => ({
+        id: `groq-${model.id}`,  // 添加 groq- 前缀
+        object: model.object,
+        owned_by: model.owned_by
       }));
     } else {
       // 其他供应商的格式处理

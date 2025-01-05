@@ -57,80 +57,39 @@ const OLLAMA_MODEL = "ollama";
 
 // 模型映射配置
 const MODEL_MAPPINGS = [
+  // OpenAI Models
   {
-    prefix: 'gpt-',
-    provider: 'gpt',
-    displayName: 'OpenAI',
-    description: 'OpenAI GPT Models'
+    prefix: [
+      'gpt-',
+      'claude-',
+      'text-',
+      'dall-e-',
+      'tts-',
+      'whisper-',
+      'glm-',
+      'moonshot-',
+      'deepseek-',
+      'yi-'
+    ],
+    provider: 'gpt'
   },
+
+  // Azure OpenAI Models  
   {
-    prefix: 'claude-',
-    provider: 'gpt',  // 使用 OpenAI 的配置
-    displayName: 'Anthropic',
-    description: 'Anthropic Claude Models'
+    prefix: ['azure-'],
+    provider: 'azure'
   },
+
+  // Google Gemini Models
   {
-    prefix: 'text-',
-    provider: 'gpt',
-    displayName: 'OpenAI',
-    description: 'Text Related Models'
+    prefix: ['gemini-'],
+    provider: 'gemini'
   },
+
+  // Groq Models
   {
-    prefix: 'dall-e-',
-    provider: 'gpt',
-    displayName: 'OpenAI',
-    description: 'DALL-E Image Models'
-  },
-  {
-    prefix: 'tts-',
-    provider: 'gpt',
-    displayName: 'OpenAI',
-    description: 'Text-to-Speech Models'
-  },
-  {
-    prefix: 'whisper-',
-    provider: 'gpt',
-    displayName: 'OpenAI',
-    description: 'Whisper Speech Recognition'
-  },
-  {
-    prefix: 'glm-',
-    provider: 'gpt',
-    displayName: 'OpenAI',
-    description: 'GLM Models'
-  },
-  {
-    prefix: 'moonshot-',
-    provider: 'gpt',
-    displayName: 'OpenAI',
-    description: 'Moonshot Models'
-  },
-  {
-    prefix: 'deepseek-',
-    provider: 'gpt',
-    displayName: 'OpenAI',
-    description: 'DeepSeek Models'
-  },
-  {
-    prefix: 'yi-',
-    provider: 'gpt',
-    displayName: 'OpenAI',
-    description: 'Yi Models'
-  },
-  {
-    prefix: 'azure-',
-    provider: 'azure',
-    displayName: 'Azure OpenAI'
-  },
-  {
-    prefix: 'gemini-',
-    provider: 'gemini',
-    displayName: 'Google Gemini'
-  },
-  {
-    prefix: 'groq-',
-    provider: 'groq',
-    displayName: 'Groq'
+    prefix: ['groq-'],
+    provider: 'groq'
   }
 ];
 
@@ -144,7 +103,7 @@ const MODEL_POSTFIX = {
 const GPT_DEFAULT_MODEL = "gpt-3.5-turbo";
 const AZURE_GPT_DEFAULT_MODEL = "azure-gpt-35-turbo";
 const GEMINI_DEFAULT_MODEL = "gemini-2.0-flash-exp";
-const GROQ_DEFAULT_MODEL = "gemma-7b-it";
+const GROQ_DEFAULT_MODEL = "llama-3.2-1b-preview";
 const MISTRA_DEFAULTL_MODEL = "open-mixtral-8x7b";
 
 
