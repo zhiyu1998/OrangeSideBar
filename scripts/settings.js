@@ -1,70 +1,98 @@
-function storeParams(tabName, param1, param2, saveMessage) {
-  let modelInfo = {};
-  if(tabName == 'quick-trans') {
-    modelInfo[tabName] = {
-      enabled: param1,
-      selectedModel: param2
-    };
-  } else {
-    modelInfo[tabName] = {
-      baseUrl: param1,
-      apiKey: param2
-    };
-  }
+function storeParams(tabName, param1, param2, saveMessage, models = null) {
+  // 获取已存储的数据
+  chrome.storage.sync.get(tabName, function (result) {
+    let modelInfo = result[tabName] || {};
 
-  chrome.storage.sync.set(modelInfo, function() {
-    setTimeout(() => {
+    if (tabName == 'quick-trans') {
+      modelInfo.enabled = param1;
+      modelInfo.selectedModel = param2;
+    } else {
+      // 保存 API 配置，同时保留现有的 models 数据
+      modelInfo = {
+        ...modelInfo,  // 保留现有数据
+        baseUrl: param1,
+        apiKey: param2,
+        models: models || modelInfo.models || [] // 如果传入了新的模型列表就使用新的，否则保留现有的
+      };
+    }
+
+    // 保存到 Chrome 存储
+    chrome.storage.sync.set({ [tabName]: modelInfo }, function () {
+      console.log('Saved:', { [tabName]: modelInfo });
+
+      // 显示保存成功消息
       saveMessage.style.display = 'block';
       setTimeout(() => {
-          saveMessage.style.display = 'none';
+        saveMessage.style.display = 'none';
       }, 1000);
-    }, 1000);
+
+      // 如果有模型列表，更新显示
+      if (models) {
+        updateModelSelect(models, tabName);
+      }
+    });
   });
 }
 
 function openTab(evt, tabName) {
   // 隐藏所有tab content
   const tabContents = document.querySelectorAll('.tab-content');
-  tabContents.forEach(function(content) {
-      content.style.display = 'none';
+  tabContents.forEach(function (content) {
+    content.style.display = 'none';
   });
 
   // 激活当前tab content
   const tablinks = document.getElementsByClassName("tab-link");
   for (i = 0; i < tablinks.length; i++) {
-      tablinks[i].className = tablinks[i].className.replace(" active", "");
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
   }
   const activeTabContent = document.getElementById(tabName);
   activeTabContent.style.display = "block";
   evt.currentTarget.className += " active";
 
-  // 从Chrome存储获取API key
-  chrome.storage.sync.get(tabName, function(result) {
+  // 从Chrome存储获取配置
+  chrome.storage.sync.get(tabName, function (result) {
+    console.log('Loading tab data for:', tabName, result);
+
     const modelInfo = result[tabName];
     if (modelInfo) {
-      const apiKey = modelInfo.apiKey;
-      if(apiKey) {
+      console.log('Found stored model info:', modelInfo);
+
+      // 设置API Key
+      if (modelInfo.apiKey) {
         const apiKeyInput = activeTabContent.querySelector('.api-key-input');
-        apiKeyInput.value = apiKey; 
+        if (apiKeyInput) {
+          apiKeyInput.value = modelInfo.apiKey;
+          console.log('Set API key successfully');
+        }
       }
-      const baseUrl = modelInfo.baseUrl;
-      if(baseUrl) {
+
+      // 设置Base URL
+      if (modelInfo.baseUrl) {
         const baseUrlInput = activeTabContent.querySelector('.baseurl-input');
-        baseUrlInput.value = baseUrl;
+        if (baseUrlInput) {
+          baseUrlInput.value = modelInfo.baseUrl;
+          console.log('Set base URL successfully');
+        }
       }
-      const enabled = modelInfo.enabled;
-      if(enabled) {
+
+      // 设置快捷翻译开关
+      if (modelInfo.enabled !== undefined) {
         const toggleSwitch = document.getElementById('quickTransToggle');
-        toggleSwitch.checked = enabled;
+        if (toggleSwitch) {
+          toggleSwitch.checked = modelInfo.enabled;
+        }
       }
-      const selectedModel = modelInfo.selectedModel;
-      if(selectedModel) {
-        const modelSelection = document.querySelector('#model-select');
-        modelSelection.value = selectedModel;
+
+      // 设置模型列表
+      if (modelInfo.models && modelInfo.models.length > 0) {
+        console.log('Found stored models:', modelInfo.models);
+        updateModelSelect(modelInfo.models, tabName);
       }
+    } else {
+      console.log('No stored data found for tab:', tabName);
     }
   });
-
 }
 
 function togglePasswordVisibility(button) {
@@ -73,23 +101,23 @@ function togglePasswordVisibility(button) {
   var eyeSlash = button.querySelector('.bi-eye-slash');
 
   if (input.type === 'password') {
-      input.type = 'text';
-      eye.style.display = 'block';
-      eyeSlash.style.display = 'none';
+    input.type = 'text';
+    eye.style.display = 'block';
+    eyeSlash.style.display = 'none';
   } else {
-      input.type = 'password';
-      eye.style.display = 'none';
-      eyeSlash.style.display = 'block';
+    input.type = 'password';
+    eye.style.display = 'none';
+    eyeSlash.style.display = 'block';
   }
 }
 
 
 /**
  * 获取模型基础信息，以便于检查模型接口配置的可用性
- * @param {string} baseUrl 
- * @param {string} model 
- * @param {string} apiKey 
- * @returns 
+ * @param {string} baseUrl
+ * @param {string} model
+ * @param {string} apiKey
+ * @returns
  */
 function getModelBaseParamForCheck(baseUrl, model, apiKey) {
   let body = '';
@@ -98,9 +126,9 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
       let apiUrl = baseUrl || defaultBaseUrl;
       apiUrl += apiPath;
 
-      if(model.includes(GEMINI_MODEL)) {
+      if (model.includes(GEMINI_MODEL)) {
         apiUrl = apiUrl.replace('{MODEL_NAME}', defaultModel).replace('{API_KEY}', apiKey);
-        
+
         body = JSON.stringify({
           contents: [{
             "role": "user",
@@ -109,7 +137,7 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
             }]
           }]
         });
-      } else if(model.includes(AZURE_MODEL)) {
+      } else if (model.includes(AZURE_MODEL)) {
         apiUrl = apiUrl.replace('{MODEL_NAME}', defaultModel);
         body = JSON.stringify({
           stream: true,
@@ -120,7 +148,7 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
             }
           ]
         });
-      } else if(model.includes(OLLAMA_MODEL)) {
+      } else if (model.includes(OLLAMA_MODEL)) {
         apiUrl = baseUrl || defaultBaseUrl;
         apiUrl += OLLAMA_LIST_MODEL_PATH;
       } else {
@@ -136,7 +164,7 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
         });
       }
 
-      return {apiUrl, body};
+      return { apiUrl, body };
     }
   }
 }
@@ -144,13 +172,13 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
 function getToolsParamForCheck(baseUrl, model, apiKey) {
   let body = '';
   for (const { key, defaultBaseUrl, apiPath, defaultModel } of DEFAULT_TOOL_URLS) {
-    if(model.includes(key)) {
+    if (model.includes(key)) {
       let apiUrl = baseUrl || defaultBaseUrl;
       apiUrl += apiPath;
 
-      if(model.includes(SERPAPI_KEY)) {
+      if (model.includes(SERPAPI_KEY)) {
         apiUrl = apiUrl.replace('{API_KEY}', apiKey).replace('{QUERY}', 'apple');
-      } else if(model.includes(DALLE_KEY)) {
+      } else if (model.includes(DALLE_KEY)) {
         body = JSON.stringify({
           model: defaultModel,
           prompt: "A cute baby sea otter",
@@ -159,20 +187,133 @@ function getToolsParamForCheck(baseUrl, model, apiKey) {
         });
       }
 
-      return {apiUrl, body};
+      return { apiUrl, body };
     }
   }
 }
 
 /**
- * 用于连通性测试
- * @param {string} baseUrl 
- * @param {string} apiKey 
- * @param {string} model 
- * @param {object} resultElement 
+ * 获取模型列表
+ * @param {string} baseUrl 基础URL
+ * @param {string} model 模型标识
+ * @param {string} apiKey API密钥
+ * @returns {Promise<Array>} 模型列表
+ */
+async function getModelList(baseUrl, model, apiKey) {
+  let apiUrl = baseUrl;
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+
+  // 根据不同模型供应商设置不同的API路径和headers
+  if (model.includes(AZURE_MODEL)) {
+    apiUrl += AZURE_MODELS_API_PATH;
+    headers['api-key'] = apiKey;
+  } else if (model.includes(GEMINI_MODEL)) {
+    apiUrl += GEMINI_MODELS_API_PATH.replace('{API_KEY}', apiKey);
+  } else if (model.includes(GROQ_MODEL)) {
+    apiUrl += GROQ_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(MISTRAL_MODEL)) {
+    apiUrl += MISTRAL_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(ZHIPU_MODEL)) {
+    apiUrl += ZHIPU_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(MOONSHOT_MODEL)) {
+    apiUrl += MOONSHOT_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(DEEPSEEK_MODEL)) {
+    apiUrl += DEEPSEEK_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(YI_MODEL)) {
+    apiUrl += YI_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(OLLAMA_MODEL)) {
+    apiUrl += OLLAMA_LIST_MODEL_PATH;
+  } else {
+    apiUrl += OPENAI_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: headers
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch models');
+    }
+
+    const data = await response.json();
+
+    // 处理不同的返回格式
+    if (model.includes(GEMINI_MODEL)) {
+      // Gemini 格式处理
+      return data.models.map(model => ({
+        id: model.name.replace('models/', ''),  // 移除 'models/' 前缀
+        object: 'model',
+        owned_by: 'google'
+      }));
+    } else {
+      // OpenAI 兼容格式
+      return data.data || [];
+    }
+  } catch (error) {
+    console.error('Error fetching models:', error);
+    return [];
+  }
+}
+
+/**
+ * 更新模型列表
+ * @param {Array} models 模型列表
+ * @param {string} tabName 当前标签页名称
+ */
+function updateModelSelect(models, tabName) {
+  // 获取当前标签页下的 model-list
+  const tabContent = document.getElementById(tabName);
+  console.log('Tab content:', tabContent); // 调试日志
+
+  const modelList = tabContent.querySelector('#model-list');
+  console.log('Model list element:', modelList); // 调试日志
+
+  if (!modelList) {
+    console.warn('No model list found in tab:', tabName);
+    return;
+  }
+
+  const modelItems = models
+    .filter(model => model.id && !model.id.includes('deprecated'))
+    .map(model => {
+      console.log('Processing model:', model); // 调试日志
+      return `<li>${model.id}</li>`;
+    })
+    .join('');
+
+  console.log('Generated model items:', modelItems); // 调试日志
+
+  // 保存模型列表到存储
+  chrome.storage.sync.get(tabName, function (result) {
+    const modelInfo = result[tabName] || {};
+    modelInfo.models = models;
+
+    // 保留原有的配置
+    chrome.storage.sync.set({
+      [tabName]: modelInfo
+    }, function () {
+      // 更新列表
+      modelList.innerHTML = modelItems;
+      console.log('Updated model list HTML'); // 调试日志
+    });
+  });
+}
+
+/**
+ * 修改现有的checkAPIAvailable函数
  */
 function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
-
   var apiUrl, body;
 
   // 为了复用该函数，这里做一些trick
@@ -181,15 +322,14 @@ function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
   } else {
     ({ apiUrl, body } = getModelBaseParamForCheck(baseUrl, model, apiKey));
   }
-  
-  
+
   const headers = {
     'Content-Type': 'application/json'
   };
 
   if (model.includes(AZURE_MODEL)) {
     headers['api-key'] = apiKey;
-  } else if(!model.includes(GEMINI_MODEL)) {
+  } else if (!model.includes(GEMINI_MODEL)) {
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
@@ -199,99 +339,140 @@ function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
     body: body
   };
 
-  if(model.includes(OLLAMA_MODEL) || model.includes(SERPAPI_KEY)) {
+  if (model.includes(OLLAMA_MODEL) || model.includes(SERPAPI_KEY)) {
     params = {
       method: "GET"
     }
   }
 
+  // 先测试连通性
   fetch(apiUrl, params)
-  .then(response => {
+    .then(response => {
       if (response.ok) {
         resultElement.textContent = '检查通过';
-        setTimeout(() => {
-          resultElement.style.display = "block";
-          setTimeout(() => {
-            resultElement.style.display = 'none';
-          }, 1000);
-        }, 1000);
-      } else {
-          throw new Error('API 请求失败，状态码：' + response.status);
-      }
-  })
-  .catch(error => {
-      resultElement.textContent = '检查未通过';
-      setTimeout(() => {
         resultElement.style.display = "block";
+
+        // 连通性测试通过后获取模型列表
+        getModelList(baseUrl, model, apiKey)
+          .then(models => {
+            if (models && models.length > 0) {
+              console.log('Retrieved models:', models);
+
+              // 保存配置和模型列表
+              const tabContent = resultElement.closest('.tab-content');
+              const tabId = tabContent.id;
+              // 使用正确的 saveMessage 元素
+              const saveMessage = tabContent.querySelector('.save-message');
+              // 直接使用 storeParams 函数保存所有数据
+              storeParams(tabId, baseUrl, apiKey, saveMessage, models);
+            } else {
+              console.warn('No models returned from API');
+            }
+          })
+          .catch(error => {
+            console.error('Error updating models:', error);
+          });
+
         setTimeout(() => {
           resultElement.style.display = 'none';
         }, 1000);
+      } else {
+        throw new Error('API 请求失败，状态码：' + response.status);
+      }
+    })
+    .catch(error => {
+      console.error('API check failed:', error);
+      resultElement.textContent = '检查未通过';
+      resultElement.style.display = "block";
+      setTimeout(() => {
+        resultElement.style.display = 'none';
       }, 1000);
-  });
+    });
 }
 
 
 /**
  * 主程序
  */
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
+  // 添加这段代码来加载默认标签页
+  const defaultTab = document.querySelector('.tab-link[data-tab="general"]');
+  if (defaultTab) {
+    // 模拟点击第一个标签页
+    defaultTab.click();
+  }
+
   // 点击tab签
   var tabLinks = document.querySelectorAll('.tab-link');
-  tabLinks.forEach(function(link) {
-      link.addEventListener('click', function(event) {
-          var tabName = this.getAttribute('data-tab');
-          openTab(event, tabName);
-      });
+  tabLinks.forEach(function (link) {
+    link.addEventListener('click', function (event) {
+      var tabName = this.getAttribute('data-tab');
+      openTab(event, tabName);
+    });
   });
 
   // 点击扩展
   document.querySelectorAll('.collapsible').forEach(button => {
     button.addEventListener('click', () => {
-        button.classList.toggle('active');
-        const content = button.nextElementSibling;
-        content.style.display = content.style.display === 'flex' ? 'none' : 'flex';
+      button.classList.toggle('active');
+      const content = button.nextElementSibling;
+      content.style.display = content.style.display === 'flex' ? 'none' : 'flex';
     });
   });
 
   // 点击保存按钮
   var saveButtons = document.querySelectorAll('.save-button');
-  saveButtons.forEach(function(button) {
-      button.addEventListener('click', function() {
-        // 获取外层div的ID
-        var tabContent = this.closest('.tab-content');
-        var tabId = tabContent.id;
+  saveButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      var tabContent = this.closest('.tab-content');
+      var tabId = tabContent.id;
+      console.log('Saving data for tab:', tabId);
 
-        // 获取api key
-        var input = tabContent.querySelector('.api-key-input');
-        var apiKey = ''; 
-        if(input) {
-          apiKey = input.value;
-        }
+      // 获取api key
+      var input = tabContent.querySelector('.api-key-input');
+      var apiKey = '';
+      if (input) {
+        apiKey = input.value;
+      }
 
-        // api 代理地址
-        var baseUrlInput = tabContent.querySelector('.baseurl-input');
-        var baseUrl = baseUrlInput.value;
+      // api 代理地址
+      var baseUrlInput = tabContent.querySelector('.baseurl-input');
+      var baseUrl = baseUrlInput.value;
 
-        // 保存KV & 显示保存成功
+      // 获取当前的模型列表
+      const modelList = tabContent.querySelector('#model-list');
+      let currentModels = [];
+      if (modelList) {
+        // 从存储中获取当前的模型列表
+        chrome.storage.sync.get(tabId, function (result) {
+          currentModels = result[tabId]?.models || [];
+          console.log('Saving values:', { tabId, baseUrl, apiKey, models: currentModels });
+          // 保存所有数据
+          var saveMessage = tabContent.querySelector('.save-message');
+          storeParams(tabId, baseUrl, apiKey, saveMessage, currentModels);
+        });
+      } else {
+        console.log('Saving values:', { tabId, baseUrl, apiKey });
         var saveMessage = tabContent.querySelector('.save-message');
         storeParams(tabId, baseUrl, apiKey, saveMessage);
-      });
+      }
+    });
   });
 
   // 点击检查接口可用性按钮
   let checkApiBtn = document.querySelectorAll('.checkapi-button');
-  checkApiBtn.forEach(function(button) {
-    button.addEventListener('click', function() {
+  checkApiBtn.forEach(function (button) {
+    button.addEventListener('click', function () {
       // 获取外层div的ID
       var tabContent = this.closest('.tab-content');
       var tabId = tabContent.id;
 
       const resultElement = tabContent.querySelector('.checkapi-message');
-      
+
       // 获取api key
       var input = tabContent.querySelector('.api-key-input');
       var apiKey = '';
-      if(input) {
+      if (input) {
         apiKey = input.value;
       }
 
@@ -306,15 +487,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // 点击明文/密文展示秘钥
   var toggleButtons = document.querySelectorAll('.toggle-password');
-  toggleButtons.forEach(function(button) {
-      button.addEventListener('click', function() {
-          togglePasswordVisibility(this);
-      });
+  toggleButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      togglePasswordVisibility(this);
+    });
   });
 
   // 保存快捷翻译配置
   const quickTransBtn = document.querySelector('.quicktrans-save-btn');
-  quickTransBtn.addEventListener('click', function() {
+  quickTransBtn.addEventListener('click', function () {
     // 获取外层div的ID
     var tabContent = this.closest('.tab-content');
     var tabId = tabContent.id;
