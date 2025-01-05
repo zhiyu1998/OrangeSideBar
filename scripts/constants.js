@@ -93,7 +93,6 @@ const MODEL_MAPPINGS = [
     displayName: 'OpenAI',
     description: 'Whisper Speech Recognition'
   },
-  ,
   {
     prefix: 'glm-',
     provider: 'gpt',
