@@ -1,14 +1,17 @@
-![OrangeSideBarAIChatGPT-modified.png](https://s2.loli.net/2025/01/05/XYGifeDpurHO7mV.png)
+<div align="center">
+<a href="https://v2.nonebot.dev/store"><img src="https://s2.loli.net/2025/01/05/XYGifeDpurHO7mV.png" width="180" height="180" alt="NoneBotPluginLogo"></a>
 
 # OrangeSideBar
 
-大橘 AI 侧边栏：一个开源的网页侧边栏对话总结工具，支持 OpenAI、Gemini 规范的 API，支持自动摘要、网页及视频翻译、多轮对话等功能
+_✨大橘 AI 侧边栏：一个开源的网页侧边栏对话总结工具，支持 OpenAI、Gemini 规范的 API，支持自动摘要、网页及视频翻译、多轮对话等功能✨_
+
+</div>
 
 ![](./public/sidebar.png)
 
 ![](./public/settings.png)
 
-## 功能支持
+## 🚀 功能支持
 - [x] 一键自动摘要
 - [x] 一键网页翻译
 - [x] 一键视频翻译
@@ -19,7 +22,16 @@
 - [x] 支持划词翻译
 - [x] 支持输'/'触发快捷功能，快捷功能包括翻译、摘要、润色、图像转文本、代码解释
 - [x] 支持工具箱：联网工具 SerpApi、画图工具 DALLE 3
-- [ ] OpenAI 规范 API 支持
+- [x] OpenAI 规范 API 支持
+
+### 🧪 已测试过的规范
+
+- [x] OpenAI
+- [x] Gemini
+- [ ] Azure OpenAl
+- [x] groq
+- [ ] Mistral
+- [ ] Ollama
 
 ## 🌼 致谢
 
