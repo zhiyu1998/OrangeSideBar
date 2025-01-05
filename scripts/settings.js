@@ -276,18 +276,6 @@ async function getModelList(baseUrl, model, apiKey) {
   } else if (model.includes(MISTRAL_MODEL)) {
     apiUrl += MISTRAL_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
-  } else if (model.includes(ZHIPU_MODEL)) {
-    apiUrl += ZHIPU_MODELS_API_PATH;
-    headers['Authorization'] = `Bearer ${apiKey}`;
-  } else if (model.includes(MOONSHOT_MODEL)) {
-    apiUrl += MOONSHOT_MODELS_API_PATH;
-    headers['Authorization'] = `Bearer ${apiKey}`;
-  } else if (model.includes(DEEPSEEK_MODEL)) {
-    apiUrl += DEEPSEEK_MODELS_API_PATH;
-    headers['Authorization'] = `Bearer ${apiKey}`;
-  } else if (model.includes(YI_MODEL)) {
-    apiUrl += YI_MODELS_API_PATH;
-    headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (model.includes(OLLAMA_MODEL)) {
     apiUrl += OLLAMA_LIST_MODEL_PATH;
   } else {
@@ -314,15 +302,10 @@ async function getModelList(baseUrl, model, apiKey) {
       // OpenAI 格式处理
       const filteredModels = data.data
         .filter(model => {
-          // 包含所有主流模型
-          const validPrefixes = [
-            'gpt-',
-            'claude-',     // Anthropic Claude
-            'text-',       // 文本相关模型
-            'dall-e-',     // DALL-E 图像模型
-            'tts-',        // 语音模型
-            'whisper-'     // Whisper 语音识别
-          ];
+          // 从 MODEL_MAPPINGS 获取所有 OpenAI 相关的前缀
+          const validPrefixes = MODEL_MAPPINGS
+            .filter(m => m.provider === 'gpt')
+            .map(m => m.prefix);
 
           // 检查是否以任一前缀开头
           const hasValidPrefix = validPrefixes.some(prefix =>
