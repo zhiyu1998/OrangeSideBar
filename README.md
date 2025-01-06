@@ -1,7 +1,7 @@
 <div align="center">
 <a href="https://v2.nonebot.dev/store"><img src="https://s2.loli.net/2025/01/05/XYGifeDpurHO7mV.png" width="180" height="180" alt="NoneBotPluginLogo"></a>
 
-# OrangeSideBar
+# OrangeSideBar - 网页总结助手
 
 _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 OpenAI、Gemini 规范的 API，支持自动摘要、网页及视频翻译、多轮对话等功能✨_
 
