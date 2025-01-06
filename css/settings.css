@@ -296,3 +296,74 @@ input:checked + .slider:before {
   display: inline-block;
   font-size: 14px;
 }
+
+/* 模型选择容器样式 */
+.model-selection-container {
+  margin: 20px 0;
+  width: 50%;
+}
+
+/* 模型选择下拉框基础样式 */
+.model-select {
+  width: 100%;
+  padding: 10px 15px;
+  font-size: 14px;
+  color: #E2E8F0;
+  background-color: #2D3748;
+  border: 1px solid #4A5568;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  position: relative;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23E2E8F0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+/* 下拉框hover状态 */
+.model-select:hover {
+  border-color: #718096;
+}
+
+/* 下拉框focus状态 */
+.model-select:focus {
+  border-color: #4299E1;
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+}
+
+/* 选项组样式 */
+.model-select optgroup {
+  background-color: #1A202C;
+  color: #A0AEC0;
+  font-weight: 600;
+  padding: 8px 0;
+}
+
+/* 选项样式 */
+.model-select option {
+  background-color: #2D3748;
+  color: #E2E8F0;
+  padding: 8px 15px;
+}
+
+/* 选项hover状态 */
+.model-select option:hover {
+  background-color: #4A5568;
+}
+
+/* 选项选中状态 */
+.model-select option:checked {
+  background-color: #4A5568;
+  color: #FFFFFF;
+}
+
+/* 标签样式优化 */
+.select-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #E2E8F0;
+}
