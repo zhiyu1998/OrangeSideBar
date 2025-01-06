@@ -24,13 +24,14 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 - [x] 支持工具箱：联网工具 SerpApi、画图工具 DALLE 3
 - [x] OpenAI 规范 API 支持
 
-### 🧪 已测试过的规范
+### 🧪 已测试过的规范 && 未来会支持的规范
 
 - [x] OpenAI
 - [x] Gemini
 - [x] 硅基流动
 - [x] 智谱清言
 - [x] 月之暗面
+- [ ] DeepSeek
 - [ ] Azure OpenAl
 - [x] groq
 - [x] Mistral
