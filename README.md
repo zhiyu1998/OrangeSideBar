@@ -29,6 +29,7 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 - [x] OpenAI
 - [x] Gemini
 - [x] 硅基流动
+- [x] 智谱清言
 - [ ] Azure OpenAl
 - [x] groq
 - [x] Mistral

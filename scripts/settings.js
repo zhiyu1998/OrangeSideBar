@@ -258,6 +258,9 @@ async function getModelList(baseUrl, model, apiKey) {
   if (model === PROVIDERS.GPT) {  // 修改这里，使用严格相等
     apiUrl += OPENAI_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(PROVIDERS.GLM)) {
+    apiUrl += GLM_CHAT_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (model.includes(PROVIDERS.AZURE)) {
     apiUrl += AZURE_MODELS_API_PATH;
     headers['api-key'] = apiKey;
@@ -466,6 +469,23 @@ function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
               console.log('Formatted models:', formattedModels); // 添加日志
 
               // 直接使用 storeParams 函数保存所有数据
+              storeParams(tabId, baseUrl, apiKey, saveMessage, formattedModels);
+            } else if (model.includes(PROVIDERS.GLM)) {
+              // 这里特殊处理一下智谱清言模型，因为没有 models API 接口
+
+              // 保存配置和模型列表
+              const tabContent = resultElement.closest('.tab-content');
+              const tabId = tabContent.id;
+              console.log('Saving models for tab:', tabId); // 添加日志
+
+              // 使用正确的 saveMessage 元素
+              const saveMessage = tabContent.querySelector('.save-message');
+
+              const formattedModels = GLM_MODELS.map(model => ({
+                id: model,
+                object: 'model',
+                owned_by: 'glm'
+              }));
               storeParams(tabId, baseUrl, apiKey, saveMessage, formattedModels);
             } else {
               console.warn('No models returned from API');

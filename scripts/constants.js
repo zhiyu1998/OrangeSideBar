@@ -32,6 +32,9 @@ const OPENAI_DALLE_API_PATH = "/v1/images/generations";
 const SILICONFLOW_BASE_URL = "https://api.siliconflow.cn";
 const SILICONFLOW_CHAT_API_PATH = "/v1/chat/completions";
 
+const GLM_BASE_URL = "https://open.bigmodel.cn";
+const GLM_CHAT_API_PATH = "/api/paas/v4/chat/completions";
+
 const AZURE_OPENAI_BASE_URL = "https://{YOUR_RESOURCE_NAME}.openai.azure.com";
 const AZURE_OPENAI_CHAT_API_PATH = "/openai/deployments/{MODEL_NAME}/chat/completions?api-version=2024-04-01-preview";
 
@@ -51,6 +54,7 @@ const OLLAMA_LIST_MODEL_PATH = "/api/tags";
 // 添加供应商相关常量
 const PROVIDERS = {
   GPT: 'gpt',
+  GLM: 'glm',
   AZURE: 'azure',
   GEMINI: 'gemini',
   ANTHROPIC: 'anthropic',
@@ -63,6 +67,7 @@ const PROVIDERS = {
 // 供应商显示名称映射
 const PROVIDER_DISPLAY_NAMES = {
   [PROVIDERS.GPT]: 'OpenAI',
+  [PROVIDERS.GLM]: '智谱清言',
   [PROVIDERS.AZURE]: 'Azure OpenAI',
   [PROVIDERS.GEMINI]: 'Google Gemini',
   [PROVIDERS.ANTHROPIC]: 'Anthropic',
@@ -94,6 +99,12 @@ const MODEL_MAPPINGS = [
   {
     prefix: ['siliconflow-'],
     provider: PROVIDERS.SILICONFLOW
+  },
+
+  // GLM Models
+  {
+    prefix: ['GLM-'],
+    provider: PROVIDERS.GLM
   },
 
   // Azure OpenAI Models
@@ -128,17 +139,22 @@ const GEMINI_DEFAULT_MODEL = "gemini-2.0-flash-exp";
 const GROQ_DEFAULT_MODEL = "llama-3.2-1b-preview";
 const MISTRA_DEFAULTL_MODEL = "open-mistral-nemo";
 const SILICONFLOW_DEFAULT_MODEL = "Qwen/Qwen2.5-7B-Instruct";
+const GLM_DEFAULT_MODEL = "GLM-4-Flash";
 
 // 支持图像的模型
 const IMAGE_SUPPORT_MODELS = ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'azure-gpt-4-turbo', 'azure-gpt-4o', 'gemini-1.0-pro-vision-latest', 'gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp', 'glm-4v', 'chatgpt-4o-latest'];
 const ANY_FILE_SUPPORT_MODELS = ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp'];
 const DEFAULT_FILE_LOGO_PATH = "/images/file.png";
 
+// 智谱清言模型
+const GLM_MODELS = ["GLM-4", "GLM-4-Plus", "GLM-4-Air", "GLM-4-AirX", "GLM-4-Flash", "GLM 4V", "GLM-4V-Plus", "GLM-4-AllTools"];
+
 // 各模型默认的baseurl
 const DEFAULT_LLM_URLS = [
   { key: PROVIDERS.AZURE, baseUrl: AZURE_OPENAI_BASE_URL, apiPath: AZURE_OPENAI_CHAT_API_PATH, defaultModel: AZURE_GPT_DEFAULT_MODEL },
   { key: PROVIDERS.GPT, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: GPT_DEFAULT_MODEL },
   { key: PROVIDERS.SILICONFLOW, baseUrl: SILICONFLOW_BASE_URL, apiPath: SILICONFLOW_CHAT_API_PATH, defaultModel: SILICONFLOW_DEFAULT_MODEL },
+  { key: PROVIDERS.GLM, baseUrl: GLM_BASE_URL, apiPath: GLM_CHAT_API_PATH, defaultModel: GLM_DEFAULT_MODEL },
   { key: PROVIDERS.CLAUDE, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: 'claude-3-opus-20240229' },
   { key: PROVIDERS.GEMINI, baseUrl: GEMINI_BASE_URL, apiPath: GEMINI_CHA_API_PAH, defaultModel: GEMINI_DEFAULT_MODEL },
   { key: PROVIDERS.GROQ, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL },
