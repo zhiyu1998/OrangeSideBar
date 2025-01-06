@@ -31,6 +31,9 @@ async function verifyApiKeyConfigured(model) {
   // 如果是 Claude 模型，使用 OpenAI 的 baseUrl
   let effectiveBaseUrl = baseUrl;
 
+  // 获取供应商的显示名称
+  const providerDisplayName = getProviderDisplayName(provider);
+
   // 检查配置是否完整
   if (effectiveBaseUrl == null || (needsApiKey && apiKey == null)) {
     // 隐藏初始推荐内容
@@ -39,19 +42,6 @@ async function verifyApiKeyConfigured(model) {
     const featureDiv = document.querySelector('.feature-container');
     featureDiv.style.display = 'none';
 
-    // 获取供应商的显示名称
-    const providerDisplayName = {
-      gpt: 'OpenAI',
-      azure: 'Azure OpenAI',
-      gemini: 'Google Gemini',
-      anthropic: 'Anthropic',
-      groq: 'Groq',
-      mistral: 'Mistral AI',
-      ollama: 'Ollama',
-      siliconflow: 'Siliconflow'
-    }[provider] || provider.toUpperCase();
-
-    // 初始化对话内容
     var contentDiv = document.querySelector('.chat-content');
     contentDiv.innerHTML = `请先去设置 ${providerDisplayName} Model 和 API KEY.<br><br>Note: API KEY仅缓存在 Chrome 本地存储空间，不会上传服务器，以保证安全和隐私.`;
     return false;

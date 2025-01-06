@@ -23,22 +23,14 @@ function storeParams(tabName, param1, param2, saveMessage, models = null) {
       };
 
       // 如果是支持的模型供应商，更新全局模型列表
-      if (models && [
-        'gpt',           // OpenAI
-        'azure',         // Azure OpenAI
-        'gemini',        // Google Gemini
-        'anthropic',     // Anthropic (Claude)
-        'groq',          // Groq
-        'mistral',       // Mistral AI
-        'siliconflow',   // siliconflow
-      ].includes(tabName)) {
+      if (models && isSupportedProvider(tabName)) {
         // 保存到全局模型列表
         chrome.storage.local.get('globalModels', function (result) {
           let globalModels = result.globalModels || {};
           console.log('Current global models:', globalModels); // 添加日志
 
           // 根据不同供应商处理模型数据
-          if (tabName === 'gpt') {
+          if (tabName === PROVIDERS.GPT) {
             // OpenAI 模型处理
             globalModels[tabName] = models
               .filter(model => model.id && !model.id.includes('deprecated'))
@@ -101,6 +93,11 @@ function openTab(evt, tabName) {
   const activeTabContent = document.getElementById(tabName);
   activeTabContent.style.display = "block";
   evt.currentTarget.className += " active";
+
+  // 如果是quick-trans标签，加载全局模型列表
+  if (tabName === 'quick-trans') {
+    loadGlobalModelsToQuickTrans();
+  }
 
   // 从Chrome存储获取配置
   chrome.storage.local.get(tabName, function (result) {
@@ -495,6 +492,66 @@ function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
     });
 }
 
+/**
+ * 加载全局模型列表到划词翻译的模型选择下拉框
+ */
+function loadGlobalModelsToQuickTrans() {
+  chrome.storage.local.get('globalModels', function (result) {
+    if (!result.globalModels) {
+      console.log('No global models found');
+      return;
+    }
+
+    const modelSelect = document.getElementById('model-select');
+    if (!modelSelect) {
+      console.log('Model select element not found');
+      return;
+    }
+
+    // 清空现有选项
+    modelSelect.innerHTML = '';
+
+    // 遍历每个供应商的模型
+    Object.entries(result.globalModels).forEach(([provider, models]) => {
+      if (!models || models.length === 0) return;
+
+      // 创建供应商分组
+      const group = document.createElement('optgroup');
+      group.label = getProviderDisplayName(provider);
+
+      // 添加该供应商的所有模型
+      models.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model.value;
+        option.textContent = model.value;
+        group.appendChild(option);
+      });
+
+      modelSelect.appendChild(group);
+    });
+
+    // 恢复之前选择的模型
+    chrome.storage.local.get('quick-trans', function (result) {
+      if (result['quick-trans'] && result['quick-trans'].selectedModel) {
+        modelSelect.value = result['quick-trans'].selectedModel;
+      }
+    });
+  });
+}
+
+/**
+ * 获取供应商的显示名称
+ */
+function getProviderDisplayName(provider) {
+  return PROVIDER_DISPLAY_NAMES[provider] || provider.toUpperCase();
+}
+
+/**
+ * 判断是否为支持的模型供应商
+ */
+function isSupportedProvider(provider) {
+  return Object.values(PROVIDERS).includes(provider);
+}
 
 /**
  * 主程序
@@ -619,5 +676,15 @@ document.addEventListener('DOMContentLoaded', function () {
     storeParams(tabId, enabled, selectedModel, saveMessage);
   });
 
+  // 加载全局模型列表到划词翻译的模型选择
+  loadGlobalModelsToQuickTrans();
+
+  // 当打开quick-trans标签页时也重新加载模型列表
+  const quickTransTab = document.querySelector('[data-tab="quick-trans"]');
+  if (quickTransTab) {
+    quickTransTab.addEventListener('click', function () {
+      loadGlobalModelsToQuickTrans();
+    });
+  }
 });
 

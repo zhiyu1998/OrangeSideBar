@@ -59,9 +59,32 @@ const GROQ_MODEL = "groq";
 const MISTRAL_MODEL = "open-mixtral";
 const OLLAMA_MODEL = "ollama";
 
-// 模型映射配置
+// 添加供应商相关常量
+const PROVIDERS = {
+  GPT: 'gpt',
+  AZURE: 'azure',
+  GEMINI: 'gemini',
+  ANTHROPIC: 'anthropic',
+  SILICONFLOW: 'siliconflow',
+  GROQ: 'groq',
+  MISTRAL: 'mistral',
+  OLLAMA: 'ollama'
+};
+
+// 供应商显示名称映射
+const PROVIDER_DISPLAY_NAMES = {
+  [PROVIDERS.GPT]: 'OpenAI',
+  [PROVIDERS.AZURE]: 'Azure OpenAI',
+  [PROVIDERS.GEMINI]: 'Google Gemini',
+  [PROVIDERS.ANTHROPIC]: 'Anthropic',
+  [PROVIDERS.SILICONFLOW]: '硅基流动',
+  [PROVIDERS.GROQ]: 'Groq',
+  [PROVIDERS.MISTRAL]: 'Mistral AI',
+  [PROVIDERS.OLLAMA]: 'Ollama'
+};
+
+// 修改现有的 MODEL_MAPPINGS 使用 PROVIDERS 常量
 const MODEL_MAPPINGS = [
-  // OpenAI Models
   {
     prefix: [
       'gpt-',
@@ -75,31 +98,31 @@ const MODEL_MAPPINGS = [
       'deepseek-',
       'yi-'
     ],
-    provider: 'gpt'
+    provider: PROVIDERS.GPT
   },
 
   // Siliconflow Models
   {
     prefix: ['siliconflow-'],
-    provider: 'siliconflow'
+    provider: PROVIDERS.SILICONFLOW
   },
 
   // Azure OpenAI Models
   {
     prefix: ['azure-'],
-    provider: 'azure'
+    provider: PROVIDERS.AZURE
   },
 
   // Google Gemini Models
   {
     prefix: ['gemini-'],
-    provider: 'gemini'
+    provider: PROVIDERS.GEMINI
   },
 
   // Groq Models
   {
     prefix: ['groq-'],
-    provider: 'groq'
+    provider: PROVIDERS.GROQ
   }
 ];
 
