@@ -135,8 +135,8 @@ const MISTRA_DEFAULTL_MODEL = "open-mixtral-8x7b";
 const SILICONFLOW_DEFAULT_MODEL = "Qwen/Qwen2.5-7B-Instruct";
 
 // 支持图像的模型
-const IMAGE_SUPPORT_MODELS = ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'azure-gpt-4-turbo', 'azure-gpt-4o', 'gemini-1.0-pro-vision-latest', 'gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'glm-4v', 'chatgpt-4o-latest'];
-const ANY_FILE_SUPPORT_MODELS = ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest'];
+const IMAGE_SUPPORT_MODELS = ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'azure-gpt-4-turbo', 'azure-gpt-4o', 'gemini-1.0-pro-vision-latest', 'gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp', 'glm-4v', 'chatgpt-4o-latest'];
+const ANY_FILE_SUPPORT_MODELS = ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp'];
 const DEFAULT_FILE_LOGO_PATH = "/images/file.png";
 
 // 各模型默认的baseurl

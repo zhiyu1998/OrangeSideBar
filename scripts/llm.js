@@ -522,9 +522,9 @@ function createDialogueEntry(role, partsKey, text, images, model) {
       }
       images.forEach(imageBase64 => {
         // 智谱的兼容OpenAI格式没做太好，这里的base64不能带前缀，特殊处理一下
-        if (model.includes(ZHIPU_MODEL)) {
-          imageBase64 = imageBase64.split(',')[1];
-        }
+        // if (model.includes(ZHIPU_MODEL)) {
+        //   imageBase64 = imageBase64.split(',')[1];
+        // }
         entry[partsKey].push({
           "type": "image_url",
           "image_url": { "url": imageBase64 }
