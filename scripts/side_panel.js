@@ -50,6 +50,13 @@ async function verifyApiKeyConfigured(model) {
 }
 
 /**
+ * 获取供应商的显示名称
+ */
+function getProviderDisplayName(provider) {
+  return PROVIDER_DISPLAY_NAMES[provider] || provider.toUpperCase();
+}
+
+/**
  * 隐藏初始推荐内容
  */
 function hideRecommandContent() {
