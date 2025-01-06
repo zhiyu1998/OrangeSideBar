@@ -46,16 +46,34 @@ function initChatHistory() {
  * @returns
  */
 async function getBaseUrlAndApiKey(model) {
-  // 先检查精确匹配的前缀
-  const mapping = MODEL_MAPPINGS.find(m =>
-    m.prefix.some(p => model.startsWith(p))
-  );
-  if (mapping) {
-    // 如果找到匹配的映射，使用对应的 provider 配置
-    const providerInfo = await getModelInfoFromChromeStorage(mapping.provider);
+  // 先检查所有非 GPT 的映射
+  const nonGptMapping = MODEL_MAPPINGS
+    .filter(m => m.provider !== PROVIDERS.GPT)
+    .find(m => m.prefix.some(p => model.startsWith(p)));
+
+  if (nonGptMapping) {
+    // 检查是否配置了该服务商的信息
+    const providerInfo = await getModelInfoFromChromeStorage(nonGptMapping.provider);
+    if (providerInfo && providerInfo.apiKey) {
+      // 如果找到非 GPT 服务商的配置，使用该配置
+      const defaultConfig = DEFAULT_LLM_URLS.find(url => url.key === nonGptMapping.provider);
+      if (defaultConfig) {
+        return {
+          baseUrl: `${providerInfo.baseUrl || defaultConfig.baseUrl}${defaultConfig.apiPath}`,
+          apiKey: providerInfo.apiKey
+        };
+      }
+    }
+  }
+
+  // 如果没有找到非 GPT 的配置，或者配置不完整，检查是否是 GPT 的映射
+  const gptMapping = MODEL_MAPPINGS
+    .find(m => m.provider === PROVIDERS.GPT && m.prefix.some(p => model.startsWith(p)));
+
+  if (gptMapping) {
+    const providerInfo = await getModelInfoFromChromeStorage(gptMapping.provider);
     if (providerInfo) {
-      // 根据不同的 provider 使用不同的 API 路径
-      const defaultConfig = DEFAULT_LLM_URLS.find(url => url.key === mapping.provider);
+      const defaultConfig = DEFAULT_LLM_URLS.find(url => url.key === gptMapping.provider);
       if (defaultConfig) {
         return {
           baseUrl: `${providerInfo.baseUrl || defaultConfig.baseUrl}${defaultConfig.apiPath}`,

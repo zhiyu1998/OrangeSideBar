@@ -261,6 +261,9 @@ async function getModelList(baseUrl, model, apiKey) {
   } else if (model.includes(PROVIDERS.GLM)) {
     apiUrl += GLM_CHAT_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(PROVIDERS.MOONSHOT)) {
+    apiUrl += MOONSHOT_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (model.includes(PROVIDERS.AZURE)) {
     apiUrl += AZURE_MODELS_API_PATH;
     headers['api-key'] = apiKey;

@@ -35,6 +35,9 @@ const SILICONFLOW_CHAT_API_PATH = "/v1/chat/completions";
 const GLM_BASE_URL = "https://open.bigmodel.cn";
 const GLM_CHAT_API_PATH = "/api/paas/v4/chat/completions";
 
+const MOONSHOT_BASE_URL = "https://api.moonshot.cn";
+const MOONSHOT_CHAT_API_PATH = "/v1/chat/completions";
+
 const AZURE_OPENAI_BASE_URL = "https://{YOUR_RESOURCE_NAME}.openai.azure.com";
 const AZURE_OPENAI_CHAT_API_PATH = "/openai/deployments/{MODEL_NAME}/chat/completions?api-version=2024-04-01-preview";
 
@@ -55,6 +58,7 @@ const OLLAMA_LIST_MODEL_PATH = "/api/tags";
 const PROVIDERS = {
   GPT: 'gpt',
   GLM: 'glm',
+  MOONSHOT: 'moonshot',
   AZURE: 'azure',
   GEMINI: 'gemini',
   ANTHROPIC: 'anthropic',
@@ -68,6 +72,7 @@ const PROVIDERS = {
 const PROVIDER_DISPLAY_NAMES = {
   [PROVIDERS.GPT]: 'OpenAI',
   [PROVIDERS.GLM]: '智谱清言',
+  [PROVIDERS.MOONSHOT]: '月之暗面',
   [PROVIDERS.AZURE]: 'Azure OpenAI',
   [PROVIDERS.GEMINI]: 'Google Gemini',
   [PROVIDERS.ANTHROPIC]: 'Anthropic',
@@ -87,7 +92,7 @@ const MODEL_MAPPINGS = [
       'dall-e-',
       'tts-',
       'whisper-',
-      'glm-',
+      'GLM-',
       'moonshot-',
       'deepseek-',
       'yi-'
@@ -105,6 +110,12 @@ const MODEL_MAPPINGS = [
   {
     prefix: ['GLM-'],
     provider: PROVIDERS.GLM
+  },
+
+  // MoonShot Models
+  {
+    prefix: ['moonshot-'],
+    provider: PROVIDERS.MOONSHOT
   },
 
   // Azure OpenAI Models
@@ -139,6 +150,7 @@ const GEMINI_DEFAULT_MODEL = "gemini-2.0-flash-exp";
 const GROQ_DEFAULT_MODEL = "llama-3.2-1b-preview";
 const MISTRA_DEFAULTL_MODEL = "open-mistral-nemo";
 const SILICONFLOW_DEFAULT_MODEL = "Qwen/Qwen2.5-7B-Instruct";
+const MOONSHOT_DEFAULT_MODEL = "moonshot-v1-auto";
 const GLM_DEFAULT_MODEL = "GLM-4-Flash";
 
 // 支持图像的模型
@@ -155,6 +167,7 @@ const DEFAULT_LLM_URLS = [
   { key: PROVIDERS.GPT, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: GPT_DEFAULT_MODEL },
   { key: PROVIDERS.SILICONFLOW, baseUrl: SILICONFLOW_BASE_URL, apiPath: SILICONFLOW_CHAT_API_PATH, defaultModel: SILICONFLOW_DEFAULT_MODEL },
   { key: PROVIDERS.GLM, baseUrl: GLM_BASE_URL, apiPath: GLM_CHAT_API_PATH, defaultModel: GLM_DEFAULT_MODEL },
+  { key: PROVIDERS.MOONSHOT, baseUrl: MOONSHOT_BASE_URL, apiPath: MOONSHOT_CHAT_API_PATH, defaultModel: MOONSHOT_DEFAULT_MODEL },
   { key: PROVIDERS.CLAUDE, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: 'claude-3-opus-20240229' },
   { key: PROVIDERS.GEMINI, baseUrl: GEMINI_BASE_URL, apiPath: GEMINI_CHA_API_PAH, defaultModel: GEMINI_DEFAULT_MODEL },
   { key: PROVIDERS.GROQ, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL },
@@ -462,3 +475,4 @@ const AZURE_MODELS_API_PATH = "/openai/models?api-version=2024-04-01-preview";
 const GEMINI_MODELS_API_PATH = "/v1beta/models?key={API_KEY}";
 const GROQ_MODELS_API_PATH = "/openai/v1/models";
 const MISTRAL_MODELS_API_PATH = "/v1/models";
+const MOONSHOT_MODELS_API_PATH = "/v1/models";
