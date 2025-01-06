@@ -688,3 +688,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 
+// 修改显示消息的逻辑
+function showMessage(element) {
+  element.style.display = 'block';
+  setTimeout(() => {
+    element.style.display = 'none';
+  }, 2000); // 2秒后消失
+}
+
