@@ -31,7 +31,7 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 - [x] 硅基流动
 - [ ] Azure OpenAl
 - [x] groq
-- [ ] Mistral
+- [x] Mistral
 - [ ] Ollama
 
 ## 🌼 致谢
