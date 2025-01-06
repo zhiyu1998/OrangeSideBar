@@ -648,11 +648,7 @@ function initResultPage() {
     const currentURL = await getCurrentURL();
 
     try {
-      if (isVideoUrl(currentURL)) {
-        // 视频摘要
-        displayLoading('正在获取字幕...');
-        inputText = await extractSubtitles(currentURL, FORMAT_TEXT);
-      } else if (isPDFUrl(currentURL)) {
+      if (isPDFUrl(currentURL)) {
         // PDF摘要
         displayLoading('正在提取PDF内容...');
         inputText = await extractPDFText(currentURL);
@@ -684,11 +680,7 @@ function initResultPage() {
     const currentURL = await getCurrentURL();
 
     try {
-      if (isVideoUrl(currentURL)) {
-        // 视频翻译
-        displayLoading('正在获取字幕...');
-        inputText = await extractSubtitles(currentURL, FORMAT_TEXT);
-      } else if (isPDFUrl(currentURL)) {
+      if (isPDFUrl(currentURL)) {
         // PDF 翻译
         displayLoading('正在提取PDF内容...');
         inputText = await extractPDFText(currentURL);
@@ -706,36 +698,6 @@ function initResultPage() {
 
     await clearAndGenerate(model, TRANSLATE2CHN_PROMPT + inputText, null);
   });
-
-  // 视频翻译
-  var videoTranslateButton = document.querySelector('#my-extension-videotrans-btn');
-  videoTranslateButton.addEventListener('click', async function () {
-    const modelSelection = document.getElementById('model-selection');
-    const model = modelSelection.value;
-    const apiKeyValid = await verifyApiKeyConfigured(model);
-    if (!apiKeyValid) {
-      return;
-    }
-    const currentURL = await getCurrentURL();
-    if (!isVideoUrl(currentURL)) {
-      return;
-    }
-
-    let inputText = '';
-    try {
-      // 视频翻译
-      displayLoading('正在获取字幕...');
-      inputText = await extractSubtitles(currentURL, FORMAT_TEXT);
-    } catch (error) {
-      hiddenLoadding();
-      console.error('视频翻译失败', error);
-      displayErrorMessage(`视频翻译失败: ${error.message}`);
-      return;
-    }
-
-    await clearAndGenerate(model, SUBTITLE2CHN_PROMPT + inputText, null);
-  });
-
 
   // 停止生成逻辑
   var cancelBtn = document.querySelector('#my-extension-generate-btn');
@@ -995,21 +957,6 @@ function initResultPage() {
       }
     });
   }
-}
-
-
-/**
- * 是否是视频页面
- * @returns
- */
-function isVideoUrl(url) {
-  const patterns = [
-    /^https?:\/\/(?:www\.)?youtube\.com\/watch/, // 匹配 YouTube 观看页面
-    /^https?:\/\/(?:www\.)?bilibili\.com\/video\//, // 匹配 Bilibili 视频页面
-    /^https?:\/\/(?:www\.)?bilibili\.com\/list\/watchlater/ // 匹配 Bilibili 稍后再看页
-  ];
-
-  return patterns.some(pattern => pattern.test(url));
 }
 
 /**

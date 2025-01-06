@@ -39,7 +39,6 @@
         "matches": ["<all_urls>"],
         "js": [
           "scripts/third/Readability.js",
-          "scripts/third/youtube-transcript.js",
           "scripts/third/marked.min.js",
           "scripts/third/pdf.worker.min.js",
           "scripts/third/pdf.min.js",
