@@ -175,7 +175,7 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
       let apiUrl = baseUrl || defaultBaseUrl;
       apiUrl += apiPath;
 
-      if (model.includes(GEMINI_MODEL)) {
+      if (model.includes(PROVIDERS.GEMINI)) {
         apiUrl = apiUrl.replace('{MODEL_NAME}', defaultModel).replace('{API_KEY}', apiKey);
 
         body = JSON.stringify({
@@ -186,7 +186,7 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
             }]
           }]
         });
-      } else if (model.includes(AZURE_MODEL)) {
+      } else if (model.includes(PROVIDERS.AZURE)) {
         apiUrl = apiUrl.replace('{MODEL_NAME}', defaultModel);
         body = JSON.stringify({
           stream: true,
@@ -197,7 +197,7 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
             }
           ]
         });
-      } else if (model.includes(OLLAMA_MODEL)) {
+      } else if (model.includes(PROVIDERS.OLLAMA)) {
         apiUrl = baseUrl || defaultBaseUrl;
         apiUrl += OLLAMA_LIST_MODEL_PATH;
       } else {
@@ -255,24 +255,24 @@ async function getModelList(baseUrl, model, apiKey) {
   };
 
   // 根据不同模型供应商设置不同的API路径和headers
-  if (model === 'gpt') {  // 修改这里，使用严格相等
+  if (model === PROVIDERS.GPT) {  // 修改这里，使用严格相等
     apiUrl += OPENAI_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
-  } else if (model.includes(AZURE_MODEL)) {
+  } else if (model.includes(PROVIDERS.AZURE)) {
     apiUrl += AZURE_MODELS_API_PATH;
     headers['api-key'] = apiKey;
-  } else if (model.includes(GEMINI_MODEL)) {
+  } else if (model.includes(PROVIDERS.GEMINI)) {
     apiUrl += GEMINI_MODELS_API_PATH.replace('{API_KEY}', apiKey);
-  } else if (model.includes(GROQ_MODEL)) {
+  } else if (model.includes(PROVIDERS.GROQ)) {
     apiUrl += GROQ_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
-  } else if (model.includes(SILICONFLOW_MODEL)) {
+  } else if (model.includes(PROVIDERS.SILICONFLOW)) {
     apiUrl += OPENAI_MODELS_API_PATH;  // 确保使用正确的 API 路径
     headers['Authorization'] = `Bearer ${apiKey}`;
-  } else if (model.includes(MISTRAL_MODEL)) {
+  } else if (model.includes(PROVIDERS.MISTRAL)) {
     apiUrl += MISTRAL_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
-  } else if (model.includes(OLLAMA_MODEL)) {
+  } else if (model.includes(PROVIDERS.OLLAMA)) {
     apiUrl += OLLAMA_LIST_MODEL_PATH;
   } else {
     apiUrl += OPENAI_MODELS_API_PATH;
@@ -323,21 +323,21 @@ async function getModelList(baseUrl, model, apiKey) {
 
       console.log('Filtered OpenAI models:', filteredModels);
       return filteredModels;
-    } else if (model.includes(GEMINI_MODEL)) {
+    } else if (model.includes(PROVIDERS.GEMINI)) {
       // Gemini 格式处理
       return data.models.map(model => ({
         id: model.name.replace('models/', ''),  // 移除 'models/' 前缀
         object: 'model',
         owned_by: 'google'
       }));
-    } else if (model.includes(GROQ_MODEL)) {
+    } else if (model.includes(PROVIDERS.GROQ)) {
       // Groq 格式处理 - 添加 groq- 前缀
       return data.data.map(model => ({
         id: `groq-${model.id}`,  // 添加 groq- 前缀
         object: model.object,
         owned_by: model.owned_by
       }));
-    } else if (model.includes(SILICONFLOW_MODEL)) {
+    } else if (model.includes(PROVIDERS.SILICONFLOW)) {
       // Siliconflow 格式处理
       return data.data.map(model => ({
         id: `siliconflow-${model.id}`,
@@ -415,9 +415,9 @@ function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
     'Content-Type': 'application/json'
   };
 
-  if (model.includes(AZURE_MODEL)) {
+  if (model.includes(PROVIDERS.AZURE)) {
     headers['api-key'] = apiKey;
-  } else if (!model.includes(GEMINI_MODEL)) {
+  } else if (!model.includes(PROVIDERS.GEMINI)) {
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
@@ -427,7 +427,7 @@ function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
     body: body
   };
 
-  if (model.includes(OLLAMA_MODEL) || model.includes(SERPAPI_KEY)) {
+  if (model.includes(PROVIDERS.OLLAMA) || model.includes(SERPAPI_KEY)) {
     params = {
       method: "GET"
     }
@@ -550,6 +550,8 @@ function getProviderDisplayName(provider) {
  * 判断是否为支持的模型供应商
  */
 function isSupportedProvider(provider) {
+  console.log('isSupportedProvider', provider);
+
   return Object.values(PROVIDERS).includes(provider);
 }
 

@@ -48,17 +48,6 @@ const OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 const OLLAMA_CHAT_API_PATH = "/api/chat";
 const OLLAMA_LIST_MODEL_PATH = "/api/tags";
 
-
-// 模型名称包含的关键字
-const GPT_MODEL = "gpt";
-const SILICONFLOW_MODEL = "siliconflow";
-const AZURE_MODEL = "azure";
-const GEMINI_MODEL = 'gemini';
-const CLAUDE_MODEL = 'claude';
-const GROQ_MODEL = "groq";
-const MISTRAL_MODEL = "open-mixtral";
-const OLLAMA_MODEL = "ollama";
-
 // 添加供应商相关常量
 const PROVIDERS = {
   GPT: 'gpt',
@@ -67,7 +56,7 @@ const PROVIDERS = {
   ANTHROPIC: 'anthropic',
   SILICONFLOW: 'siliconflow',
   GROQ: 'groq',
-  MISTRAL: 'mistral',
+  MISTRAL: 'open-mistral',
   OLLAMA: 'ollama'
 };
 
@@ -79,7 +68,7 @@ const PROVIDER_DISPLAY_NAMES = {
   [PROVIDERS.ANTHROPIC]: 'Anthropic',
   [PROVIDERS.SILICONFLOW]: '硅基流动',
   [PROVIDERS.GROQ]: 'Groq',
-  [PROVIDERS.MISTRAL]: 'Mistral AI',
+  [PROVIDERS.MISTRAL]: 'Mistral',
   [PROVIDERS.OLLAMA]: 'Ollama'
 };
 
@@ -123,6 +112,12 @@ const MODEL_MAPPINGS = [
   {
     prefix: ['groq-'],
     provider: PROVIDERS.GROQ
+  },
+
+  // Mistral Models
+  {
+    prefix: ['open-mistral-', 'mistral-', 'pixtral-'],
+    provider: PROVIDERS.MISTRAL
   }
 ];
 
@@ -131,7 +126,7 @@ const GPT_DEFAULT_MODEL = "gpt-3.5-turbo";
 const AZURE_GPT_DEFAULT_MODEL = "azure-gpt-35-turbo";
 const GEMINI_DEFAULT_MODEL = "gemini-2.0-flash-exp";
 const GROQ_DEFAULT_MODEL = "llama-3.2-1b-preview";
-const MISTRA_DEFAULTL_MODEL = "open-mixtral-8x7b";
+const MISTRA_DEFAULTL_MODEL = "open-mistral-nemo";
 const SILICONFLOW_DEFAULT_MODEL = "Qwen/Qwen2.5-7B-Instruct";
 
 // 支持图像的模型
@@ -141,14 +136,14 @@ const DEFAULT_FILE_LOGO_PATH = "/images/file.png";
 
 // 各模型默认的baseurl
 const DEFAULT_LLM_URLS = [
-  { key: AZURE_MODEL, baseUrl: AZURE_OPENAI_BASE_URL, apiPath: AZURE_OPENAI_CHAT_API_PATH, defaultModel: AZURE_GPT_DEFAULT_MODEL },
-  { key: GPT_MODEL, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: GPT_DEFAULT_MODEL },
-  { key: SILICONFLOW_MODEL, baseUrl: SILICONFLOW_BASE_URL, apiPath: SILICONFLOW_CHAT_API_PATH, defaultModel: SILICONFLOW_DEFAULT_MODEL },
-  { key: CLAUDE_MODEL, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: 'claude-3-opus-20240229' },
-  { key: GEMINI_MODEL, baseUrl: GEMINI_BASE_URL, apiPath: GEMINI_CHA_API_PAH, defaultModel: GEMINI_DEFAULT_MODEL },
-  { key: GROQ_MODEL, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL },
-  { key: OLLAMA_MODEL, baseUrl: OLLAMA_BASE_URL, apiPath: OLLAMA_CHAT_API_PATH, defaultModel: '' },
-  { key: MISTRAL_MODEL, baseUrl: MISTRAL_BASE_URL, apiPath: MISTRAL_CHAT_API_PATH, defaultModel: MISTRA_DEFAULTL_MODEL },
+  { key: PROVIDERS.AZURE, baseUrl: AZURE_OPENAI_BASE_URL, apiPath: AZURE_OPENAI_CHAT_API_PATH, defaultModel: AZURE_GPT_DEFAULT_MODEL },
+  { key: PROVIDERS.GPT, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: GPT_DEFAULT_MODEL },
+  { key: PROVIDERS.SILICONFLOW, baseUrl: SILICONFLOW_BASE_URL, apiPath: SILICONFLOW_CHAT_API_PATH, defaultModel: SILICONFLOW_DEFAULT_MODEL },
+  { key: PROVIDERS.CLAUDE, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: 'claude-3-opus-20240229' },
+  { key: PROVIDERS.GEMINI, baseUrl: GEMINI_BASE_URL, apiPath: GEMINI_CHA_API_PAH, defaultModel: GEMINI_DEFAULT_MODEL },
+  { key: PROVIDERS.GROQ, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL },
+  { key: PROVIDERS.OLLAMA, baseUrl: OLLAMA_BASE_URL, apiPath: OLLAMA_CHAT_API_PATH, defaultModel: '' },
+  { key: PROVIDERS.MISTRAL, baseUrl: MISTRAL_BASE_URL, apiPath: MISTRAL_CHAT_API_PATH, defaultModel: MISTRA_DEFAULTL_MODEL },
 ];
 
 

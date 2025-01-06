@@ -13,20 +13,18 @@ async function verifyApiKeyConfigured(model) {
 
   if (mapping) {
     provider = mapping.provider;
-  } else if (model.includes(MISTRAL_MODEL)) {
-    provider = 'mistral';
-  } else if (model.includes(OLLAMA_MODEL)) {
+  } else if (model.includes(PROVIDERS.OLLAMA)) {
     provider = 'ollama';
-  } else if (model.includes(GROQ_MODEL)) {
+  } else if (model.includes(PROVIDERS.GROQ)) {
     provider = 'groq';
-  } else if (model.includes(SILICONFLOW_MODEL)) {
+  } else if (model.includes(PROVIDERS.SILICONFLOW)) {
     provider = 'siliconflow';
   }
 
   const { baseUrl, apiKey } = await getBaseUrlAndApiKey(provider);
 
   // 检查是否需要 API Key（Ollama 不需要）
-  const needsApiKey = !model.includes(OLLAMA_MODEL);
+  const needsApiKey = !model.includes(PROVIDERS.OLLAMA);
 
   // 如果是 Claude 模型，使用 OpenAI 的 baseUrl
   let effectiveBaseUrl = baseUrl;
@@ -307,8 +305,8 @@ function handleUploadFiles(event) {
 
 // 检测是否启用ollama，拉去ollama模型列表并追加到模型选择列表中
 function loadOllamaModels(callback) {
-  chrome.storage.local.get(OLLAMA_MODEL, function (result) {
-    const modelInfo = result[OLLAMA_MODEL];
+  chrome.storage.local.get(PROVIDERS.OLLAMA, function (result) {
+    const modelInfo = result[PROVIDERS.OLLAMA];
     if (modelInfo) {
       const baseUrl = modelInfo.baseUrl || OLLAMA_CHAT_BASE_URL;
       const apiUrl = baseUrl + OLLAMA_LIST_MODEL_PATH;
@@ -434,29 +432,9 @@ function updateModelSelection(globalModels) {
 
   console.log('Updating model selection with:', globalModels); // 添加日志
 
-  // 按照特定顺序排列供应商
-  const providerOrder = [
-    'gpt',           // OpenAI
-    'azure',         // Azure OpenAI
-    'gemini',        // Google Gemini
-    'anthropic',     // Anthropic (Claude)
-    'siliconflow',   // Siliconflow AI
-    'groq',          // Groq
-    'mistral',       // Mistral AI
-    'ollama'         // Ollama
-  ];
-
-  // 获取供应商的显示名称
-  const providerDisplayName = {
-    gpt: 'OpenAI',
-    azure: 'Azure OpenAI',
-    gemini: 'Google Gemini',
-    anthropic: 'Anthropic',
-    siliconflow: '硅基流动',
-    groq: 'Groq',
-    mistral: 'Mistral AI',
-    ollama: 'Ollama'
-  };
+  // 使用 constants.js 中的服务商数据
+  const providerOrder = Object.values(PROVIDERS);
+  const providerDisplayName = PROVIDER_DISPLAY_NAMES;
 
   // 按照指定顺序遍历供应商
   providerOrder.forEach(provider => {

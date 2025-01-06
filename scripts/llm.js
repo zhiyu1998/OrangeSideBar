@@ -186,7 +186,7 @@ async function chatWithLLM(model, inputText, base64Images, type) {
   }
 
   let result = { completeText: '', tools: [] };
-  if (model.includes(GEMINI_MODEL)) {
+  if (model.includes(PROVIDERS.GEMINI)) {
     baseUrl = baseUrl.replace('{MODEL_NAME}', model).replace('{API_KEY}', apiKey);
     result = await chatWithGemini(baseUrl, model, type);
   } else {
@@ -299,7 +299,7 @@ async function parseFunctionCalling(result, baseUrl, apiKey, model, type) {
     }
 
     let newResult = { completeText: '', tools: [] };
-    if (model.includes(GEMINI_MODEL)) {
+    if (model.includes(PROVIDERS.GEMINI)) {
       newResult = await chatWithGemini(baseUrl, model, type);
     } else {
       newResult = await chatWithOpenAIFormat(baseUrl, apiKey, model, type);
@@ -341,7 +341,7 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
   };
 
   // mistral 的模型传以下两个参数会报错，这里过滤掉
-  if (!modelName.includes(MISTRAL_MODEL)) {
+  if (!modelName.includes(PROVIDERS.MISTRAL)) {
     body.frequency_penalty = frequencyPenalty;
     body.presence_penalty = presencePenalty;
   }
@@ -368,7 +368,7 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
 
   let additionalHeaders = { 'Authorization': 'Bearer ' + apiKey };
 
-  if (modelName.includes(AZURE_MODEL)) {
+  if (modelName.includes(PROVIDERS.AZURE)) {
     baseUrl = baseUrl.replace('{MODEL_NAME}', realModelName);
     additionalHeaders = { 'api-key': apiKey };
   }
@@ -708,7 +708,7 @@ async function parseAndUpdateChatContent(response, modelName, type) {
           // console.log('jsonText...', jsonText);
           const jsonData = JSON.parse(jsonText);
           let content = '';
-          if (modelName.includes(GEMINI_MODEL)) {
+          if (modelName.includes(PROVIDERS.GEMINI)) {
             jsonData.candidates[0].content.parts.forEach(part => {
               // 检查 content 字段
               if (part.text !== undefined && part.text != null) {
@@ -725,7 +725,7 @@ async function parseAndUpdateChatContent(response, modelName, type) {
                 });
               }
             });
-          } else if (modelName.includes(OLLAMA_MODEL)) {
+          } else if (modelName.includes(PROVIDERS.OLLAMA)) {
             content = jsonData.message.content;
           } else {
             jsonData.choices.forEach(choice => {
