@@ -267,6 +267,9 @@ async function getModelList(baseUrl, model, apiKey) {
   } else if (model.includes(PROVIDERS.DEEPSEEK)) {
     apiUrl += DEEPSEEK_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(PROVIDERS.GITHUB)) {
+    apiUrl += GITHUB_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (model.includes(PROVIDERS.AZURE)) {
     apiUrl += AZURE_MODELS_API_PATH;
     headers['api-key'] = apiKey;
@@ -352,6 +355,13 @@ async function getModelList(baseUrl, model, apiKey) {
         id: `siliconflow-${model.id}`,
         object: model.object,
         owned_by: model.owned_by
+      }));
+    } else if (model.includes(PROVIDERS.GITHUB)) {
+      // GitHub 格式处理
+      return data.map(model => ({
+        id: `github-${model.name}`, // 使用 name 而不是 id，因为原始id包含了完整路径
+        object: 'model',  // 添加标准的 object 字段
+        owned_by: model.publisher || 'unknown' // 使用 publisher 作为 owned_by
       }));
     } else {
       // 其他供应商的格式处理

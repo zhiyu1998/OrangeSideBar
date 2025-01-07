@@ -344,6 +344,8 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
     realModelName = realModelName.replace('groq-', '');
   } else if (modelName.startsWith('siliconflow-')) {
     realModelName = realModelName.replace('siliconflow-', '');
+  } else if (modelName.startsWith('github-')) {
+    realModelName = realModelName.replace('github-', '');
   }
 
   const { temperature, topP, maxTokens, frequencyPenalty, presencePenalty } = await getModelParameters();

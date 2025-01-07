@@ -41,6 +41,9 @@ const MOONSHOT_CHAT_API_PATH = "/v1/chat/completions";
 const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 const DEEPSEEK_CHAT_API_PATH = "/chat/completions";
 
+const GITHUB_BASE_URL = "https://models.inference.ai.azure.com";
+const GITHUB_CHAT_API_PATH = "/v1/chat/completions";
+
 const AZURE_OPENAI_BASE_URL = "https://{YOUR_RESOURCE_NAME}.openai.azure.com";
 const AZURE_OPENAI_CHAT_API_PATH = "/openai/deployments/{MODEL_NAME}/chat/completions?api-version=2024-04-01-preview";
 
@@ -65,6 +68,7 @@ const GROQ_MODELS_API_PATH = "/openai/v1/models";
 const MISTRAL_MODELS_API_PATH = "/v1/models";
 const MOONSHOT_MODELS_API_PATH = "/v1/models";
 const DEEPSEEK_MODELS_API_PATH = "/v1/models";
+const GITHUB_MODELS_API_PATH = "/models";
 
 // 添加供应商相关常量
 const PROVIDERS = {
@@ -72,6 +76,7 @@ const PROVIDERS = {
   GLM: 'glm',
   MOONSHOT: 'moonshot',
   DEEPSEEK: 'deepseek',
+  GITHUB: 'github',
   AZURE: 'azure',
   GEMINI: 'gemini',
   ANTHROPIC: 'anthropic',
@@ -87,6 +92,7 @@ const PROVIDER_DISPLAY_NAMES = {
   [PROVIDERS.GLM]: '智谱清言',
   [PROVIDERS.MOONSHOT]: '月之暗面',
   [PROVIDERS.DEEPSEEK]: '深而求索',
+  [PROVIDERS.GITHUB]: 'GitHub Models',
   [PROVIDERS.AZURE]: 'Azure OpenAI',
   [PROVIDERS.GEMINI]: 'Google Gemini',
   [PROVIDERS.ANTHROPIC]: 'Anthropic',
@@ -138,6 +144,12 @@ const MODEL_MAPPINGS = [
     provider: PROVIDERS.DEEPSEEK
   },
 
+  // GitHub Models
+  {
+    prefix: ['github-'],
+    provider: PROVIDERS.GITHUB
+  },
+
   // Azure OpenAI Models
   {
     prefix: ['azure-'],
@@ -173,6 +185,7 @@ const SILICONFLOW_DEFAULT_MODEL = "Qwen/Qwen2.5-7B-Instruct";
 const MOONSHOT_DEFAULT_MODEL = "moonshot-v1-auto";
 const GLM_DEFAULT_MODEL = "GLM-4-Flash";
 const DEEPSEEK_DEFAULT_MODEL = "deepseek-chat";
+const GITHUB_DEFAULT_MODEL = "Mistral-Nemo";
 
 // 支持图像的模型
 const IMAGE_SUPPORT_MODELS = ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'azure-gpt-4-turbo', 'azure-gpt-4o', 'gemini-1.0-pro-vision-latest', 'gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp', 'glm-4v', 'chatgpt-4o-latest'];
@@ -190,6 +203,7 @@ const DEFAULT_LLM_URLS = [
   { key: PROVIDERS.GLM, baseUrl: GLM_BASE_URL, apiPath: GLM_CHAT_API_PATH, defaultModel: GLM_DEFAULT_MODEL },
   { key: PROVIDERS.MOONSHOT, baseUrl: MOONSHOT_BASE_URL, apiPath: MOONSHOT_CHAT_API_PATH, defaultModel: MOONSHOT_DEFAULT_MODEL },
   { key: PROVIDERS.DEEPSEEK, baseUrl: DEEPSEEK_BASE_URL, apiPath: DEEPSEEK_CHAT_API_PATH, defaultModel: DEEPSEEK_DEFAULT_MODEL },
+  { key: PROVIDERS.GITHUB, baseUrl: GITHUB_BASE_URL, apiPath: GITHUB_CHAT_API_PATH, defaultModel: GITHUB_DEFAULT_MODEL },
   { key: PROVIDERS.CLAUDE, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: 'claude-3-opus-20240229' },
   { key: PROVIDERS.GEMINI, baseUrl: GEMINI_BASE_URL, apiPath: GEMINI_CHA_API_PAH, defaultModel: GEMINI_DEFAULT_MODEL },
   { key: PROVIDERS.GROQ, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL },

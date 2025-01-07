@@ -46,7 +46,7 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 - [x] 智谱清言
 - [x] 月之暗面
 - [x] 深而求索
-- [ ] GitHub Models
+- [x] GitHub Models
 - [ ] Azure OpenAl
 - [x] groq
 - [x] Mistral
