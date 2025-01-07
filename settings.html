@@ -51,6 +51,10 @@
                 </svg>
                 <span>月之暗面</span>
             </button>
+            <button class="tab-link" data-tab="deepseek">
+                <img src="images/deepseek.webp" height="20" alt="mistral Icon" class="tab-icon" style="margin-right: 6.4px;">
+                <span>深而求索</span>
+            </button>
             <button class="tab-link" data-tab="azure">
                 <svg t="1736177469897" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2512"
                     width="24" height="24">
@@ -270,6 +274,51 @@
         <h2>API 代理地址</h2>
         <div class="baseurl-wrapper">
             <input type="input" class="baseurl-input" placeholder="https://api.moonshot.cn">
+        </div>
+        <div class="button-group">
+            <button class="save-button">保存</button>
+            <button class="checkapi-button">连通性测试</button>
+        </div>
+        <div class="checkapi-message" style="display:none;">检查通过</div>
+        <div class="save-message" style="display:none;">保存成功！</div>
+    </div>
+
+    <div class="tab-content" id="deepseek">
+        <h2>申请 API Key 官方地址</h2>
+        <ul>
+            <li>
+                <a href="https://platform.deepseek.com/api_keys"> https://platform.deepseek.com/api_keys </a>
+            </li>
+        </ul>
+        <h2>模型列表</h2>
+        <ul class="model-list" id="model-list">
+            <!-- 模型列表将通过 JavaScript 动态填充 -->
+        </ul>
+        <h2>API Key</h2>
+        <div class="password-wrapper">
+            <input type="password" class="api-key-input" placeholder="Enter your API Key">
+            <button class="toggle-password">
+                <!-- 眼睛开，表示密码可见 -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" class="bi bi-eye" style="display: none;" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" class="feather feather-eye">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <!-- 眼睛关，表示密码隐藏 -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" class="bi bi-eye-slash" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" class="feather feather-eye-off">
+                    <path
+                        d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+                    </path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+            </button>
+        </div>
+        <h2>API 代理地址</h2>
+        <div class="baseurl-wrapper">
+            <input type="input" class="baseurl-input" placeholder="https://api.deepseek.com">
         </div>
         <div class="button-group">
             <button class="save-button">保存</button>
