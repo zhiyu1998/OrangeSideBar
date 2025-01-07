@@ -11,6 +11,20 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 
 ![](./public/settings.png)
 
+## 📖 使用方式
+
+> 等待测试完成后会发布 Chrome 商店
+
+1. 从 `Release` 下载最新的插件
+
+> https://github.com/zhiyu1998/OrangeSideBar/releases
+
+2. 进入插件页面
+
+> chrome://extensions/
+
+3. 点击 `Load unpacked`，将解压后的文件打开
+
 ## 🚀 功能支持
 - [x] 一键自动摘要
 - [x] 一键网页翻译
@@ -31,7 +45,8 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 - [x] 硅基流动
 - [x] 智谱清言
 - [x] 月之暗面
-- [ ] DeepSeek
+- [x] DeepSeek
+- [ ] GitHub Models
 - [ ] Azure OpenAl
 - [x] groq
 - [x] Mistral
