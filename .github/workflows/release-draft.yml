@@ -21,7 +21,7 @@ jobs:
       - name: Update Draft Release
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }} # 显式使用 GITHUB_TOKEN
+          github-token: ${{ secrets.MINE_TOKEN }} # 显式使用 GITHUB_TOKEN
           script: |
             const fs = require('fs');
             const commitMessage = fs.readFileSync('commit_message.txt', 'utf-8');
