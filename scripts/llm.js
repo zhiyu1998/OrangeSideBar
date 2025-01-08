@@ -203,12 +203,19 @@ async function chatWithLLM(model, inputText, base64Images, type) {
     dialogueHistory = dialogueHistory.slice(-MAX_DIALOG_LEN);
   }
 
+  // 获取当前启用的工具
+  const toolsResult = await new Promise((resolve) => {
+    chrome.storage.local.get(['selectedTools'], function (result) {
+      resolve(result.selectedTools || []);
+    });
+  });
+
   let result = { completeText: '', tools: [] };
   if (model.includes(PROVIDERS.GEMINI)) {
     baseUrl = baseUrl.replace('{MODEL_NAME}', model).replace('{API_KEY}', apiKey);
-    result = await chatWithGemini(baseUrl, model, type);
+    result = await chatWithGemini(baseUrl, model, type, toolsResult);
   } else {
-    result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type);
+    result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, toolsResult);
   }
 
   while (result.tools.length > 0) {
@@ -219,94 +226,85 @@ async function chatWithLLM(model, inputText, base64Images, type) {
 }
 
 
-async function parseFunctionCalling(result, baseUrl, apiKey, model, type) {
+/**
+ * 创建web search工具配置
+ */
+function createWebSearchTool() {
+  return {
+    "type": "builtin_function",
+    "function": {
+      "name": "$web_search"
+    }
+  };
+}
 
+/**
+ * 处理web search工具调用
+ */
+async function handleWebSearch(tool, baseUrl, apiKey, model, type) {
+  const toolId = tool['id'];
+  const toolName = tool['name'];
+  let toolArgs = tool['arguments'];
+
+  // Parse arguments if needed
+  if (typeof toolArgs == 'string') {
+    try {
+      toolArgs = JSON.parse(toolArgs);
+    } catch (error) {
+      console.error('Error parsing arguments:', error);
+    }
+  }
+
+  const contentDiv = document.querySelector('.chat-content');
+  let lastDiv = contentDiv.lastElementChild;
+  if (lastDiv.innerHTML.length > 0) {
+    createAIMessageDiv();
+    lastDiv = contentDiv.lastElementChild;
+  }
+
+  // 显示正在搜索的提示
+  lastDiv.innerHTML = marked.parse('正在进行联网搜索...');
+
+  // 直接返回参数,让Kimi内置的web search处理
+  return toolArgs;
+}
+
+/**
+ * 修改现有的parseFunctionCalling函数,添加web search的处理
+ */
+async function parseFunctionCalling(result, baseUrl, apiKey, model, type) {
   if (result.completeText.length > 0) {
-    // 将 AI 回答更新到对话历史
     updateChatHistory(result.completeText);
   }
 
   if (result.tools.length > 0) {
-    // 若触发function call
     const tools = [];
     for (const tool of result.tools) {
-      tools.push(
-        {
-          id: tool.id,
-          type: 'function',
-          function: {
-            name: tool.name,
-            arguments: tool.arguments
-          }
+      tools.push({
+        id: tool.id,
+        type: 'function',
+        function: {
+          name: tool.name,
+          arguments: tool.arguments
         }
-      );
+      });
     }
-    // 更新 AI tool 结果到对话记录
     updateToolChatHistory(tools);
 
     for (const tool of result.tools) {
-      const toolId = tool['id'];
-      const toolName = tool['name'];
-      let toolArgs = tool['arguments'];
-
-      // Parse the JSON string into an object
-      if (typeof toolArgs == 'string') {
-        try {
-          toolArgs = JSON.parse(toolArgs);
-        } catch (error) {
-          console.error('Error parsing arguments:', error);
-        }
+      let toolResult;
+      if (tool.name === '$web_search') {
+        // 处理web search
+        toolResult = await handleWebSearch(tool, baseUrl, apiKey, model, type);
+      } else if (tool.name.includes('serpapi')) {
+        // 处理serpapi
+        toolResult = await callSerpAPI(toolArgs['query']);
+      } else if (tool.name.includes('dalle')) {
+        // 处理dalle
+        toolResult = await callDALLE(toolArgs['prompt'], toolArgs['quality'], toolArgs['size'], toolArgs['style']);
       }
 
-      const contentDiv = document.querySelector('.chat-content');
-      let lastDiv = contentDiv.lastElementChild;
-      if (lastDiv.innerHTML.length > 0) {
-        createAIMessageDiv();
-        lastDiv = contentDiv.lastElementChild;
-      }
-
-      if (toolName.includes('serpapi')) {
-        // SerpAPI 搜索工具
-        const resultHtml = '正在调用 SerpAPI 联网工具...';
-        lastDiv.innerHTML = marked.parse(resultHtml);
-
-        // 调用接口
-        const searchResult = await callSerpAPI(toolArgs['query']);
-        let htmlContent = '<p>Sources:</p><ul>';
-        for (const element of searchResult.organicResults) {
-          if (element.position > 5) {
-            // 仅取 TOP5 的搜索结果
-            break;
-          }
-          htmlContent += '<li><a class="search-source" href="' + element.link + '">' + element.title + '</a></li>';
-        }
-        htmlContent += '</ul>';
-        lastDiv.innerHTML = marked.parse(htmlContent);
-
-        // 将搜索结果更新至对话历史
-        updateToolCallChatHistory(tool, JSON.stringify(searchResult));
-
-      } else if (toolName.includes('dalle')) {
-        // DALLE 图像生成
-        lastDiv.innerHTML = marked.parse('正在调用 DALLE 图像生成工具..');
-
-        console.log('tool>>>', tool);
-
-        // 调用 DALLE API & 展示结果
-        const dalleResult = await callDALLE(toolArgs['prompt'], toolArgs['quality'], toolArgs['size'], toolArgs['style']);
-        let htmlContent = '';
-        for (element of dalleResult.data) {
-          htmlContent += '<p>Prompt:</p><p>' + element.revised_prompt + "</p>";
-        }
-
-        lastDiv.innerHTML = marked.parse(htmlContent);
-
-        // 隐藏加载按钮
-        hiddenLoadding();
-
-        // 将dalle结果更新至对话历史
-        updateToolCallChatHistory(tool, JSON.stringify(dalleResult));
-      }
+      updateToolCallChatHistory(tool, JSON.stringify(toolResult));
     }
 
     // 生成AI回答

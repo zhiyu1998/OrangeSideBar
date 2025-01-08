@@ -608,3 +608,68 @@
   border: 1px solid #3C3C3C;
   border-radius: 5px;
 }
+
+/* 添加联网搜索按钮样式 */
+#web-search-label {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+  padding: 5px;
+  border-radius: 5px;
+  background-color: #7c7a7a;
+}
+
+#web-search-label:hover {
+  opacity: 1;
+  background-color: #666;
+}
+
+#web-search-label.active {
+  opacity: 1;
+  background-color: #10a37f;
+}
+
+#web-search-label.active svg {
+  fill: none;
+  stroke: white;
+}
+
+/* Toast提示样式 */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100%);
+  background-color: #1a1a1a;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.toast-icon {
+  display: flex;
+  align-items: center;
+}
+
+.toast-success {
+  border-left: 4px solid #10a37f;
+}
+
+.toast-success .toast-icon {
+  color: #10a37f;
+}
+
+.toast-info {
+  border-left: 4px solid #3b82f6;
+}
+
+.toast-info .toast-icon {
+  color: #3b82f6;
+}

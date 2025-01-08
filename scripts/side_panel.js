@@ -113,17 +113,21 @@ async function chatLLMAndUIUpdate(model, inputText, base64Images) {
     aiMessageDiv.innerHTML = ''; // Clear existing content if regenerating
   }
 
-  try {
-    const completeText = await chatWithLLM(model, inputText, base64Images, CHAT_TYPE);
-    createCopyButton(completeText);
-  } catch (error) {
-    hiddenLoadding();
-    displayErrorMessage(`${error.message}`);
-    console.error('请求异常:', error);
-  } finally {
-    // submit & generating button
-    showSubmitBtnAndHideGenBtn();
-  }
+  // 获取已选择的tools
+  chrome.storage.local.get(['selectedTools'], async function (result) {
+    const tools = result.selectedTools || [];
+
+    try {
+      const completeText = await chatWithLLM(model, inputText, base64Images, CHAT_TYPE, tools);
+      createCopyButton(completeText);
+    } catch (error) {
+      hiddenLoadding();
+      displayErrorMessage(`${error.message}`);
+      console.error('请求异常:', error);
+    } finally {
+      showSubmitBtnAndHideGenBtn();
+    }
+  });
 }
 
 /**
@@ -935,6 +939,63 @@ function initResultPage() {
       }
     });
   }
+
+  // Web search按钮点击事件
+  var webSearchBtn = document.querySelector('#web-search-label');
+  if (webSearchBtn) {
+    webSearchBtn.addEventListener('click', async function () {
+      const modelSelection = document.getElementById('model-selection');
+      const model = modelSelection.value;
+
+      // 验证API key
+      const apiKeyValid = await verifyApiKeyConfigured(model);
+      if (!apiKeyValid) {
+        return;
+      }
+
+      // 获取当前工具状态
+      chrome.storage.local.get(['selectedTools'], function (result) {
+        const currentTools = result.selectedTools || [];
+        const hasWebSearch = currentTools.some(tool =>
+          tool.function && tool.function.name === '$web_search'
+        );
+
+        if (hasWebSearch) {
+          // 如果已启用,则关闭
+          chrome.storage.local.set({
+            'selectedTools': currentTools.filter(tool =>
+              !(tool.function && tool.function.name === '$web_search')
+            )
+          }, () => {
+            webSearchBtn.classList.remove('active');
+            // 使用新的提示样式
+            showToast('已关闭联网搜索', 'info');
+          });
+        } else {
+          // 如果未启用,则开启
+          const webSearchTool = createWebSearchTool();
+          chrome.storage.local.set({
+            'selectedTools': [...currentTools, webSearchTool]
+          }, () => {
+            webSearchBtn.classList.add('active');
+            // 使用新的提示样式
+            showToast('已启用联网搜索', 'success');
+          });
+        }
+      });
+    });
+
+    // 初始化按钮状态
+    chrome.storage.local.get(['selectedTools'], function (result) {
+      const currentTools = result.selectedTools || [];
+      const hasWebSearch = currentTools.some(tool =>
+        tool.function && tool.function.name === '$web_search'
+      );
+      if (hasWebSearch) {
+        webSearchBtn.classList.add('active');
+      }
+    });
+  }
 }
 
 /**
@@ -947,6 +1008,22 @@ function displayErrorMessage(message) {
   contentDiv.innerHTML = `<div class="error-message">${message}</div>`;
 }
 
+/**
+ * 显示普通消息
+ * @param {string} message 
+ */
+function displayMessage(message) {
+  const contentDiv = document.querySelector('.chat-content');
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'info-message';
+  messageDiv.textContent = message;
+  contentDiv.appendChild(messageDiv);
+
+  // 2秒后自动消失
+  setTimeout(() => {
+    contentDiv.removeChild(messageDiv);
+  }, 2000);
+}
 
 /**
  * 主程序
@@ -954,4 +1031,51 @@ function displayErrorMessage(message) {
 document.addEventListener('DOMContentLoaded', function () {
   initResultPage();
 });
+
+/**
+ * 显示优雅的提示信息
+ * @param {string} message 提示内容
+ * @param {string} type 提示类型 (success/info/error)
+ */
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+
+  const icon = document.createElement('span');
+  icon.className = 'toast-icon';
+
+  // 根据类型设置图标
+  if (type === 'success') {
+    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M20 6L9 17l-5-5"/>
+    </svg>`;
+  } else if (type === 'info') {
+    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 16v-4"/>
+      <path d="M12 8h.01"/>
+    </svg>`;
+  }
+
+  const text = document.createElement('span');
+  text.textContent = message;
+
+  toast.appendChild(icon);
+  toast.appendChild(text);
+
+  document.body.appendChild(toast);
+
+  // 动画效果
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+  });
+
+  // 2秒后消失
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-100%)';
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
+}
 

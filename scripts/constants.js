@@ -91,7 +91,7 @@ const PROVIDER_DISPLAY_NAMES = {
   [PROVIDERS.GPT]: 'OpenAI',
   [PROVIDERS.GLM]: '智谱清言',
   [PROVIDERS.MOONSHOT]: '月之暗面',
-  [PROVIDERS.DEEPSEEK]: '深而求索',
+  [PROVIDERS.DEEPSEEK]: '深度求索',
   [PROVIDERS.GITHUB]: 'GitHub Models',
   [PROVIDERS.AZURE]: 'Azure OpenAI',
   [PROVIDERS.GEMINI]: 'Google Gemini',
@@ -504,3 +504,11 @@ const FUNCTION_SERAPI = {
     }
   }
 }
+
+// 添加web search相关常量
+const WEB_SEARCH_TOOL = {
+  type: "builtin_function",
+  function: {
+    name: "$web_search"
+  }
+};
