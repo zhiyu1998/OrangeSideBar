@@ -521,12 +521,3 @@ const GEMINI_MODELS = {
 
 // 支持联网搜索的模型列表
 const GEMINI_SEARCH_MODELS = [GEMINI_MODELS.FLASH];
-
-// Web搜索工具配置
-const WEB_SEARCH_TOOL = {
-  type: "builtin_function",
-  function: {
-    name: "$web_search",
-    description: "A tool for web search, supporting Moonshot and Gemini 2.0 Flash models"
-  }
-};
