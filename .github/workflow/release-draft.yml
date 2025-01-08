@@ -3,7 +3,7 @@ name: Update Draft Release
 on:
   push:
     branches:
-      - main # 根据需求修改为你的目标分支
+      - main
 
 jobs:
   update-draft-release:
