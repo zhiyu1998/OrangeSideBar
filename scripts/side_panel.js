@@ -947,6 +947,12 @@ function initResultPage() {
       const modelSelection = document.getElementById('model-selection');
       const model = modelSelection.value;
 
+      // 检查是否支持联网搜索
+      if (model.includes(PROVIDERS.GEMINI) && !GEMINI_SEARCH_MODELS.includes(model)) {
+        showToast('当前Gemini模型不支持联网搜索', 'error');
+        return;
+      }
+
       // 验证API key
       const apiKeyValid = await verifyApiKeyConfigured(model);
       if (!apiKeyValid) {

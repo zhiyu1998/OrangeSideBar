@@ -673,3 +673,12 @@
 .toast-info .toast-icon {
   color: #3b82f6;
 }
+
+/* 添加错误提示样式 */
+.toast-error {
+  border-left: 4px solid #ef4444;
+}
+
+.toast-error .toast-icon {
+  color: #ef4444;
+}

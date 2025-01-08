@@ -509,6 +509,24 @@ const FUNCTION_SERAPI = {
 const WEB_SEARCH_TOOL = {
   type: "builtin_function",
   function: {
-    name: "$web_search"
+    name: "$web_search",
+    description: "A tool for web search, supporting Moonshot and Gemini 2.0 Flash models"
+  }
+};
+
+// Gemini模型常量
+const GEMINI_MODELS = {
+  FLASH: 'gemini-2.0-flash-exp'
+};
+
+// 支持联网搜索的模型列表
+const GEMINI_SEARCH_MODELS = [GEMINI_MODELS.FLASH];
+
+// Web搜索工具配置
+const WEB_SEARCH_TOOL = {
+  type: "builtin_function",
+  function: {
+    name: "$web_search",
+    description: "A tool for web search, supporting Moonshot and Gemini 2.0 Flash models"
   }
 };

@@ -399,56 +399,125 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
 }
 
 /**
- * 处理 gemini 接口数据格式
- * @param {string} baseUrl
- * @param {string} modelName
- * @param {string} type
- * @returns
+ * 使用Gemini模型进行对话
  */
-async function chatWithGemini(baseUrl, modelName, type) {
-  const { temperature, topP, maxTokens } = await getModelParameters();
+async function chatWithGemini(baseUrl, model, type, tools = []) {
+  try {
+    // 检查是否启用了web search
+    const hasWebSearch = tools.some(tool =>
+      tool.function && tool.function.name === WEB_SEARCH_TOOL.function.name
+    );
 
-  const body = {
-    contents: geminiDialogueHistory,
-    systemInstruction: geminiSystemPrompt,
-    generationConfig: {
-      maxOutputTokens: maxTokens,
-      temperature: temperature,
-      topP: topP
-    },
-    tools: [
-      {
-        functionDeclarations: []
+    // 获取模型参数
+    const { temperature, topP, maxTokens } = await getModelParameters();
+
+    // 构建请求体
+    const requestBody = {
+      contents: [{
+        parts: geminiDialogueHistory.map(msg => ({
+          text: msg.parts[0].text
+        }))
+      }],
+      generationConfig: {
+        temperature: temperature,
+        topP: topP,
+        maxOutputTokens: maxTokens
       }
-    ]
+    };
+
+    // 如果是支持联网搜索的模型且启用了联网搜索,添加googleSearch工具
+    if (GEMINI_SEARCH_MODELS.includes(model) && hasWebSearch) {
+      requestBody.tools = [{
+        googleSearch: {}
+      }];
+    }
+
+    const response = await fetch(baseUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let completeText = '';
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // 处理返回的数据
+      const result = await processGeminiResponse(buffer, model, hasWebSearch);
+      completeText = result.text;
+      buffer = result.remainingBuffer;
+
+      // 更新UI
+      if (completeText) {
+        updateChatContent(completeText, type);
+      }
+    }
+
+    return {
+      completeText: completeText,
+      tools: [] // Gemini的工具调用结果会直接包含在返回文本中
+    };
+
+  } catch (error) {
+    console.error('Gemini API error:', error);
+    throw error;
+  }
+}
+
+/**
+ * 处理Gemini响应数据
+ */
+async function processGeminiResponse(buffer, model, hasWebSearch) {
+  let text = '';
+  let remainingBuffer = buffer;
+
+  try {
+    const lines = buffer.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const jsonStr = line.slice(5);
+        const data = JSON.parse(jsonStr);
+
+        // 提取文本内容
+        const content = data.candidates?.[0]?.content;
+        if (content?.parts) {
+          text += content.parts.map(part => part.text || '').join('');
+        }
+
+        // 如果启用了联网搜索,处理搜索结果
+        if (hasWebSearch && data.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+          const searchResults = data.candidates[0].groundingMetadata.groundingChunks
+            .map(chunk => {
+              const web = chunk.web;
+              return `\n\n📌 来源: [${web.title}](${web.uri})`;
+            })
+            .join('\n');
+
+          text += '\n\n### 参考来源' + searchResults;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error processing Gemini response:', error);
+  }
+
+  return {
+    text,
+    remainingBuffer
   };
-
-  // 获取工具选择情况
-  const serpapi_checked = await getValueFromChromeStorage(SERPAPI);
-  const dalle_checked = await getValueFromChromeStorage(DALLE);
-  let tools_list_prompt = TOOL_PROMPT_PREFIX;
-  if (serpapi_checked != null && serpapi_checked) {
-    tools_list_prompt += WEB_SEARCH_PROMTP;
-    body.tools[0].functionDeclarations.push(FUNCTION_SERAPI.function);
-  }
-  if (dalle_checked != null && dalle_checked) {
-    tools_list_prompt += IMAGE_GEN_PROMTP;
-    body.tools[0].functionDeclarations.push(FUNCTION_DALLE.function);
-  }
-  // 如果tools数组为空，则删除tools属性
-  if (body.tools[0].functionDeclarations.length === 0) {
-    delete body.tools;
-  }
-
-  // 根据选择的工具状态来更新 system prompt
-  geminiSystemPrompt.parts[0].text = systemPrompt.replace('{tools-list}', tools_list_prompt);
-
-  const additionalHeaders = {};
-  const params = createRequestParams(additionalHeaders, body);
-  console.log(baseUrl);
-  console.log(params);
-
-  return await fetchAndHandleResponse(baseUrl, params, modelName, type);
 }
 
 /**
