@@ -1,0 +1,56 @@
+name: Update Draft Release
+
+on:
+  push:
+    branches:
+      - main # 根据需求修改为你的目标分支
+
+jobs:
+  update-draft-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Extract commit messages
+        run: |
+          git log -1 --pretty=format:"%h %s" > commit_message.txt
+        id: get_commit
+
+      - name: Update Draft Release
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }} # 显式使用 GITHUB_TOKEN
+          script: |
+            const fs = require('fs');
+            const commitMessage = fs.readFileSync('commit_message.txt', 'utf-8');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // 获取现有的 Draft Release
+            const releases = await github.rest.repos.listReleases({ owner, repo });
+            let draftRelease = releases.data.find(r => r.draft);
+
+            if (!draftRelease) {
+              // 如果没有 Draft Release，则创建一个新的
+              const newRelease = await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: 'next-release', // 可修改为更有意义的 tag 名称
+                name: 'Next Release',    // Release 的标题
+                body: '### Changes:\n',  // 初始化描述内容
+                draft: true,
+              });
+              draftRelease = newRelease.data;
+            }
+
+            // 更新 Draft Release 的 body
+            await github.rest.repos.updateRelease({
+              owner,
+              repo,
+              release_id: draftRelease.id,
+              body: `${draftRelease.body}\n- ${commitMessage}`,
+            });
+
+            console.log('Draft Release updated successfully!');
