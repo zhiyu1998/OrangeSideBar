@@ -755,7 +755,6 @@ async function getCurrentURL() {
  * @returns
  */
 async function parseAndUpdateChatContent(response, modelName, type) {
-  // 使用长轮询，服务器会持续发送数据
   const reader = response.body.getReader();
   let completeText = '';
   let tools = [];
@@ -763,18 +762,16 @@ async function parseAndUpdateChatContent(response, modelName, type) {
   try {
     while (true) {
       const { value, done } = await reader.read();
-      // console.log('done..', done);
       if (done) break;
 
       // 处理接收到的数据
       buffer += new TextDecoder().decode(value);
-      // console.log('buffer...', buffer);
       let position = 0;
       while (position < buffer.length) {
         let start = buffer.indexOf('{', position);
         let end = buffer.indexOf('}\n', start);
         if (end == -1) {
-          end = buffer.indexOf('}\r\n', start); // 这个主要用于处理gemini的返回
+          end = buffer.indexOf('}\r\n', start);
         }
 
         if (start === -1 || end === -1) {
@@ -784,12 +781,10 @@ async function parseAndUpdateChatContent(response, modelName, type) {
         // 尝试解析找到的JSON对象
         let jsonText = buffer.substring(start, end + 1);
         try {
-          // console.log('jsonText...', jsonText);
           const jsonData = JSON.parse(jsonText);
           let content = '';
           if (modelName.includes(PROVIDERS.GEMINI)) {
             jsonData.candidates[0].content.parts.forEach(part => {
-              // 检查 content 字段
               if (part.text !== undefined && part.text != null) {
                 content += part.text;
               }
@@ -809,8 +804,6 @@ async function parseAndUpdateChatContent(response, modelName, type) {
           } else {
             jsonData.choices.forEach(choice => {
               const delta = choice.delta;
-
-              // 检查 content 字段
               if (delta.content !== undefined && delta.content !== null) {
                 content += delta.content;
               }
@@ -818,7 +811,6 @@ async function parseAndUpdateChatContent(response, modelName, type) {
               // 检查 tool_calls 字段
               if (delta.tool_calls !== undefined && Array.isArray(delta.tool_calls)) {
                 delta.tool_calls.forEach(tool_call => {
-                  // console.log('tool_call:', tool_call);
                   const func = tool_call.function;
                   if (func) {
                     const index = tool_call.index;
@@ -833,19 +825,18 @@ async function parseAndUpdateChatContent(response, modelName, type) {
                   }
                 });
               }
-            })
+            });
           }
           completeText += content;
-          position = end + 1; // 更新位置，准备解析下一个对象
+          position = end + 1;
         } catch (error) {
           console.error('Failed to parse JSON:', error);
-          position = end + 1; // 解析失败，跳过这部分
+          position = end + 1;
         }
       }
-      // 移除已经解析的部分
       buffer = buffer.substring(position);
 
-      // generate
+      // 更新界面显示
       if (completeText.length > 0) {
         updateChatContent(completeText, type);
       }
@@ -885,15 +876,11 @@ function updateChatContent(completeText, type) {
   } else if (type == HUACI_TRANS_TYPE) {
     // popup
     const translationPopup = document.querySelector('#fisherai-transpop-id');
-    translationPopup.style.display = 'block';
-    const button = document.querySelector('#fisherai-button-id');
-    button.style.display = 'none';
-
-    // shown
-    translationPopup.innerHTML = marked.parse(completeText);
-
+    if (translationPopup) {
+      translationPopup.style.display = 'block';
+      translationPopup.innerHTML = marked.parse(completeText);
+    }
   }
-
 }
 
 

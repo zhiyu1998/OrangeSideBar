@@ -433,3 +433,30 @@ const GEMINI_SEARCH_MODELS = [GEMINI_MODELS.FLASH];
 
 // 每页显示的模型数量
 const MODELS_PER_PAGE = 12;
+
+// Web Search 工具定义
+const WEB_SEARCH_TOOL = {
+  "type": "builtin_function",
+  "function": {
+    "name": "$web_search"
+  }
+};
+
+// SerAPI 工具定义
+const FUNCTION_SERAPI = {
+  "type": "function",
+  "function": {
+    "name": "serpapi",
+    "description": "Search the web using SerpAPI",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "The search query"
+        }
+      },
+      "required": ["query"]
+    }
+  }
+};

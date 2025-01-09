@@ -113,21 +113,24 @@ async function chatLLMAndUIUpdate(model, inputText, base64Images) {
     aiMessageDiv.innerHTML = ''; // Clear existing content if regenerating
   }
 
-  // 获取已选择的tools
-  chrome.storage.local.get(['selectedTools'], async function (result) {
-    const tools = result.selectedTools || [];
-
-    try {
-      const completeText = await chatWithLLM(model, inputText, base64Images, CHAT_TYPE, tools);
-      createCopyButton(completeText);
-    } catch (error) {
-      hiddenLoadding();
-      displayErrorMessage(`${error.message}`);
-      console.error('请求异常:', error);
-    } finally {
-      showSubmitBtnAndHideGenBtn();
+  try {
+    // 获取当前工具状态
+    const tools = [];
+    const webSearchBtn = document.querySelector('#web-search-label');
+    if (webSearchBtn && webSearchBtn.classList.contains('active')) {
+      // 只有当联网搜索按钮处于激活状态时，才添加搜索工具
+      tools.push(WEB_SEARCH_TOOL);
     }
-  });
+
+    const completeText = await chatWithLLM(model, inputText, base64Images, CHAT_TYPE, tools);
+    createCopyButton(completeText);
+  } catch (error) {
+    hiddenLoadding();
+    displayErrorMessage(`${error.message}`);
+    console.error('请求异常:', error);
+  } finally {
+    showSubmitBtnAndHideGenBtn();
+  }
 }
 
 /**
@@ -1080,5 +1083,48 @@ function showToast(message, type = 'info') {
     toast.style.transform = 'translateY(-100%)';
     setTimeout(() => toast.remove(), 300);
   }, 2000);
+}
+
+async function chatWithLLM(model, inputText, base64Images, type, tools = []) {
+  var { baseUrl, apiKey } = await getBaseUrlAndApiKey(model);
+
+  if (!baseUrl) {
+    throw new Error('模型 ' + model + ' 的 API 代理地址为空，请检查！');
+  }
+
+  if (!apiKey) {
+    throw new Error('模型 ' + model + ' 的 API Key 为空，请检查！');
+  }
+
+  // 如果是划词或划句场景，把system prompt置空
+  if (type == HUACI_TRANS_TYPE) {
+    dialogueHistory[0].content = '';
+  }
+
+  const openaiDialogueEntry = createDialogueEntry('user', 'content', inputText, base64Images, model);
+  const geminiDialogueEntry = createDialogueEntry('user', 'parts', inputText, base64Images, model);
+
+  // 将用户提问更新到对话历史
+  dialogueHistory.push(openaiDialogueEntry);
+  geminiDialogueHistory.push(geminiDialogueEntry);
+
+  // 取最近的 X 条对话记录
+  if (dialogueHistory.length > MAX_DIALOG_LEN) {
+    dialogueHistory = dialogueHistory.slice(-MAX_DIALOG_LEN);
+  }
+
+  let result = { completeText: '', tools: [] };
+  if (model.includes(PROVIDERS.GEMINI)) {
+    baseUrl = baseUrl.replace('{MODEL_NAME}', model).replace('{API_KEY}', apiKey);
+    result = await chatWithGemini(baseUrl, model, type, tools);
+  } else {
+    result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools);
+  }
+
+  while (result.tools.length > 0) {
+    result = await parseFunctionCalling(result, baseUrl, apiKey, model, type);
+  }
+
+  return result.completeText;
 }
 
