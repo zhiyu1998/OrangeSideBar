@@ -10,25 +10,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 检出代码
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      # 调试工作目录
       - name: Debug workspace
-        run: ls -R
+        run: |
+          echo "Current working directory:"
+          pwd
+          echo "Files in working directory:"
+          ls -R
 
+      # 安装 crx3 工具
       - name: Install crx3
         run: npm install -g crx3
 
+      # 创建私钥文件
       - name: Create private key
         env:
           PRIVATE_KEY: ${{ secrets.EXTENSION_PRIVATE_KEY }}
         run: echo "$PRIVATE_KEY" > key.pem
 
+      # 设置工作目录（确保在正确路径下执行命令）
+      - name: Set working directory
+        run: cd $GITHUB_WORKSPACE
+
+      # 打包插件为 OrangeSideBar.crx
       - name: Build OrangeSideBar.crx
         run: |
-          crx3 --private-key=key.pem --zip chrome-extension.zip ./ # 替换 ./ 为实际路径
+          crx3 --private-key=key.pem --zip chrome-extension.zip $GITHUB_WORKSPACE
           mv extension.crx OrangeSideBar.crx
 
+      # 上传 OrangeSideBar.crx 到 Release
       - name: Upload OrangeSideBar.crx to Release
         uses: actions/upload-release-asset@v1
         with:
