@@ -169,75 +169,74 @@ function togglePasswordVisibility(button) {
  * @returns
  */
 function getModelBaseParamForCheck(baseUrl, model, apiKey) {
-  let body = '';
-  for (const { key, defaultBaseUrl, apiPath, defaultModel } of DEFAULT_LLM_URLS) {
-    if (model.includes(key)) {
-      let apiUrl = baseUrl || defaultBaseUrl;
-      apiUrl += apiPath;
+  let apiUrl, headers = {
+    'Content-Type': 'application/json'
+  };
 
-      if (model.includes(PROVIDERS.GEMINI)) {
-        apiUrl = apiUrl.replace('{MODEL_NAME}', defaultModel).replace('{API_KEY}', apiKey);
-
-        body = JSON.stringify({
-          contents: [{
-            "role": "user",
-            "parts": [{
-              "text": "hi"
-            }]
-          }]
-        });
-      } else if (model.includes(PROVIDERS.AZURE)) {
-        apiUrl = apiUrl.replace('{MODEL_NAME}', defaultModel);
-        body = JSON.stringify({
-          stream: true,
-          messages: [
-            {
-              "role": "user",
-              "content": "hi"
-            }
-          ]
-        });
-      } else if (model.includes(PROVIDERS.OLLAMA)) {
-        apiUrl = baseUrl || defaultBaseUrl;
-        apiUrl += OLLAMA_LIST_MODEL_PATH;
-      } else {
-        body = JSON.stringify({
-          model: defaultModel,
-          stream: true,
-          messages: [
-            {
-              "role": "user",
-              "content": "hi"
-            }
-          ]
-        });
-      }
-
-      return { apiUrl, body };
+  // 根据不同的模型设置不同的API路径
+  if (model.includes(PROVIDERS.AZURE)) {
+    apiUrl = `${baseUrl}${AZURE_MODELS_API_PATH}`;
+    headers['api-key'] = apiKey;
+  } else if (model.includes(PROVIDERS.GEMINI)) {
+    apiUrl = `${baseUrl}${GEMINI_MODELS_API_PATH}`.replace('{API_KEY}', apiKey);
+  } else if (model.includes(PROVIDERS.OLLAMA)) {
+    apiUrl = `${baseUrl}${OLLAMA_LIST_MODEL_PATH}`;
+  } else {
+    // 其他模型使用标准的模型列表API路径
+    const modelsPath = getModelsApiPath(model);
+    apiUrl = `${baseUrl}${modelsPath}`;
+    if (!model.includes(PROVIDERS.GEMINI)) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
     }
   }
+
+  return {
+    apiUrl,
+    params: {
+      method: 'GET',
+      headers: headers
+    }
+  };
+}
+
+/**
+ * 获取模型列表API路径
+ */
+function getModelsApiPath(model) {
+  if (model.includes(PROVIDERS.GPT)) return OPENAI_MODELS_API_PATH;
+  if (model.includes(PROVIDERS.AZURE)) return AZURE_MODELS_API_PATH;
+  if (model.includes(PROVIDERS.GEMINI)) return GEMINI_MODELS_API_PATH;
+  if (model.includes(PROVIDERS.GROQ)) return GROQ_MODELS_API_PATH;
+  if (model.includes(PROVIDERS.MISTRAL)) return MISTRAL_MODELS_API_PATH;
+  if (model.includes(PROVIDERS.MOONSHOT)) return MOONSHOT_MODELS_API_PATH;
+  if (model.includes(PROVIDERS.DEEPSEEK)) return DEEPSEEK_MODELS_API_PATH;
+  if (model.includes(PROVIDERS.GITHUB)) return GITHUB_MODELS_API_PATH;
+  return OPENAI_MODELS_API_PATH; // 默认返回OpenAI的路径
 }
 
 function getToolsParamForCheck(baseUrl, model, apiKey) {
-  let body = '';
-  for (const { key, defaultBaseUrl, apiPath, defaultModel } of DEFAULT_TOOL_URLS) {
-    if (model.includes(key)) {
-      let apiUrl = baseUrl || defaultBaseUrl;
-      apiUrl += apiPath;
+  let apiUrl, body;
 
-      if (model.includes(SERPAPI_KEY)) {
-        apiUrl = apiUrl.replace('{API_KEY}', apiKey).replace('{QUERY}', 'apple');
-      } else if (model.includes(DALLE_KEY)) {
-        body = JSON.stringify({
-          model: defaultModel,
-          prompt: "A cute baby sea otter",
-          n: 1,
-          size: "1024x1024"
-        });
+  if (model === SERPAPI_KEY) {
+    apiUrl = `${baseUrl}/search?api_key=${apiKey}&q=test`;
+    return {
+      apiUrl,
+      params: {
+        method: 'GET'
       }
-
-      return { apiUrl, body };
-    }
+    };
+  } else if (model === DALLE_KEY) {
+    apiUrl = `${baseUrl}/v1/models`;
+    return {
+      apiUrl,
+      params: {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    };
   }
 }
 
@@ -375,157 +374,219 @@ async function getModelList(baseUrl, model, apiKey) {
 
 /**
  * 更新模型列表
- * @param {Array} models 模型列表
- * @param {string} tabName 当前标签页名称
  */
 function updateModelSelect(models, tabName) {
-  // 获取当前标签页下的 model-list
   const tabContent = document.getElementById(tabName);
-  console.log('Tab content:', tabContent); // 调试日志
-
   const modelList = tabContent.querySelector('#model-list');
-  console.log('Model list element:', modelList); // 调试日志
+  const loadingElement = tabContent.querySelector('.model-list-loading');
+  const loadMoreBtn = tabContent.querySelector('.load-more-btn');
 
   if (!modelList) {
     console.warn('No model list found in tab:', tabName);
     return;
   }
 
-  const modelItems = models
-    .filter(model => model.id && !model.id.includes('deprecated'))
-    .map(model => {
-      console.log('Processing model:', model); // 调试日志
-      return `<li>${model.id}</li>`;
-    })
-    .join('');
+  // 显示加载动画
+  if (loadingElement) {
+    loadingElement.style.display = 'flex';
+  }
+  modelList.classList.add('loading');
 
-  console.log('Generated model items:', modelItems); // 调试日志
+  // 过滤并创建所有模型项
+  const filteredModels = models.filter(model => model.id && !model.id.includes('deprecated'));
 
-  // 保存模型列表到存储
-  chrome.storage.local.get(tabName, function (result) {
-    const modelInfo = result[tabName] || {};
-    modelInfo.models = models;
+  // 使用 requestAnimationFrame 确保动画流畅
+  requestAnimationFrame(() => {
+    // 更新存储中的模型列表
+    chrome.storage.local.get(tabName, function (result) {
+      const modelInfo = result[tabName] || {};
+      modelInfo.models = models;
 
-    // 保留原有的配置
-    chrome.storage.local.set({
-      [tabName]: modelInfo
-    }, function () {
-      // 更新列表
-      modelList.innerHTML = modelItems;
-      console.log('Updated model list HTML'); // 调试日志
+      chrome.storage.local.set({ [tabName]: modelInfo }, function () {
+        // 使用 setTimeout 创建过渡效果
+        setTimeout(() => {
+          // 清空列表
+          modelList.innerHTML = '';
+
+          // 创建所有模型项
+          filteredModels.forEach((model, index) => {
+            const li = document.createElement('li');
+            li.textContent = model.id;
+            if (index >= MODELS_PER_PAGE) {
+              li.classList.add('hidden');
+            }
+            modelList.appendChild(li);
+          });
+
+          // 更新加载更多按钮
+          if (loadMoreBtn) {
+            if (filteredModels.length > MODELS_PER_PAGE) {
+              loadMoreBtn.style.display = 'block';
+              const remainingCount = filteredModels.length - MODELS_PER_PAGE;
+              const countSpan = loadMoreBtn.querySelector('.remaining-count');
+              if (countSpan) {
+                countSpan.textContent = `(还有 ${remainingCount} 个)`;
+              }
+            } else {
+              loadMoreBtn.style.display = 'none';
+            }
+          }
+
+          // 延迟移除加载状态
+          setTimeout(() => {
+            if (loadingElement) {
+              loadingElement.style.display = 'none';
+            }
+            modelList.classList.remove('loading');
+          }, 150);
+
+          // 更新全局模型列表
+          updateGlobalModels(tabName, models);
+        }, 150);
+      });
     });
   });
 }
 
 /**
- * 修改现有的checkAPIAvailable函数
+ * 加载更多模型
+ */
+function loadMoreModels(tabContent) {
+  if (!tabContent) return;
+
+  const modelList = tabContent.querySelector('#model-list');
+  const loadMoreBtn = tabContent.querySelector('.load-more-btn');
+
+  if (!modelList || !loadMoreBtn) return;
+
+  const hiddenItems = modelList.querySelectorAll('li.hidden');
+
+  // 显示所有隐藏的模型
+  hiddenItems.forEach(item => {
+    item.classList.remove('hidden');
+  });
+
+  // 隐藏加载更多按钮
+  loadMoreBtn.style.display = 'none';
+}
+
+/**
+ * 更新全局模型列表
+ * @param {string} provider 供应商标识
+ * @param {Array} models 模型列表
+ */
+function updateGlobalModels(provider, models) {
+  chrome.storage.local.get('globalModels', function (result) {
+    let globalModels = result.globalModels || {};
+
+    // 更新特定供应商的模型列表
+    globalModels[provider] = models.map(model => ({
+      value: model.id,
+      label: model.id
+    }));
+
+    // 保存更新后的全局模型列表
+    chrome.storage.local.set({ globalModels }, function () {
+      // 重新加载划词翻译的模型选择下拉框
+      loadGlobalModelsToQuickTrans();
+    });
+  });
+}
+
+/**
+ * 检查API可用性
  */
 function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
-  var apiUrl, body;
+  const tabContent = resultElement.closest('.tab-content');
+  const modelList = tabContent.querySelector('#model-list');
+  const checkButton = tabContent.querySelector('.checkapi-button');
+  const loadingElement = tabContent.querySelector('.model-list-loading');
 
-  // 为了复用该函数，这里做一些trick
+  // 添加加载状态
+  if (checkButton) {
+    checkButton.disabled = true;
+    checkButton.style.opacity = '0.7';
+    checkButton.textContent = '检查中...';
+  }
+
+  // 显示加载动画
+  if (loadingElement) {
+    loadingElement.style.display = 'flex';
+  }
+  if (modelList) {
+    modelList.classList.add('loading');
+  }
+
+  // 构建API请求参数
+  let apiUrl, params;
   if (model.includes(TOOL_KEY)) {
-    ({ apiUrl, body } = getToolsParamForCheck(baseUrl, model, apiKey));
+    ({ apiUrl, params } = getToolsParamForCheck(baseUrl, model, apiKey));
   } else {
-    ({ apiUrl, body } = getModelBaseParamForCheck(baseUrl, model, apiKey));
+    ({ apiUrl, params } = getModelBaseParamForCheck(baseUrl, model, apiKey));
   }
 
-  const headers = {
-    'Content-Type': 'application/json'
-  };
-
-  if (model.includes(PROVIDERS.AZURE)) {
-    headers['api-key'] = apiKey;
-  } else if (!model.includes(PROVIDERS.GEMINI)) {
-    headers['Authorization'] = `Bearer ${apiKey}`;
-  }
-
-  let params = {
-    method: "POST",
-    headers: headers,
-    body: body
-  };
-
-  if (model.includes(PROVIDERS.OLLAMA) || model.includes(SERPAPI_KEY)) {
-    params = {
-      method: "GET"
-    }
-  }
-
-  // 先测试连通性
+  // API 检查逻辑
   fetch(apiUrl, params)
     .then(response => {
       if (response.ok) {
         resultElement.textContent = '检查通过';
+        resultElement.className = 'checkapi-message success';
         resultElement.style.display = "block";
 
-        // 连通性测试通过后获取模型列表
-        getModelList(baseUrl, model, apiKey)
-          .then(models => {
-            if (models && models.length > 0) {
-              console.log('Retrieved models for', model, ':', models); // 添加日志
+        // 获取模型列表
+        return getModelList(baseUrl, model, apiKey);
+      }
+      throw new Error('API 请求失败，状态码：' + response.status);
+    })
+    .then(models => {
+      if (models && models.length > 0) {
+        const tabId = tabContent.id;
+        const saveMessage = tabContent.querySelector('.save-message');
 
-              // 保存配置和模型列表
-              const tabContent = resultElement.closest('.tab-content');
-              const tabId = tabContent.id;
-              console.log('Saving models for tab:', tabId); // 添加日志
+        const formattedModels = models.map(model => ({
+          id: model.id,
+          object: model.object || 'model',
+          owned_by: model.owned_by || 'unknown'
+        }));
 
-              // 使用正确的 saveMessage 元素
-              const saveMessage = tabContent.querySelector('.save-message');
-
-              // 检查模型数据格式
-              const formattedModels = models.map(model => {
-                console.log('Processing model:', model); // 添加日志
-                return {
-                  id: model.id,
-                  object: model.object || 'model',
-                  owned_by: model.owned_by || 'unknown'
-                };
-              });
-              console.log('Formatted models:', formattedModels); // 添加日志
-
-              // 直接使用 storeParams 函数保存所有数据
-              storeParams(tabId, baseUrl, apiKey, saveMessage, formattedModels);
-            } else if (model.includes(PROVIDERS.GLM)) {
-              // 这里特殊处理一下智谱清言模型，因为没有 models API 接口
-
-              // 保存配置和模型列表
-              const tabContent = resultElement.closest('.tab-content');
-              const tabId = tabContent.id;
-              console.log('Saving models for tab:', tabId); // 添加日志
-
-              // 使用正确的 saveMessage 元素
-              const saveMessage = tabContent.querySelector('.save-message');
-
-              const formattedModels = GLM_MODELS.map(model => ({
-                id: model,
-                object: 'model',
-                owned_by: 'glm'
-              }));
-              storeParams(tabId, baseUrl, apiKey, saveMessage, formattedModels);
-            } else {
-              console.warn('No models returned from API');
-            }
-          })
-          .catch(error => {
-            console.error('Error updating models:', error);
-          });
-
-        setTimeout(() => {
-          resultElement.style.display = 'none';
-        }, 1000);
-      } else {
-        throw new Error('API 请求失败，状态码：' + response.status);
+        // 保存并更新模型列表
+        storeParams(tabId, baseUrl, apiKey, saveMessage, formattedModels);
       }
     })
     .catch(error => {
       console.error('API check failed:', error);
-      resultElement.textContent = '检查未通过';
-      resultElement.style.display = "block";
+      showErrorMessage(resultElement, '检查未通过');
+    })
+    .finally(() => {
+      // 恢复按钮状态
+      if (checkButton) {
+        checkButton.disabled = false;
+        checkButton.style.opacity = '1';
+        checkButton.textContent = '连通性测试';
+      }
+
+      // 隐藏加载动画
+      if (loadingElement) {
+        loadingElement.style.display = 'none';
+      }
+      if (modelList) {
+        modelList.classList.remove('loading');
+      }
+
+      // 设置消息消失时间
       setTimeout(() => {
         resultElement.style.display = 'none';
-      }, 1000);
+      }, 2000);
     });
+}
+
+/**
+ * 显示错误消息
+ */
+function showErrorMessage(element, message) {
+  element.textContent = message;
+  element.className = 'checkapi-message error';
+  element.style.display = "block";
 }
 
 /**
@@ -724,6 +785,14 @@ document.addEventListener('DOMContentLoaded', function () {
       loadGlobalModelsToQuickTrans();
     });
   }
+
+  // 添加加载更多按钮的点击事件监听
+  document.querySelectorAll('.load-more-btn').forEach(button => {
+    button.addEventListener('click', function () {
+      const tabContent = this.closest('.tab-content');
+      loadMoreModels(tabContent);
+    });
+  });
 });
 
 // 修改显示消息的逻辑

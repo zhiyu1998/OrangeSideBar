@@ -378,21 +378,69 @@ input:checked + .slider:before {
 }
 
 /* 模型列表容器样式 */
-.model-list {
-  list-style-type: none;
-  padding: 0;
+.model-list-container {
+  position: relative;
+  min-height: 100px;
   margin: 15px 0;
-  max-width: 1200px;
-  max-height: 300px;
-  overflow-y: auto;
+}
+
+/* 优化模型列表样式 */
+.model-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
-  scrollbar-width: thin;
-  scrollbar-color: #4A5568 #1F2937;
+  opacity: 1;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
-/* 模型列表项样式 */
+.model-list.loading {
+  opacity: 0.3;
+  filter: blur(1px);
+}
+
+/* 优化加载动画容器 */
+.model-list-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 优化加载动画 */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid transparent;
+  border-top-color: #3B82F6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.5));
+}
+
+.loading-spinner::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  right: 3px;
+  bottom: 3px;
+  border: 3px solid transparent;
+  border-top-color: rgba(59, 130, 246, 0.5);
+  border-radius: 50%;
+  animation: spin 0.5s linear infinite reverse;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 优化模型列表项样式 */
 .model-list li {
   background-color: #2D3748;
   padding: 12px 16px;
@@ -407,14 +455,26 @@ input:checked + .slider:before {
   word-break: break-word;
   color: #E2E8F0;
   cursor: default;
+  transform: translateY(0);
+  animation: fadeIn 0.3s ease;
 }
 
-/* 列表项悬停效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .model-list li:hover {
   background-color: #374151;
   border-color: #718096;
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
               0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
@@ -562,4 +622,111 @@ input:checked + .slider:before {
 .tab-content a:hover {
   color: #60A5FA;
   text-decoration: none;
+}
+
+/* 优化检查API按钮的状态反馈 */
+.checkapi-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.checkapi-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.checkapi-button:active::after {
+  width: 200%;
+  height: 200%;
+}
+
+/* 检查API状态的提示信息样式优化 */
+.checkapi-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkapi-message::before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+.checkapi-message.success {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-left: 4px solid #10B981;
+}
+
+.checkapi-message.success::before {
+  background-color: #10B981;
+}
+
+.checkapi-message.error {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-left: 4px solid #EF4444;
+}
+
+.checkapi-message.error::before {
+  background-color: #EF4444;
+}
+
+/* 加载更多按钮样式 */
+.load-more-btn {
+  display: none;
+  margin: 20px auto;
+  padding: 10px 20px;
+  /* 更改为深色主题配色 */
+  background-color: #2D3748;
+  color: #E2E8F0;
+  border: 1px solid #4A5568;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+
+.load-more-btn:hover {
+  /* 悬停时的样式 */
+  background-color: #374151;
+  border-color: #718096;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+              0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.load-more-btn:active {
+  /* 点击时的样式 */
+  transform: translateY(0);
+  background-color: #4A5568;
+}
+
+/* 剩余数量标签样式 */
+.load-more-btn .remaining-count {
+  /* 更改为更柔和的背景色 */
+  background-color: #4A5568;
+  padding: 4px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  font-size: 12px;
+  color: #E2E8F0;
+  /* 添加微妙的发光效果 */
+  box-shadow: 0 0 8px rgba(74, 85, 104, 0.2);
+}
+
+/* 隐藏的模型项样式 */
+.model-list li.hidden {
+  display: none;
 }

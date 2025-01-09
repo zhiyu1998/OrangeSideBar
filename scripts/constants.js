@@ -521,3 +521,6 @@ const GEMINI_MODELS = {
 
 // 支持联网搜索的模型列表
 const GEMINI_SEARCH_MODELS = [GEMINI_MODELS.FLASH];
+
+// 每页显示的模型数量
+const MODELS_PER_PAGE = 12;
