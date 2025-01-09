@@ -13,20 +13,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # 安装 crx3 工具
-      - name: Install crx3
-        run: npm install -g crx3
+      - name: Install chrome-webstore-upload-cli
+        run: npm install -g chrome-webstore-upload-cli
 
-      # 创建私钥文件
       - name: Create private key
         env:
           PRIVATE_KEY: ${{ secrets.EXTENSION_PRIVATE_KEY }}
         run: echo "$PRIVATE_KEY" > key.pem
 
-      # 先创建 zip 包，再生成 crx
       - name: Build Extension
         run: |
-          # 先将所有文件打包成 zip
+          # 打包扩展为 zip
           zip -r chrome-extension.zip . -x "*.git*" "*.pem" "*.crx"
 
           # 使用 crx3 打包
