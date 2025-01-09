@@ -1,3 +1,27 @@
+/* 添加亮色主题变量 */
+:root[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-tertiary: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --border-color: #d1d5db;
+  --accent-color: #3b82f6;
+  --hover-color: #60a5fa;
+}
+
+/* 添加暗色主题变量 */
+:root[data-theme="dark"] {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --text-primary: #ffffff;
+  --text-secondary: #e5e7eb;
+  --border-color: #4b5563;
+  --accent-color: #F6B352;
+  --hover-color: #f8c883;
+}
+
 .my-extension-resultPage {
   position: fixed;
   top: 0;
@@ -5,7 +29,7 @@
   right: 0;
   height: 100%;
   width: 100%;
-  background-color: #111827;
+  background-color: var(--bg-primary);
 }
 
 .my-extension-header {
@@ -13,8 +37,8 @@
     top: 0;
     left: 0;
     right: 0;
-    background-color: #111827;
-    color: white;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     padding: 8px;
     display: flex;
     justify-content: end;
@@ -40,14 +64,15 @@
     right: 0;
     left: 0;
     top: 25px;
-    bottom: 120px;
-    background-color: #111827;
+    bottom: 180px;
+    background-color: var(--bg-primary);
     overflow-x: auto; 
     overflow-y: auto; 
     line-height: 1.6;
-    color: white;
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: #4A5568 #1F2937; /* Firefox */
+    color: var(--text-primary);
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg-tertiary) var(--bg-secondary);
+    transition: all 0.3s ease;
 }
 
 /* Webkit浏览器的滚动条样式 (Chrome, Safari, Edge等) */
@@ -58,29 +83,29 @@
 
 /* 滚动条轨道 */
 .my-extension-content::-webkit-scrollbar-track {
-  background: #1F2937; /* 深色背景 */
+  background: var(--bg-secondary);
   border-radius: 4px;
 }
 
 /* 滚动条滑块 */
 .my-extension-content::-webkit-scrollbar-thumb {
-  background-color: #4A5568; /* 滑块颜色 */
+  background-color: var(--bg-tertiary);
   border-radius: 4px;
-  border: 2px solid #1F2937; /* 营造出内凹效果 */
+  border: 2px solid var(--bg-secondary);
 }
 
 /* 滚动条滑块悬停状态 */
 .my-extension-content::-webkit-scrollbar-thumb:hover {
-  background-color: #718096; /* 悬停时颜色变亮 */
+  background-color: var(--hover-color);
 }
 
 /* 滚动条角落 */
 .my-extension-content::-webkit-scrollbar-corner {
-  background-color: #1F2937;
+  background-color: var(--bg-secondary);
 }
 
 .my-extension-content h1 {
-  color: #F6B352;
+  color: var(--accent-color);
   font-size: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 10px 0;
@@ -88,7 +113,7 @@
 }
 
 .my-extension-content h2,h3,h4 {
-  color: #F6B352;
+  color: var(--accent-color);
   font-weight: bold;
   font-size: 17px;
   padding: 10px 0;
@@ -106,7 +131,7 @@
 }
 
 .my-extension-content a {
-  color: white;
+  color: var(--text-primary);
   text-decoration: underline;
   font-weight: bold;
 }
@@ -133,7 +158,7 @@
 .my-extension-content li {
   display: list-item;
   padding-left: 5px;
-  color: white;
+  color: var(--text-primary);
   font-size: 15px;
 }
 
@@ -153,42 +178,85 @@
 .my-extension-content p {
   font-size: 15px;
   line-height: 1.6;
-  color: white;
+  color: var(--text-primary);
 }
 
 .my-extension-dialogue {
   position: fixed;
   bottom: 0;
-  right: 0;
   left: 0;
+  right: 0;
+  padding: 15px 20px;
+  background-color: var(--bg-secondary);
   display: flex;
   align-items: center;
-  padding: 5px 10px;
-  background-color: #111827;
-  border-top: 1px solid #111827;
-  box-sizing: border-box;
+  gap: 12px;
+  height: 80px;
+  z-index: 1001;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-.my-extension-dialogue textarea {
-  flex-grow: 1;
-  padding: 15px;
-  margin-right: 5px;
-  border: 1px solid #3C3C3C;
-  background-color: #111827;
-  color: white;
-  font-size: 15px;
-  border-radius: 5px;
-  resize: none; /* 禁止用户手动调整大小 */
+#my-extension-user-input {
+  flex: 1;
+  padding: 12px 15px;
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  height: 50px;
+  resize: none;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.my-extension-dialogue-submit, .my-extension-dialogue-generate {
-  padding: 5px;
-  background-color: #3C3C3C;
-  color: white;
-  cursor: pointer;
+#my-extension-user-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-color-alpha);
+  transform: translateY(-1px);
+}
+
+.my-extension-dialogue-submit,
+.my-extension-dialogue-generate {
+  padding: 12px;
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
   border: none;
-  border-radius: 10px;
-  margin-left: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  width: 45px;
+  height: 45px;
+}
+
+.my-extension-dialogue-submit svg,
+.my-extension-dialogue-generate svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s ease;
+  stroke-width: 2.5;
+}
+
+.my-extension-dialogue-submit:hover,
+.my-extension-dialogue-generate:hover {
+  background-color: var(--hover-color);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent-color);
+}
+
+.my-extension-dialogue-submit:active,
+.my-extension-dialogue-generate:active {
+  transform: translateY(0);
 }
 
 .my-extension-dialogue-submit.disabled {
@@ -218,14 +286,14 @@
 
 .my-extension-loading {
     position: fixed;
-    bottom: 115px;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     display: none;
     z-index: 100000;
     padding: 10px 20px;
     background-color: rgba(0, 0, 0, 0.7);
-    color: white;
+    color: var(--text-primary);
     border-radius: 5px;
     font-size: 14px;
 }
@@ -234,7 +302,7 @@
   font-size: 20px;
   margin-top: 20px;
   margin-left: 10px;
-  color: #F6B352
+  color: var(--accent-color)
 }
 
 .my-extension-note {
@@ -257,24 +325,31 @@
 .feature-container {
   margin-top: 20px;
   font-family: Arial, sans-serif;
-
 }
 
 .feature-title {
   font-size: 12px;
-  color: #6f6f6f;
+  color: var(--text-secondary);
   margin: 20px 0;
   margin-top: 40px;
 }
 
 .feature-item {
-  background-color: #2c2f33;
-  color: white;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
   padding: 15px;
   border-radius: 8px;
   margin-bottom: 10px;
   display: flex;
   align-items: center;
+  transition: all 0.2s ease;
+}
+
+.feature-item:hover {
+  background-color: var(--bg-tertiary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+              0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .feature-item a {
@@ -304,18 +379,24 @@
 
 .feature-desc {
   font-size: 12px;
-  color: #6f6f6f;
+  color: var(--text-secondary);
   margin-top: 5px;
 }
 
 .navigation-bar {
-  position:fixed;
-  bottom: 70px;
+  position: fixed;
+  bottom: 120px;
   display: flex;
   justify-content: start;
   align-items: center;
-  padding: 10px;
-  background-color: #111827;
+  padding: 15px 20px;
+  background-color: var(--bg-primary);
+  width: 100%;
+  z-index: 100;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .navigation-bar > div {
@@ -323,24 +404,84 @@
 }
 
 #model-selection {
-  padding: 5px 10px;
-  border: 1px solid #3C3C3C;
-  border-radius: 5px;
-  background-color: #111827;
-  color: white;
-  width: 150px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  width: 200px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  height: 35px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-size: 14px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  padding-right: 32px;
 }
 
-#image-upload-label, #newchat-label, #params-label, #tools-label {
+#model-selection:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+#model-selection:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-color-alpha);
+  transform: translateY(-1px);
+}
+
+#model-selection option {
+  padding: 8px 12px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: none;
+}
+
+#model-selection option:hover {
+  background-color: var(--bg-tertiary);
+}
+
+#model-selection optgroup {
+  font-weight: 600;
+  color: var(--accent-color);
+  background-color: var(--bg-secondary);
+  padding: 8px 4px;
+}
+
+#image-upload-label, #newchat-label, #params-label, #tools-label, #web-search-label {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   padding: 5px;
-  border-radius: 5px;
-  background-color: #7c7a7a;
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  transition: all 0.2s ease;
+  margin-right: 12px;
+  height: 35px;
+  width: 35px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+}
+
+#image-upload-label:hover, #newchat-label:hover, #params-label:hover, #tools-label:hover, #web-search-label:hover {
+  background-color: var(--hover-color);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent-color);
+}
+
+#image-upload-label:active, #newchat-label:active, #params-label:active, #tools-label:active, #web-search-label:active {
+  transform: translateY(0);
 }
 
 #newChat-div {
@@ -351,25 +492,25 @@
   width: 16px;
   height: 16px;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   position: absolute;
   right: 5px;
   padding-bottom: 5px;
 }
 
 .icon-copy:hover {
-  color: white;
+  color: var(--text-primary);
 }
 
 .image-preview-area {
   display: flex;
   flex-wrap: wrap;
   position: fixed;
-  bottom: 110px;
+  bottom: 160px;
   left: 0;
   right: 0;
   padding: 0px 10px;
-  background-color: #111827;
+  background-color: var(--bg-primary);
   z-index: 1000;
 }
 
@@ -410,33 +551,55 @@
   left: 50%;
   transform: translate(-50%, -50%);
   background-color: rgba(0, 0, 0, 0.5);
-  color: white;
+  color: var(--text-primary);
   padding: 5px 10px;
   border-radius: 5px;
   font-size: 14px;
   z-index: 1;
 }
 
-.shortcut-menu, .model-params, .tool-store {
+.shortcut-menu,
+.model-params,
+.tool-store {
   display: none;
   position: fixed;
-  background-color: #111827;
-  border: 1px solid #3C3C3C;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1),
+              0 2px 4px rgba(0, 0, 0, 0.06);
+  z-index: 1002;
   width: 200px;
   left: 10px;
-  bottom: 115px;
-  color: white;
+  bottom: 165px;
+  color: var(--text-primary);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
 }
+
+.shortcut-menu.show,
+.model-params.show,
+.tool-store.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
 .shortcut-menu div {
   padding: 8px 16px;
   cursor: pointer;
   display: flex; 
   align-items: center;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  margin: 4px;
 }
+
 .shortcut-menu div:hover {
-  background-color: #3C3C3C;
+  background-color: var(--bg-tertiary);
+  transform: translateX(2px);
 }
 
 .shortcut-menu svg {
@@ -461,7 +624,7 @@
 }
 
 .model-params h2 {
-  color: #F6B352;
+  color: var(--accent-color);
   padding-left: 15px;
 }
 
@@ -469,6 +632,8 @@
   display: flex;
   align-items: center;
   padding: 10px 15px;
+  margin-bottom: 10px;
+  color: var(--text-primary);
 }
 
 .params-item label {
@@ -481,8 +646,9 @@
 .params-item input[type="number"] {
   width: 50px;
   text-align: center;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-radius: 5px;
 }
 
@@ -493,7 +659,7 @@
 }
 
 .tool-store h2 {
-  color: #F6B352;
+  color: var(--accent-color);
   padding-left: 15px;
 }
 
@@ -531,8 +697,8 @@
 }
 
 .tool-item input[type="checkbox"]:checked {
-  background-color: #F6B352;
-  border-color: #F6B352;
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
 }
 
 .tool-item input[type="checkbox"]:checked::before {
@@ -559,7 +725,7 @@
 .user-message {
   position: relative;
   align-self: flex-end;
-  color: #F6B352;
+  color: var(--accent-color);
   font-size: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 10px 0;
@@ -591,8 +757,8 @@
 .save-message-btn, .cancel-message-btn {
   margin-left: 10px;
   padding: 5px 10px;
-  background-color: #3C3C3C;
-  color: white;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
   border: none;
   border-radius: 5px;
   cursor: pointer;
@@ -603,9 +769,9 @@
   min-height: 100px;
   margin-bottom: 10px;
   padding: 5px;
-  background-color: #111827;
-  color: white;
-  border: 1px solid #3C3C3C;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-radius: 5px;
 }
 
@@ -616,12 +782,12 @@
   transition: all 0.3s ease;
   padding: 5px;
   border-radius: 5px;
-  background-color: #7c7a7a;
+  background-color: var(--bg-tertiary);
 }
 
 #web-search-label:hover {
   opacity: 1;
-  background-color: #666;
+  background-color: var(--hover-color);
 }
 
 #web-search-label.active {

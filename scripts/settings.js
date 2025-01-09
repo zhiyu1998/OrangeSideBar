@@ -1,3 +1,26 @@
+function initThemeToggle() {
+  const themeToggle = document.getElementById('themeToggle');
+
+  // 从存储中获取当前主题
+  chrome.storage.local.get('theme', ({ theme }) => {
+    const currentTheme = theme || 'dark';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    themeToggle.checked = currentTheme === 'dark';
+  });
+
+  // 监听主题切换
+  themeToggle.addEventListener('change', (e) => {
+    const newTheme = e.target.checked ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', newTheme);
+
+    // 保存主题设置
+    chrome.storage.local.set({ theme: newTheme });
+
+    // 通知其他页面更新主题
+    chrome.runtime.sendMessage({ action: 'themeChanged', theme: newTheme });
+  });
+}
+
 function storeParams(tabName, param1, param2, saveMessage, models = null) {
   console.log('Storing params for tab:', tabName, {
     baseUrl: param1,
@@ -781,6 +804,8 @@ document.addEventListener('DOMContentLoaded', function () {
       loadMoreModels(tabContent);
     });
   });
+
+  initThemeToggle();
 });
 
 // 修改显示消息的逻辑

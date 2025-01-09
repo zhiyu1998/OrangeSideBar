@@ -249,8 +249,14 @@ function updateSubmitButton() {
 function toggleShortcutMenu(inputField, shortcutMenu) {
   if (inputField.value === '/') {
     shortcutMenu.style.display = 'block';
+    setTimeout(() => {
+      shortcutMenu.classList.add('show');
+    }, 10);
   } else {
-    shortcutMenu.style.display = 'none';
+    shortcutMenu.classList.remove('show');
+    setTimeout(() => {
+      shortcutMenu.style.display = 'none';
+    }, 300);
   }
 }
 
@@ -503,11 +509,24 @@ function initResultPage() {
   // 快捷输入
   const shortcutMenu = document.getElementById('shortcut-menu');
   userInput.addEventListener('input', function (e) {
-    toggleShortcutMenu(userInput, shortcutMenu);
+    if (e.target.value === '/') {
+      shortcutMenu.style.display = 'block';
+      setTimeout(() => {
+        shortcutMenu.classList.add('show');
+      }, 10);
+    } else {
+      shortcutMenu.classList.remove('show');
+      setTimeout(() => {
+        shortcutMenu.style.display = 'none';
+      }, 300);
+    }
   });
   userInput.addEventListener('keydown', function (e) {
     if (e.key === '/' && userInput.value.length === 0) {
-      toggleShortcutMenu(userInput, shortcutMenu);
+      shortcutMenu.style.display = 'block';
+      setTimeout(() => {
+        shortcutMenu.classList.add('show');
+      }, 10);
     }
   });
   userInput.addEventListener('blur', function () {
@@ -529,8 +548,14 @@ function initResultPage() {
   const modelParamsPopupDiv = document.getElementById('model-params');
   paramsBtn.addEventListener('click', function (event) {
     event.stopPropagation();
+    // 先显示元素
     modelParamsPopupDiv.style.display = 'block';
+    // 添加show类触发动画
+    setTimeout(() => {
+      modelParamsPopupDiv.classList.add('show');
+    }, 10);
     toolStorePopupDiv.style.display = 'none';
+    toolStorePopupDiv.classList.remove('show');
   });
   modelParamsPopupDiv.addEventListener('click', function (event) {
     event.stopPropagation(); // Prevent this click from triggering the document click event
@@ -546,8 +571,14 @@ function initResultPage() {
   const toolStorePopupDiv = document.getElementById('tool-store');
   toolsBtn.addEventListener('click', function (event) {
     event.stopPropagation();
+    // 先显示元素
     toolStorePopupDiv.style.display = 'block';
+    // 添加show类触发动画
+    setTimeout(() => {
+      toolStorePopupDiv.classList.add('show');
+    }, 10);
     modelParamsPopupDiv.style.display = 'none';
+    modelParamsPopupDiv.classList.remove('show');
   });
 
   // 保存工具选择状态
@@ -568,10 +599,16 @@ function initResultPage() {
   // 点击事件
   document.addEventListener('click', function (event) {
     if (!modelParamsPopupDiv.contains(event.target) && event.target !== paramsBtn) {
-      modelParamsPopupDiv.style.display = 'none';
+      modelParamsPopupDiv.classList.remove('show');
+      setTimeout(() => {
+        modelParamsPopupDiv.style.display = 'none';
+      }, 300); // 等待动画完成
     }
     if (!toolStorePopupDiv.contains(event.target) && event.target !== toolsBtn) {
-      toolStorePopupDiv.style.display = 'none';
+      toolStorePopupDiv.classList.remove('show');
+      setTimeout(() => {
+        toolStorePopupDiv.style.display = 'none';
+      }, 300); // 等待动画完成
     }
   });
 
@@ -615,6 +652,13 @@ function initResultPage() {
     initChatHistory();
     // 展示推荐内容
     showRecommandContent();
+    // 重置所有弹出菜单状态
+    [modelParamsPopupDiv, toolStorePopupDiv, shortcutMenu].forEach(menu => {
+      menu.classList.remove('show');
+      setTimeout(() => {
+        menu.style.display = 'none';
+      }, 300);
+    });
   });
 
   // 摘要逻辑
@@ -1127,4 +1171,24 @@ async function chatWithLLM(model, inputText, base64Images, type, tools = []) {
 
   return result.completeText;
 }
+
+function initTheme() {
+  // 从存储中获取当前主题
+  chrome.storage.local.get('theme', ({ theme }) => {
+    const currentTheme = theme || 'dark';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+  });
+}
+
+// 监听主题变化
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.action === 'themeChanged') {
+    document.documentElement.setAttribute('data-theme', message.theme);
+  }
+});
+
+document.addEventListener('DOMContentLoaded', async function () {
+  // 现有代码...
+  initTheme();
+});
 
