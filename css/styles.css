@@ -8,6 +8,9 @@
   --border-color: #d1d5db;
   --accent-color: #3b82f6;
   --hover-color: #60a5fa;
+  --scrollbar-track: #f3f4f6;
+  --scrollbar-thumb: #d1d5db;
+  --scrollbar-thumb-hover: #9ca3af;
 }
 
 /* 添加暗色主题变量 */
@@ -20,6 +23,9 @@
   --border-color: #4b5563;
   --accent-color: #F6B352;
   --hover-color: #f8c883;
+  --scrollbar-track: #1f2937;
+  --scrollbar-thumb: #374151;
+  --scrollbar-thumb-hover: #4b5563;
 }
 
 .my-extension-resultPage {
@@ -83,25 +89,25 @@
 
 /* 滚动条轨道 */
 .my-extension-content::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: var(--scrollbar-track);
   border-radius: 4px;
 }
 
 /* 滚动条滑块 */
 .my-extension-content::-webkit-scrollbar-thumb {
-  background-color: var(--bg-tertiary);
+  background-color: var(--scrollbar-thumb);
   border-radius: 4px;
-  border: 2px solid var(--bg-secondary);
+  border: 2px solid var(--scrollbar-track);
 }
 
 /* 滚动条滑块悬停状态 */
 .my-extension-content::-webkit-scrollbar-thumb:hover {
-  background-color: var(--hover-color);
+  background-color: var(--scrollbar-thumb-hover);
 }
 
 /* 滚动条角落 */
 .my-extension-content::-webkit-scrollbar-corner {
-  background-color: var(--bg-secondary);
+  background-color: var(--scrollbar-track);
 }
 
 .my-extension-content h1 {

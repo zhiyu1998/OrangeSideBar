@@ -7,6 +7,9 @@
   --border-color: #d1d5db;
   --accent-color: #3b82f6;
   --hover-color: #60a5fa;
+  --scrollbar-track: #f3f4f6;
+  --scrollbar-thumb: #d1d5db;
+  --scrollbar-thumb-hover: #9ca3af;
 }
 
 :root[data-theme="dark"] {
@@ -18,6 +21,9 @@
   --border-color: #4b5563;
   --accent-color: #F6B352;
   --hover-color: #f8c883;
+  --scrollbar-track: #1f2937;
+  --scrollbar-thumb: #374151;
+  --scrollbar-thumb-hover: #4b5563;
 }
 
 body {
@@ -40,6 +46,7 @@ body {
   background-color: var(--bg-secondary);
   padding: 20px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
 }
 
 .tab-list {
@@ -52,24 +59,32 @@ body {
   align-items: center;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: #4A5568 #1F2937;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .my-extension-header {
   width: 100%;
   text-align: center;
   margin-bottom: 20px;
+  padding: 15px;
+  border-radius: 10px;
+  background-color: var(--bg-secondary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .my-extension-logo {
   height: 48px;
   width: 48px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .my-extension-brand {
   font-size: 20px;
-  color: white;
+  color: var(--text-primary);
   margin-top: 10px;
 }
 
@@ -120,9 +135,10 @@ body {
   color: var(--text-primary);
   border-radius: 8px;
   overflow-y: auto;
+  overflow-x: hidden;
   max-height: 90vh;
   scrollbar-width: thin;
-  scrollbar-color: var(--bg-tertiary) var(--bg-secondary);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .tab-content.active {
@@ -405,6 +421,8 @@ input:checked + .slider:before {
   opacity: 1;
   transition: all 0.3s ease;
   position: relative;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 .model-list.loading {
@@ -558,32 +576,36 @@ input:checked + .slider:before {
 }
 
 .tab-list::-webkit-scrollbar,
-.tab-content::-webkit-scrollbar {
+.tab-content::-webkit-scrollbar,
+.model-list::-webkit-scrollbar {
   width: 8px;
-  height: 8px;
 }
 
 .tab-list::-webkit-scrollbar-track,
-.tab-content::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+.tab-content::-webkit-scrollbar-track,
+.model-list::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
   border-radius: 4px;
 }
 
 .tab-list::-webkit-scrollbar-thumb,
-.tab-content::-webkit-scrollbar-thumb {
-  background-color: var(--bg-tertiary);
+.tab-content::-webkit-scrollbar-thumb,
+.model-list::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
   border-radius: 4px;
-  border: 2px solid var(--bg-secondary);
+  border: 2px solid var(--scrollbar-track);
 }
 
 .tab-list::-webkit-scrollbar-thumb:hover,
-.tab-content::-webkit-scrollbar-thumb:hover {
-  background-color: var(--hover-color);
+.tab-content::-webkit-scrollbar-thumb:hover,
+.model-list::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
 }
 
 .tab-list::-webkit-scrollbar-corner,
-.tab-content::-webkit-scrollbar-corner {
-  background-color: var(--bg-secondary);
+.tab-content::-webkit-scrollbar-corner,
+.model-list::-webkit-scrollbar-corner {
+  background-color: var(--scrollbar-track);
 }
 
 .model-list::-webkit-scrollbar {
@@ -592,22 +614,22 @@ input:checked + .slider:before {
 }
 
 .model-list::-webkit-scrollbar-track {
-  background: #1F2937;
+  background: var(--scrollbar-track);
   border-radius: 4px;
 }
 
 .model-list::-webkit-scrollbar-thumb {
-  background-color: #4A5568;
+  background-color: var(--scrollbar-thumb);
   border-radius: 4px;
-  border: 2px solid #1F2937;
+  border: 2px solid var(--scrollbar-track);
 }
 
 .model-list::-webkit-scrollbar-thumb:hover {
-  background-color: #718096;
+  background-color: var(--scrollbar-thumb-hover);
 }
 
 .model-list::-webkit-scrollbar-corner {
-  background-color: #1F2937;
+  background-color: var(--scrollbar-track);
 }
 
 .tab-content a {
