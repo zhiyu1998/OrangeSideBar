@@ -225,18 +225,6 @@ function getToolsParamForCheck(baseUrl, model, apiKey) {
         method: 'GET'
       }
     };
-  } else if (model === DALLE_KEY) {
-    apiUrl = `${baseUrl}/v1/models`;
-    return {
-      apiUrl,
-      params: {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    };
   }
 }
 

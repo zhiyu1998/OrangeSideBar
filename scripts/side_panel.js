@@ -402,12 +402,9 @@ function loadModelParams() {
 }
 
 function loadToolsSelectedStatus() {
-  chrome.storage.local.get([SERPAPI, DALLE], (result) => {
+  chrome.storage.local.get([SERPAPI], (result) => {
     if (result.serpapi !== undefined) {
       document.getElementById(SERPAPI).checked = result.serpapi;
-    }
-    if (result.dalle !== undefined) {
-      document.getElementById(DALLE).checked = result.dalle;
     }
   });
 }

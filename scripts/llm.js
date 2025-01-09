@@ -299,9 +299,6 @@ async function parseFunctionCalling(result, baseUrl, apiKey, model, type) {
       } else if (tool.name.includes('serpapi')) {
         // 处理serpapi
         toolResult = await callSerpAPI(toolArgs['query']);
-      } else if (tool.name.includes('dalle')) {
-        // 处理dalle
-        toolResult = await callDALLE(toolArgs['prompt'], toolArgs['quality'], toolArgs['size'], toolArgs['style']);
       }
 
       updateToolCallChatHistory(tool, JSON.stringify(toolResult));
@@ -366,15 +363,10 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
 
   // 获取工具选择情况
   const serpapi_checked = await getValueFromChromeStorage(SERPAPI);
-  const dalle_checked = await getValueFromChromeStorage(DALLE);
   let tools_list_prompt = TOOL_PROMPT_PREFIX;
   if (serpapi_checked != null && serpapi_checked) {
     tools_list_prompt += WEB_SEARCH_PROMTP;
     body.tools.push(FUNCTION_SERAPI);
-  }
-  if (dalle_checked != null && dalle_checked) {
-    tools_list_prompt += IMAGE_GEN_PROMTP;
-    body.tools.push(FUNCTION_DALLE);
   }
   // 如果tools数组为空，则删除tools属性
   if (body.tools.length === 0) {
@@ -935,41 +927,4 @@ async function callSerpAPI(query) {
     answerBox: answerBox,
     organicResults: organicResults
   };
-}
-
-
-async function callDALLE(prompt, quality, size, style) {
-  quality = quality != undefined ? quality : QUALITY_DEFAULT;
-  size = size != undefined ? size : SIZE_DEFAULT;
-  style = style != undefined ? style : STYLE_DEFAULT;
-  const keyStorage = await getValueFromChromeStorage(DALLE_KEY);
-  const url = OPENAI_BASE_URL + OPENAI_DALLE_API_PATH;
-  const body = {
-    model: DALLE_DEFAULT_MODEL,
-    prompt: prompt,
-    quality: quality,
-    size: size,
-    style: style
-  };
-
-  if (!keyStorage || !keyStorage.apiKey) {
-    throw new Error(' DALLE 工具的 API Key 未配置，请检查！');
-  }
-
-  const additionalHeaders = { 'Authorization': 'Bearer ' + keyStorage.apiKey };
-  const params = createRequestParams(additionalHeaders, body);
-  const response = await fetch(url, params);
-
-  // console.log('url>>', url);
-  // console.log('params>>', params);
-  // console.log(response);
-  if (!response.ok) {
-    // 错误响应
-    const errorJson = await response.json();
-    console.error('Error response JSON:', errorJson);
-    throw new Error('Network response was not ok.');
-  }
-
-  const data = await response.json();
-  return data;
 }

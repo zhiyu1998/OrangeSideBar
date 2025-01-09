@@ -27,7 +27,6 @@ SHORTCUT_IMAGE2TEXT = "图像转文本：";
 // 各个大模型 api
 const OPENAI_BASE_URL = "https://api.openai.com";
 const OPENAI_CHAT_API_PATH = "/v1/chat/completions";
-const OPENAI_DALLE_API_PATH = "/v1/images/generations";
 
 const SILICONFLOW_BASE_URL = "https://api.siliconflow.cn";
 const SILICONFLOW_CHAT_API_PATH = "/v1/chat/completions";
@@ -245,11 +244,6 @@ You have the tool 'search engine'. Use 'search engine' in the following circumst
 - User is asking about some term you are totally unfamiliar with (it might be new)
 - User explicitly asks you to search engine or provide links to references`;
 
-const IMAGE_GEN_PROMTP = `
-## dalle
-// Whenever a description of an image is given, create a prompt that dalle can use to generate the image.`;
-
-
 const SUMMARY_PROMPT = `
 你这次的任务是提供一个简洁而全面的摘要，这个摘要需要捕捉给定文本的主要观点和关键细节，同时准确地传达作者的意图。
 请确保摘要结构清晰、组织有序，便于阅读。使用清晰的标题和小标题来指导读者了解每一部分的内容。摘要的长度应该适中，既能覆盖文本的主要点和关键细节，又不包含不必要的信息或变得过长。
@@ -425,94 +419,9 @@ const SERPAPI_KEY = TOOL_KEY + SERPAPI;
 const SERPAPI_BASE_URL = "https://serpapi.com";
 const SERPAPI_PATH_URL = "/search?api_key={API_KEY}&q={QUERY}";
 
-const DALLE = "dalle";
-const DALLE_KEY = TOOL_KEY + DALLE;
-const DALLE_DEFAULT_MODEL = "dall-e-3";
-
 const DEFAULT_TOOL_URLS = [
   { key: SERPAPI_KEY, apiPath: SERPAPI_PATH_URL, apiPath: SERPAPI_PATH_URL },
-  { key: DALLE_KEY, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_DALLE_API_PATH, defaultModel: DALLE_DEFAULT_MODEL },
 ];
-
-// dalle 默认的配置，由于gemini不支持在schema中设置default，这里拿出来单独定义
-const QUALITY_DEFAULT = 'standard';
-const SIZE_DEFAULT = '1024x1024';
-const STYLE_DEFAULT = 'vivid';
-
-
-// 工具函数定义
-const FUNCTION_DALLE = {
-  "type": "function",
-  "function": {
-    "name": "dalle3",
-    "description": "DALL-E is a tool used to generate images from text",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "prompt": {
-          "type": "string",
-          "description": "Image prompt of DallE 3, you should describe the image you want to generate as a list of words as possible as detailed. The maximum length is 4000 characters for dall-e-3."
-        },
-        "quality": {
-          "description": "The quality of the image that will be generated. hd creates images with finer details and greater consistency across the image. The default value is standard.",
-          "enum":
-            [
-              "standard",
-              "hd"
-            ],
-          "type": "string"
-        },
-        "size": {
-          "description": "The resolution of the requested image, which can be wide, square, or tall. Use 1024x1024 (square) as the default unless the prompt suggests a wide image, 1792x1024, or a full-body portrait, in which case 1024x1792 (tall) should be used instead. Always include this parameter in the request.",
-          "enum":
-            [
-              "1792x1024",
-              "1024x1024",
-              "1024x1792"
-            ],
-          "type": "string"
-        },
-        "style": {
-          "description": "The style of the generated images. Must be one of vivid or natural. Vivid causes the model to lean towards generating hyper-real and dramatic images. Natural causes the model to produce more natural, less hyper-real looking images. The default value is vivid.",
-          "enum":
-            [
-              "vivid",
-              "natural"
-            ],
-          "type": "string"
-        }
-      },
-      "required": ["prompt"]
-    }
-  }
-}
-
-const FUNCTION_SERAPI = {
-  "type": "function",
-  "function": {
-    "name": "serpapi_search_engine",
-    "description": "A tool for search engine built specifically for AI agents (LLMs), delivering real-time, accurate, and factual results at speed.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "query": {
-          "type": "string",
-          "description": "text for searching"
-        }
-      },
-      "required": ["query"]
-    }
-  }
-}
-
-// 添加web search相关常量
-const WEB_SEARCH_TOOL = {
-  type: "builtin_function",
-  function: {
-    name: "$web_search",
-    description: "A tool for web search, supporting Moonshot and Gemini 2.0 Flash models"
-  }
-};
 
 // Gemini模型常量
 const GEMINI_MODELS = {
