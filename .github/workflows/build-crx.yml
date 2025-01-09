@@ -1,5 +1,4 @@
 name: Build Chrome Extension on Release
-
 on:
   release:
     types:
@@ -10,34 +9,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. 检出代码
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install chrome-webstore-upload-cli
-        run: npm install -g chrome-webstore-upload-cli
+      # 2. 查看当前文件结构，确认是否真的有 manifest.json
+      - name: Debug workspace
+        run: |
+          echo "Current working directory:"
+          pwd
+          echo "Files in working directory:"
+          ls -R
 
+      # 3. 全局安装 crx3
+      - name: Install crx3
+        run: npm install -g crx3
+
+      # 4. 创建私钥文件 (保存在仓库根目录, 即 $GITHUB_WORKSPACE/key.pem)
       - name: Create private key
         env:
           PRIVATE_KEY: ${{ secrets.EXTENSION_PRIVATE_KEY }}
         run: echo "$PRIVATE_KEY" > key.pem
 
-      - name: Build Extension
+      # 5. 在仓库根目录(默认)打包 .crx
+      - name: Build OrangeSideBar.crx
         run: |
-          # 打包扩展为 zip
-          zip -r chrome-extension.zip . -x "*.git*" "*.pem" "*.crx"
-
-          # 使用 crx3 打包
-          crx3 --private-key=key.pem --zip chrome-extension.zip
-
-          # 重命名
+          crx3 --private-key=key.pem --zip chrome-extension.zip .
           mv extension.crx OrangeSideBar.crx
 
+      # 6. 上传到 Release
       - name: Upload OrangeSideBar.crx to Release
         uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MINE_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./OrangeSideBar.crx
+          repo_token: ${{ secrets.MINE_TOKEN }}
+          release_id: ${{ github.event.release.id }}
+          asset_path: OrangeSideBar.crx
           asset_name: OrangeSideBar.crx
           asset_content_type: application/x-chrome-extension
