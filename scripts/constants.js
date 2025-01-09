@@ -460,3 +460,28 @@ const FUNCTION_SERAPI = {
     }
   }
 };
+
+// 添加新的提示词常量
+const HUACI_TRANSLATE_PROMPT = `You are a professional, authentic translation engine. You only return the translated text, without any explanations.
+
+Please translate into Chinese (avoid explaining the original text):
+
+`;
+
+const HUACI_SUMMARY_PROMPT = `You are a text summarizer. You should:
+1. Only provide a concise summary
+2. Keep the key points
+3. Use Chinese
+4. Do not interpret or explain
+5. Do not include the original text
+
+Summarize this text: `;
+
+const HUACI_POLISH_PROMPT = `You are a text polisher. You should:
+1. Improve the writing style while keeping the original language
+2. Enhance clarity and fluency
+3. Maintain the same meaning
+4. Keep the same language as the input (do not translate)
+5. Only return the polished text without explanations
+
+Polish this text: `;

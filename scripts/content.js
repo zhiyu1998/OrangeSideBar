@@ -77,7 +77,12 @@ chrome.storage.local.get(QUICK_TRANS, function (config) {
 
   // 创建总结按钮
   const summaryButton = document.createElement('button');
-  summaryButton.textContent = '总结';
+  summaryButton.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h10M4 14h16M4 18h10"/>
+    </svg>
+    总结
+  `;
   summaryButton.className = 'fisherai-action-button';
   summaryButton.style.cssText = `
     color: #374151;
@@ -95,12 +100,28 @@ chrome.storage.local.get(QUICK_TRANS, function (config) {
 
   // 创建翻译按钮
   const translateButton = document.createElement('button');
-  translateButton.textContent = '翻译';
+  translateButton.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+    </svg>
+    翻译
+  `;
   translateButton.className = 'fisherai-action-button';
   translateButton.style.cssText = summaryButton.style.cssText;
 
+  // 创建润色按钮
+  const polishButton = document.createElement('button');
+  polishButton.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+    </svg>
+    润色
+  `;
+  polishButton.className = 'fisherai-action-button';
+  polishButton.style.cssText = summaryButton.style.cssText;
+
   // 添加hover效果
-  const buttons = [summaryButton, translateButton];
+  const buttons = [summaryButton, translateButton, polishButton];
   buttons.forEach(button => {
     button.addEventListener('mouseover', function () {
       this.style.backgroundColor = '#F3F4F6';
@@ -113,6 +134,7 @@ chrome.storage.local.get(QUICK_TRANS, function (config) {
   // 组装按钮组
   buttonGroup.appendChild(summaryButton);
   buttonGroup.appendChild(translateButton);
+  buttonGroup.appendChild(polishButton);
   buttonContainer.appendChild(logoImg);
   buttonContainer.appendChild(buttonGroup);
   document.body.appendChild(buttonContainer);
@@ -258,6 +280,11 @@ chrome.storage.local.get(QUICK_TRANS, function (config) {
         const { baseUrl, apiKey } = await getBaseUrlAndApiKey(model);
         if (baseUrl && apiKey) {
           translationPopup.innerHTML = '<div style="color: #6B7280; display: flex; align-items: center; gap: 8px;"><svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/></svg>正在处理中...</div>';
+
+          // 清除对话历史
+          initChatHistory();
+
+          // 调用 AI 处理
           chatWithLLM(model, promptTemplate + selectedText, null, HUACI_TRANS_TYPE);
         } else {
           translationPopup.innerHTML = DEFAULT_TIPS;
@@ -270,7 +297,8 @@ chrome.storage.local.get(QUICK_TRANS, function (config) {
   }
 
   // 绑定按钮点击事件
-  summaryButton.addEventListener('click', () => handleButtonClick(SUMMARY_PROMPT));
-  translateButton.addEventListener('click', () => handleButtonClick(TRANSLATE2CHN_PROMPT));
+  summaryButton.addEventListener('click', () => handleButtonClick(HUACI_SUMMARY_PROMPT));
+  translateButton.addEventListener('click', () => handleButtonClick(HUACI_TRANSLATE_PROMPT));
+  polishButton.addEventListener('click', () => handleButtonClick(HUACI_POLISH_PROMPT));
 });
 
