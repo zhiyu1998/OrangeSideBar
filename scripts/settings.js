@@ -234,6 +234,7 @@ function getModelsApiPath(model) {
   if (model.includes(PROVIDERS.MOONSHOT)) return MOONSHOT_MODELS_API_PATH;
   if (model.includes(PROVIDERS.DEEPSEEK)) return DEEPSEEK_MODELS_API_PATH;
   if (model.includes(PROVIDERS.GITHUB)) return GITHUB_MODELS_API_PATH;
+  if (model.includes(PROVIDERS.QWEN)) return QWEN_MODELS_API_PATH;
   return OPENAI_MODELS_API_PATH; // 默认返回OpenAI的路径
 }
 
@@ -280,6 +281,8 @@ async function getModelList(baseUrl, model, apiKey) {
   } else if (model.includes(PROVIDERS.GITHUB)) {
     apiUrl += GITHUB_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(PROVIDERS.QWEN)) {
+    apiUrl += QWEN_MODELS_API_PATH;
   } else if (model.includes(PROVIDERS.AZURE)) {
     apiUrl += AZURE_MODELS_API_PATH;
     headers['api-key'] = apiKey;
@@ -316,7 +319,14 @@ async function getModelList(baseUrl, model, apiKey) {
     console.log('Received models data:', data);
 
     // 处理不同的返回格式
-    if (model === 'gpt') {
+    if (model.includes(PROVIDERS.QWEN)) {
+      // Qwen 格式处理
+      return data.data.map(model => ({
+        id: `Qwen-${model.name}`,  // 添加 Qwen- 前缀
+        object: model.object || 'model',
+        owned_by: model.owned_by || 'alibaba'
+      }));
+    } else if (model === 'gpt') {
       // OpenAI 格式处理
       const filteredModels = data.data
         .filter(model => {

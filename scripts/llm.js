@@ -341,6 +341,9 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
     realModelName = realModelName.replace('siliconflow-', '');
   } else if (modelName.startsWith('github-')) {
     realModelName = realModelName.replace('github-', '');
+  } else if (modelName.startsWith('Qwen-')) {
+    // 使用映射表获取正确的模型名称
+    realModelName = QWEN_MODEL_MAPPINGS[modelName] || modelName.replace('Qwen-', '').replace('2.5', '').toLowerCase() + '-latest';
   }
 
   const { temperature, topP, maxTokens, frequencyPenalty, presencePenalty } = await getModelParameters();
