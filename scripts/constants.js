@@ -284,13 +284,14 @@ const TRANSLATE2CHN_PROMPT = `
 - 要保留引用的论文，例如 [20] 这样的引用。
 - 对于 Figure 和 Table，翻译的同时保留原有格式，例如："Figure 1: "翻译为"图 1: "，"Table 1: "翻译为："表 1: "。
 - 对于\citep格式的引用转为小括号的方式呈现，例如\citep{wu2016google}转为(wu2016google) +
-# 如果输入的是一个单词或短语
-- 如果是单词，则给出单词的词性以及对应的中文释义。
-- 如果是短语，直接给出释义即可。
-- 回答的开始一定不要把输入的单词或短语重复一次。
-# 其他要求
+# 特殊格式
+- HTML 标签中 <img> 标签需要转换成 Markdown 格式，例如 <img src="https://example.com/image.jpg" alt="Example Image"> 转换为 ![Example Image](https://example.com/image.jpg)
+- 禁止出现 HTML 标签，如 <div>、<figure> 等，输出仅包含文本和必要的 Markdown 格式。
 - 全角括号换成半角括号，并在左括号前面加半角空格，右括号后面加半角空格。
-- 你的回答必须使用 MARKDOWN 格式
+# 单词和短语处理
+- 如果输入是单词，则给出词性以及对应的中文释义。
+- 如果是短语，直接给出释义，不重复输入的内容。
+# 回答的排版
 - 保留特定的英文术语、数字或名字，并在其前后加上空格，例如："生成式 AI 产品"
 - 以下是常见的 AI 相关术语词汇对应表：
   * Transformer -> Transformer
