@@ -22,10 +22,6 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
     }).catch(err => {
       sendResponse({ success: false, error: err });
     });
-  } else if (request.action === ACTION_DOWNLOAD_SUBTITLES) {
-    // 下载字幕文件
-    const subtitles = await extractSubtitles(window.location.href);
-    downloadSubtitles(subtitles);
   } else if (request.action === ACTION_GET_PAGE_URL) {
     // 获取当前网页地址
     sendResponse({ url: window.location.href });

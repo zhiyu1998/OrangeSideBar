@@ -8,7 +8,6 @@ ACTION_FETCH_PAGE_CONTENT = 'fetchPageContent';
 ACTION_FETCH_TEXT_CONTENT = 'fetchTextContent';
 ACTION_COPY_PAGE_CONTENT = 'copyPageContent';
 ACTION_COPY_PURE_PAGE_CONTENT = 'copyPurePageContent';
-ACTION_DOWNLOAD_SUBTITLES = 'downloadSubtitles';
 ACTION_GET_PAGE_URL = 'getPageURL';
 
 // default tips
