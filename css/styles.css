@@ -1,3 +1,26 @@
+/* 添加字体声明 */
+@font-face {
+  font-family: 'FZB';
+  src: url('../fonts/FZB.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* 在:root之前添加全局字体设置 */
+* {
+  font-family: 'FZB', Arial, sans-serif;
+}
+
+/* 移除其他地方的字体声明 */
+.my-extension-content h1,
+.my-extension-content h2,
+.my-extension-content h3,
+.my-extension-content h4,
+body,
+.tab-link span {
+  font-family: 'FZB' !important;
+}
+
 /* 添加亮色主题变量 */
 :root[data-theme="light"] {
   --bg-primary: #ffffff;

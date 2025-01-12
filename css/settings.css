@@ -1,3 +1,16 @@
+/* 添加字体声明 */
+@font-face {
+  font-family: 'FZB';
+  src: url('../fonts/FZB.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* 在body之前添加全局字体设置 */
+* {
+  font-family: 'FZB', Arial, sans-serif;
+}
+
 :root[data-theme="light"] {
   --bg-primary: #ffffff;
   --bg-secondary: #f3f4f6;
