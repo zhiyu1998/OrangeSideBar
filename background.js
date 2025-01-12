@@ -31,32 +31,32 @@ chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
 });
 
 
-chrome.runtime.onInstalled.addListener(function () {
-  chrome.contextMenus.create({
-    id: "mainMenu",
-    title: "OrangeSideBar",
-    contexts: ["all"]
-  });
-  chrome.contextMenus.create({
-    id: "copyPurePageContent",
-    title: "复制网页正文(纯文本)",
-    contexts: ["all"],
-    parentId: "mainMenu"
-  });
-  chrome.contextMenus.create({
-    id: "copyPageContent",
-    title: "复制网页正文(HTML)",
-    contexts: ["all"],
-    parentId: "mainMenu"
-  });
+// chrome.runtime.onInstalled.addListener(function () {
+//   chrome.contextMenus.create({
+//     id: "mainMenu",
+//     title: "OrangeSideBar",
+//     contexts: ["all"]
+//   });
+// chrome.contextMenus.create({
+//   id: "copyPurePageContent",
+//   title: "复制网页正文(纯文本)",
+//   contexts: ["all"],
+//   parentId: "mainMenu"
+// });
+// chrome.contextMenus.create({
+//   id: "copyPageContent",
+//   title: "复制网页正文(HTML)",
+//   contexts: ["all"],
+//   parentId: "mainMenu"
+// });
 
-});
+// });
 
 // 监听菜单项的点击事件
-chrome.contextMenus.onClicked.addListener(function (info, tab) {
-  if (info.menuItemId === "copyPageContent") {
-    chrome.tabs.sendMessage(tab.id, { action: 'copyPageContent' });
-  } else if (info.menuItemId === "copyPurePageContent") {
-    chrome.tabs.sendMessage(tab.id, { action: 'copyPurePageContent' });
-  }
-});
+// chrome.contextMenus.onClicked.addListener(function (info, tab) {
+// if (info.menuItemId === "copyPageContent") {
+//   chrome.tabs.sendMessage(tab.id, { action: 'copyPageContent' });
+// } else if (info.menuItemId === "copyPurePageContent") {
+//   chrome.tabs.sendMessage(tab.id, { action: 'copyPurePageContent' });
+// }
+// });
