@@ -117,6 +117,7 @@ const MODEL_MAPPINGS = [
       'tts-',
       'whisper-',
       'GLM-',
+      'glm-',
       'moonshot-',
       'deepseek-',
       'yi-'

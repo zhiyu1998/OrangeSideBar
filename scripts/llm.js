@@ -297,8 +297,19 @@ async function parseFunctionCalling(result, baseUrl, apiKey, model, type) {
         // 处理web search
         toolResult = await handleWebSearch(tool, baseUrl, apiKey, model, type);
       } else if (tool.name.includes('serpapi')) {
-        // 处理serpapi
-        toolResult = await callSerpAPI(toolArgs['query']);
+        // 从tool.arguments中解析查询参数
+        let toolArgs;
+        try {
+          toolArgs = typeof tool.arguments === 'string' ?
+            JSON.parse(tool.arguments) :
+            tool.arguments;
+
+          // 调用serpapi
+          toolResult = await callSerpAPI(toolArgs.query);
+        } catch (error) {
+          console.error('Error parsing tool arguments:', error);
+          throw new Error('无法解析工具参数: ' + error.message);
+        }
       }
 
       updateToolCallChatHistory(tool, JSON.stringify(toolResult));
