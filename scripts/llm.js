@@ -472,6 +472,21 @@ async function chatWithGemini(baseUrl, model, type, tools = []) {
       }
     }
 
+    // 在完成读取后，将AI的回答添加到对话历史中
+    if (completeText) {
+      dialogueHistory.push({
+        "role": "assistant",
+        "content": completeText
+      });
+
+      geminiDialogueHistory.push({
+        "role": "model",
+        "parts": [{
+          "text": completeText
+        }]
+      });
+    }
+
     return {
       completeText: completeText,
       tools: [] // Gemini的工具调用结果会直接包含在返回文本中
@@ -855,6 +870,22 @@ async function parseAndUpdateChatContent(response, modelName, type) {
         updateChatContent(completeText, type);
       }
     }
+
+    // 在完成读取后，将AI的回答添加到对话历史中
+    if (completeText) {
+      dialogueHistory.push({
+        "role": "assistant",
+        "content": completeText
+      });
+
+      geminiDialogueHistory.push({
+        "role": "model",
+        "parts": [{
+          "text": completeText
+        }]
+      });
+    }
+
   } catch (error) {
     throw error;
   } finally {
