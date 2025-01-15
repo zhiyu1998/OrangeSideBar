@@ -93,7 +93,7 @@ body,
     right: 0;
     left: 0;
     top: 25px;
-    bottom: 180px;
+    bottom: 185px;
     background-color: var(--bg-primary);
     overflow-x: auto; 
     overflow-y: auto; 
@@ -414,44 +414,47 @@ body,
 
 .navigation-bar {
   position: fixed;
-  bottom: 120px;
+  bottom: 115px;
   display: flex;
   justify-content: start;
   align-items: center;
-  padding: 15px 20px;
-  background-color: var(--bg-primary);
+  padding: 0 20px;
+  background-color: var(--bg-secondary);
   width: 100%;
   z-index: 100;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  height: 42px;
 }
 
 .navigation-bar > div {
-  margin-right: 10px;
+  margin-right: 12px;
+  position: relative;
 }
 
 #model-selection {
-  padding: 8px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  height: 30px;
+  padding: 0 24px 0 10px;
+  font-size: 13px;
+  width: 170px;
+  background-size: 12px;
+  line-height: 30px;
+  border-radius: 6px;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  width: 200px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  height: 35px;
   transition: all 0.2s ease;
   cursor: pointer;
-  font-size: 14px;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 16px;
-  padding-right: 32px;
+  background-position: right 6px center;
 }
 
 #model-selection:hover {
@@ -487,30 +490,32 @@ body,
 
 #image-upload-label, #newchat-label, #params-label, #tools-label, #web-search-label {
   cursor: pointer;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px;
-  border-radius: 8px;
+  padding: 0;
+  border-radius: 6px;
   background-color: var(--bg-tertiary);
   transition: all 0.2s ease;
-  margin-right: 12px;
-  height: 35px;
-  width: 35px;
+  margin-right: 8px;
+  height: 30px;
+  width: 30px;
   position: relative;
   overflow: hidden;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-color);
 }
 
 #image-upload-label:hover, #newchat-label:hover, #params-label:hover, #tools-label:hover, #web-search-label:hover {
   background-color: var(--hover-color);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   border-color: var(--accent-color);
 }
 
 #image-upload-label:active, #newchat-label:active, #params-label:active, #tools-label:active, #web-search-label:active {
   transform: translateY(0);
+  background-color: var(--bg-primary);
+  box-shadow: none;
 }
 
 #newChat-div {
@@ -535,7 +540,7 @@ body,
   display: flex;
   flex-wrap: wrap;
   position: fixed;
-  bottom: 160px;
+  bottom: 185px;
   left: 0;
   right: 0;
   padding: 0px 10px;
@@ -807,25 +812,29 @@ body,
 /* 添加联网搜索按钮样式 */
 #web-search-label {
   cursor: pointer;
-  opacity: 0.6;
-  transition: all 0.3s ease;
-  padding: 5px;
-  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 6px;
   background-color: var(--bg-tertiary);
+  transition: all 0.3s ease;
+  margin-right: 8px;
+  height: 30px;
+  width: 30px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  opacity: 1; /* 移除透明度 */
 }
 
-#web-search-label:hover {
-  opacity: 1;
-  background-color: var(--hover-color);
-}
-
+/* 修改激活状态样式以匹配其他按钮 */
 #web-search-label.active {
-  opacity: 1;
-  background-color: #10a37f;
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
 }
 
 #web-search-label.active svg {
-  fill: none;
   stroke: white;
 }
 
@@ -876,4 +885,31 @@ body,
 
 .toast-error .toast-icon {
   color: #ef4444;
+}
+/* 添加分隔线 */
+.navigation-bar > div:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 18px;
+  width: 1px;
+  background-color: var(--border-color);
+  opacity: 0.2;
+}
+
+/* 强制设置SVG图标大小 */
+#image-upload-label svg,
+#newchat-label svg,
+#params-label svg,
+#tools-label svg,
+#web-search-label svg {
+  width: 14px !important;
+  height: 14px !important;
+  min-width: 14px;
+  min-height: 14px;
+  padding: 0;
+  margin: 0;
+  display: block;
 }
