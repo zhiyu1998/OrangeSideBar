@@ -806,13 +806,13 @@ async function parseAndUpdateChatContent(response, modelName, type, isR1Model = 
           <div class="thinking-spinner"></div>
           <span>AI 思考中...</span>
         </div>
-        <button class="thinking-toggle">
+        <button class="thinking-toggle expanded">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </button>
       </div>
-      <div class="thinking-content" style="display: none;"></div>
+      <div class="thinking-content" style="display: block;"></div>
     `;
     contentDiv.insertBefore(thinkingDiv, lastDiv);
 
@@ -852,12 +852,31 @@ async function parseAndUpdateChatContent(response, modelName, type, isR1Model = 
           let content = '';
 
           // 处理 R1 模型的思考流输出
-          if (isR1Model && jsonData.choices[0].delta.reasoning_content) {
-            reasoningContent += jsonData.choices[0].delta.reasoning_content;
-            // 更新思考内容
-            if (thinkingDiv) {
-              const thinkingContent = thinkingDiv.querySelector('.thinking-content');
-              thinkingContent.innerHTML = marked.parse(reasoningContent);
+          if (isR1Model) {
+            if (jsonData.choices[0].delta.reasoning_content) {
+              reasoningContent += jsonData.choices[0].delta.reasoning_content;
+              // 更新思考内容
+              if (thinkingDiv) {
+                const thinkingContent = thinkingDiv.querySelector('.thinking-content');
+                thinkingContent.innerHTML = marked.parse(reasoningContent);
+              }
+            } else if (jsonData.choices[0].delta.content) {
+              // 检测到内容输出，说明思考已完成
+              if (thinkingDiv) {
+                // 更新思考状态图标
+                const spinner = thinkingDiv.querySelector('.thinking-spinner');
+                spinner.classList.add('thinking-complete');
+
+                // 更新状态文本
+                const statusText = thinkingDiv.querySelector('.thinking-indicator span');
+                statusText.textContent = '思考完成';
+
+                // 收起思考内容
+                const thinkingContent = thinkingDiv.querySelector('.thinking-content');
+                thinkingContent.style.display = 'none';
+                const toggleBtn = thinkingDiv.querySelector('.thinking-toggle');
+                toggleBtn.classList.remove('expanded');
+              }
             }
           }
 

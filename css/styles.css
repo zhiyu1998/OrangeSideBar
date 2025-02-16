@@ -1038,3 +1038,21 @@ body,
   overflow-x: auto;
   margin: 12px 0;
 }
+
+/* 思考完成状态样式 */
+.thinking-spinner.thinking-complete {
+  animation: none;
+  border: none;
+  position: relative;
+}
+
+.thinking-spinner.thinking-complete::before {
+  content: '✓';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--accent-color);
+  font-size: 16px;
+  font-weight: bold;
+}
