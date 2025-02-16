@@ -297,10 +297,13 @@ body,
 }
 
 .ai-message {
+  background-color: var(--bg-primary);
+  padding: 16px;
+  border-radius: 8px;
+  margin: 10px 0;
   position: relative;
-  padding-bottom: 15px;
+  color: var(--text-primary);
 }
-
 
 .ai-message p {
   word-wrap: break-word; /* 允许长单词换行 */
@@ -912,4 +915,126 @@ body,
   padding: 0;
   margin: 0;
   display: block;
+}
+
+/* 思考消息框样式 */
+.ai-thinking-message {
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  margin: 10px 0;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  max-width: 85%;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.thinking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+}
+
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.thinking-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--accent-color);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.thinking-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+}
+
+.thinking-toggle:hover {
+  color: var(--text-primary);
+}
+
+.thinking-toggle.expanded svg {
+  transform: rotate(180deg);
+}
+
+.thinking-content {
+  padding: 12px 16px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  max-height: 150px;
+  overflow-y: auto;
+  background-color: var(--bg-primary);
+  font-family: 'Consolas', monospace;
+}
+
+.thinking-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.thinking-content::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.thinking-content::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.thinking-content::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+/* AI 回答消息样式 */
+.ai-message {
+  background-color: var(--bg-primary);
+  padding: 16px;
+  border-radius: 8px;
+  margin: 10px 0;
+  position: relative;
+  color: var(--text-primary);
+}
+
+.ai-message p {
+  margin: 8px 0;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+.ai-message code {
+  background-color: var(--bg-secondary);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: 'Consolas', monospace;
+  font-size: 0.9em;
+}
+
+.ai-message pre {
+  background-color: var(--bg-secondary);
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 12px 0;
 }

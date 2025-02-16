@@ -120,7 +120,8 @@ const MODEL_MAPPINGS = [
       'glm-',
       'moonshot-',
       'deepseek-',
-      'yi-'
+      'yi-',
+      'gemini-',
     ],
     provider: PROVIDERS.GPT
   },

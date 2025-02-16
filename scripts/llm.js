@@ -215,7 +215,7 @@ async function chatWithLLM(model, inputText, base64Images, type) {
     baseUrl = baseUrl.replace('{MODEL_NAME}', model).replace('{API_KEY}', apiKey);
     result = await chatWithGemini(baseUrl, model, type, toolsResult);
   } else {
-    result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, toolsResult);
+    result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type);
   }
 
   while (result.tools.length > 0) {
@@ -401,7 +401,9 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
   console.log(baseUrl);
   console.log(params);
 
-  return await fetchAndHandleResponse(baseUrl, params, modelName, type);
+  // 判断是否是 R1 系列模型
+  const isR1Model = modelName.includes('DeepSeek-R1');
+  return await fetchAndHandleResponse(baseUrl, params, modelName, type, isR1Model);
 }
 
 /**
@@ -561,21 +563,20 @@ async function getModelParameters() {
  * @param {string} params
  * @param {string} modelName
  * @param {string} type
+ * @param {boolean} isR1Model 是否是 R1 系列模型
  * @returns
  */
-async function fetchAndHandleResponse(baseUrl, params, modelName, type) {
+async function fetchAndHandleResponse(baseUrl, params, modelName, type, isR1Model = false) {
   let result = { resultString: '', resultArray: [] };
   try {
     const response = await fetch(baseUrl, params);
-    // console.log(response);
     if (!response.ok) {
-      // 错误响应
       const errorJson = await response.json();
       console.error('Error response JSON:', errorJson);
       throw new Error("错误信息：" + errorJson.error.message);
     }
 
-    const result = await parseAndUpdateChatContent(response, modelName, type);
+    const result = await parseAndUpdateChatContent(response, modelName, type, isR1Model);
     return result;
   } catch (error) {
     if (error.name === 'AbortError') {
@@ -781,21 +782,58 @@ async function getCurrentURL() {
  * @param {object} response
  * @param {string} modelName
  * @param {string} type
+ * @param {boolean} isR1Model 是否是 R1 系列模型
  * @returns
  */
-async function parseAndUpdateChatContent(response, modelName, type) {
+async function parseAndUpdateChatContent(response, modelName, type, isR1Model = false) {
   const reader = response.body.getReader();
   let completeText = '';
   let tools = [];
   let buffer = '';
+  let reasoningContent = ''; // 用于存储思考过程
+  let thinkingDiv = null;
+
+  // 只有 R1 系列模型才创建思考框
+  if (isR1Model) {
+    // 创建思考过程的对话框，放在最新的 AI 回答之前
+    const contentDiv = document.querySelector('.chat-content');
+    const lastDiv = contentDiv.lastElementChild;
+    thinkingDiv = document.createElement('div');
+    thinkingDiv.className = 'ai-thinking-message';
+    thinkingDiv.innerHTML = `
+      <div class="thinking-header">
+        <div class="thinking-indicator">
+          <div class="thinking-spinner"></div>
+          <span>AI 思考中...</span>
+        </div>
+        <button class="thinking-toggle">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+      </div>
+      <div class="thinking-content" style="display: none;"></div>
+    `;
+    contentDiv.insertBefore(thinkingDiv, lastDiv);
+
+    // 添加点击事件处理
+    const toggleBtn = thinkingDiv.querySelector('.thinking-toggle');
+    const thinkingContent = thinkingDiv.querySelector('.thinking-content');
+    toggleBtn.addEventListener('click', () => {
+      const isHidden = thinkingContent.style.display === 'none';
+      thinkingContent.style.display = isHidden ? 'block' : 'none';
+      toggleBtn.classList.toggle('expanded');
+    });
+  }
+
   try {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
 
-      // 处理接收到的数据
       buffer += new TextDecoder().decode(value);
       let position = 0;
+
       while (position < buffer.length) {
         let start = buffer.indexOf('{', position);
         let end = buffer.indexOf('}\n', start);
@@ -812,6 +850,17 @@ async function parseAndUpdateChatContent(response, modelName, type) {
         try {
           const jsonData = JSON.parse(jsonText);
           let content = '';
+
+          // 处理 R1 模型的思考流输出
+          if (isR1Model && jsonData.choices[0].delta.reasoning_content) {
+            reasoningContent += jsonData.choices[0].delta.reasoning_content;
+            // 更新思考内容
+            if (thinkingDiv) {
+              const thinkingContent = thinkingDiv.querySelector('.thinking-content');
+              thinkingContent.innerHTML = marked.parse(reasoningContent);
+            }
+          }
+
           if (modelName.includes(PROVIDERS.GEMINI)) {
             jsonData.candidates[0].content.parts.forEach(part => {
               if (part.text !== undefined && part.text != null) {
@@ -871,6 +920,12 @@ async function parseAndUpdateChatContent(response, modelName, type) {
       }
     }
 
+    // 完成后移除思考框
+    if (thinkingDiv) {
+      const contentDiv = document.querySelector('.chat-content');
+      contentDiv.removeChild(thinkingDiv);
+    }
+
     // 在完成读取后，将AI的回答添加到对话历史中
     if (completeText) {
       dialogueHistory.push({
@@ -886,13 +941,17 @@ async function parseAndUpdateChatContent(response, modelName, type) {
       });
     }
 
-  } catch (error) {
-    throw error;
-  } finally {
     return {
       completeText: completeText,
       tools: tools
     };
+
+  } catch (error) {
+    if (thinkingDiv) {
+      const contentDiv = document.querySelector('.chat-content');
+      contentDiv.removeChild(thinkingDiv);
+    }
+    throw error;
   }
 }
 

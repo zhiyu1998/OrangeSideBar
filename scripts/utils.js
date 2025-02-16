@@ -88,7 +88,8 @@ function createAIMessageDiv() {
 function displayLoading(message = 'AI 思考中...') {
     const loadingDiv = document.querySelector('.my-extension-loading');
     if (loadingDiv) {
-        loadingDiv.textContent = message;
+        // 支持 HTML 内容
+        loadingDiv.innerHTML = message;
         loadingDiv.style.display = 'flex';
     }
 }
@@ -98,7 +99,7 @@ function hiddenLoadding() {
     const loadingDiv = document.querySelector('.my-extension-loading');
     if (loadingDiv) {
         loadingDiv.style.display = 'none';
-        loadingDiv.textContent = 'AI 思考中...'; // 恢复默认文本
+        loadingDiv.innerHTML = 'AI 思考中...'; // 恢复默认文本
     }
 }
 
