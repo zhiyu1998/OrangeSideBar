@@ -401,9 +401,7 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
   console.log(baseUrl);
   console.log(params);
 
-  // 判断是否是 R1 系列模型
-  const isR1Model = modelName.includes('DeepSeek-R1');
-  return await fetchAndHandleResponse(baseUrl, params, modelName, type, isR1Model);
+  return await fetchAndHandleResponse(baseUrl, params, modelName, type);
 }
 
 /**
@@ -563,10 +561,9 @@ async function getModelParameters() {
  * @param {string} params
  * @param {string} modelName
  * @param {string} type
- * @param {boolean} isR1Model 是否是 R1 系列模型
  * @returns
  */
-async function fetchAndHandleResponse(baseUrl, params, modelName, type, isR1Model = false) {
+async function fetchAndHandleResponse(baseUrl, params, modelName, type) {
   let result = { resultString: '', resultArray: [] };
   try {
     const response = await fetch(baseUrl, params);
@@ -576,7 +573,7 @@ async function fetchAndHandleResponse(baseUrl, params, modelName, type, isR1Mode
       throw new Error("错误信息：" + errorJson.error.message);
     }
 
-    const result = await parseAndUpdateChatContent(response, modelName, type, isR1Model);
+    const result = await parseAndUpdateChatContent(response, modelName, type);
     return result;
   } catch (error) {
     if (error.name === 'AbortError') {
@@ -782,19 +779,27 @@ async function getCurrentURL() {
  * @param {object} response
  * @param {string} modelName
  * @param {string} type
- * @param {boolean} isR1Model 是否是 R1 系列模型
  * @returns
  */
-async function parseAndUpdateChatContent(response, modelName, type, isR1Model = false) {
+async function parseAndUpdateChatContent(response, modelName, type) {
   const reader = response.body.getReader();
   let completeText = '';
   let tools = [];
   let buffer = '';
-  let reasoningContent = ''; // 用于存储思考过程
+  let reasoningContent = '';
   let thinkingDiv = null;
 
-  // 只有 R1 系列模型才创建思考框
-  if (isR1Model) {
+  // 添加调试日志
+  console.log('Current model:', modelName);
+  console.log('Thinking models:', THINKING_PROCESS_MODELS);
+
+  // 修改为不区分大小写的判断
+  const isThinkingModel = THINKING_PROCESS_MODELS.some(model =>
+    modelName.toLowerCase().includes(model.toLowerCase())
+  );
+  console.log('Is thinking model?', isThinkingModel);
+
+  if (isThinkingModel) {
     // 创建思考过程的对话框，放在最新的 AI 回答之前
     const contentDiv = document.querySelector('.chat-content');
     const lastDiv = contentDiv.lastElementChild;
@@ -849,10 +854,11 @@ async function parseAndUpdateChatContent(response, modelName, type, isR1Model = 
         let jsonText = buffer.substring(start, end + 1);
         try {
           const jsonData = JSON.parse(jsonText);
+          console.log('Response data:', jsonData);
           let content = '';
 
-          // 处理 R1 模型的思考流输出
-          if (isR1Model) {
+          // 处理思考过程输出，使用 isThinkingModel 替换原来的 isR1Model
+          if (isThinkingModel) {
             if (jsonData.choices[0].delta.reasoning_content) {
               reasoningContent += jsonData.choices[0].delta.reasoning_content;
               // 更新思考内容
@@ -927,7 +933,7 @@ async function parseAndUpdateChatContent(response, modelName, type, isR1Model = 
           completeText += content;
           position = end + 1;
         } catch (error) {
-          console.error('Failed to parse JSON:', error);
+          console.error('JSON parse error:', error);
           position = end + 1;
         }
       }

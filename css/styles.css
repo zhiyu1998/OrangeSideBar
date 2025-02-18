@@ -917,17 +917,16 @@ body,
   display: block;
 }
 
-/* 思考消息框样式 */
+/* 优化思考消息框样式 */
 .ai-thinking-message {
   background-color: var(--bg-secondary);
-  border-radius: 8px;
-  margin: 10px 0;
+  border-radius: 12px;
+  margin: 16px auto;
   overflow: hidden;
   border: 1px solid var(--border-color);
-  max-width: 85%;
-  margin-left: auto;
-  margin-right: auto;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 92%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
 .thinking-header {
@@ -937,6 +936,7 @@ body,
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-tertiary);
+  backdrop-filter: blur(8px);
 }
 
 .thinking-indicator {
@@ -944,35 +944,58 @@ body,
   align-items: center;
   gap: 12px;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
+/* 优化思考中动画 */
 .thinking-spinner {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top-color: var(--accent-color);
+  border-right-color: var(--accent-color);
+  border-radius: 50%;
+  animation: thinking-spin 0.8s linear infinite;
+  position: relative;
+}
+
+.thinking-spinner::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
   border: 2px solid var(--accent-color);
   border-radius: 50%;
-  border-top-color: transparent;
-  animation: spin 1s linear infinite;
+  opacity: 0.2;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+@keyframes thinking-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .thinking-toggle {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   color: var(--text-secondary);
-  transition: transform 0.2s ease;
+  transition: all 0.2s ease;
+  border-radius: 6px;
 }
 
 .thinking-toggle:hover {
   color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+
+.thinking-toggle svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
 }
 
 .thinking-toggle.expanded svg {
@@ -980,70 +1003,24 @@ body,
 }
 
 .thinking-content {
-  padding: 12px 16px;
+  padding: 16px;
   color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.5;
-  max-height: 150px;
+  font-size: 14px;
+  line-height: 1.6;
+  max-height: 200px;
   overflow-y: auto;
   background-color: var(--bg-primary);
   font-family: 'Consolas', monospace;
+  transition: all 0.3s ease;
 }
 
-.thinking-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.thinking-content::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-}
-
-.thinking-content::-webkit-scrollbar-thumb {
-  background-color: var(--scrollbar-thumb);
-  border-radius: 3px;
-}
-
-.thinking-content::-webkit-scrollbar-thumb:hover {
-  background-color: var(--scrollbar-thumb-hover);
-}
-
-/* AI 回答消息样式 */
-.ai-message {
-  background-color: var(--bg-primary);
-  padding: 16px;
-  border-radius: 8px;
-  margin: 10px 0;
-  position: relative;
-  color: var(--text-primary);
-}
-
-.ai-message p {
-  margin: 8px 0;
-  line-height: 1.6;
-  font-size: 15px;
-}
-
-.ai-message code {
-  background-color: var(--bg-secondary);
-  padding: 2px 4px;
-  border-radius: 4px;
-  font-family: 'Consolas', monospace;
-  font-size: 0.9em;
-}
-
-.ai-message pre {
-  background-color: var(--bg-secondary);
-  padding: 12px;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin: 12px 0;
-}
-
-/* 思考完成状态样式 */
+/* 优化思考完成状态 */
 .thinking-spinner.thinking-complete {
   animation: none;
   border: none;
   position: relative;
+  transform: scale(1.1);
+  transition: transform 0.3s ease;
 }
 
 .thinking-spinner.thinking-complete::before {
@@ -1053,6 +1030,36 @@ body,
   top: 50%;
   transform: translate(-50%, -50%);
   color: var(--accent-color);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: bold;
+  opacity: 0;
+  animation: checkmark-appear 0.3s ease forwards;
+}
+
+@keyframes checkmark-appear {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* 添加代码块样式 */
+.thinking-content pre {
+  background-color: var(--bg-secondary);
+  border-radius: 6px;
+  padding: 12px;
+  margin: 8px 0;
+}
+
+.thinking-content code {
+  font-family: 'Consolas', monospace;
+  font-size: 0.9em;
+  color: var(--accent-color);
+  background-color: var(--bg-secondary);
+  padding: 2px 4px;
+  border-radius: 4px;
 }

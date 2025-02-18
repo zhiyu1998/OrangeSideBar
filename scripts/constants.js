@@ -513,3 +513,9 @@ const QWEN_MODEL_MAPPINGS = {
   'Qwen-Qwen2.5-72B-Instruct': 'qwen2.5-72b-instruct',
   'Qwen-Qwen2.5-32B-Instruct': 'qwen2.5-32b-instruct'
 };
+
+// 支持思考过程展示的模型列表
+const THINKING_PROCESS_MODELS = [
+  'DeepSeek-R1',
+  'deepseek-reasoner'
+];
