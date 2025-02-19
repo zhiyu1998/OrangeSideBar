@@ -186,11 +186,6 @@ async function chatWithLLM(model, inputText, base64Images, type) {
     throw new Error('模型 ' + model + ' 的 API Key 为空，请检查！');
   }
 
-  // 如果是划词或划句场景，把system prompt置空
-  if (type == HUACI_TRANS_TYPE) {
-    dialogueHistory[0].content = '';
-  }
-
   const openaiDialogueEntry = createDialogueEntry('user', 'content', inputText, base64Images, model);
   const geminiDialogueEntry = createDialogueEntry('user', 'parts', inputText, base64Images, model);
 
@@ -1002,13 +997,6 @@ function updateChatContent(completeText, type) {
       contentDiv.scrollTop = contentDiv.scrollHeight; // 滚动到底部
     }
 
-  } else if (type == HUACI_TRANS_TYPE) {
-    // popup
-    const translationPopup = document.querySelector('#fisherai-transpop-id');
-    if (translationPopup) {
-      translationPopup.style.display = 'block';
-      translationPopup.innerHTML = marked.parse(completeText);
-    }
   }
 }
 

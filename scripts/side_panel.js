@@ -1140,11 +1140,6 @@ async function chatWithLLM(model, inputText, base64Images, type, tools = []) {
     throw new Error('模型 ' + model + ' 的 API Key 为空，请检查！');
   }
 
-  // 如果是划词或划句场景，把system prompt置空
-  if (type == HUACI_TRANS_TYPE) {
-    dialogueHistory[0].content = '';
-  }
-
   const openaiDialogueEntry = createDialogueEntry('user', 'content', inputText, base64Images, model);
   const geminiDialogueEntry = createDialogueEntry('user', 'parts', inputText, base64Images, model);
 

@@ -117,11 +117,6 @@ function openTab(evt, tabName) {
   activeTabContent.style.display = "block";
   evt.currentTarget.className += " active";
 
-  // 如果是quick-trans标签，加载全局模型列表
-  if (tabName === 'quick-trans') {
-    loadGlobalModelsToQuickTrans();
-  }
-
   // 从Chrome存储获取配置
   chrome.storage.local.get(tabName, function (result) {
     console.log('Loading tab data for:', tabName, result);
@@ -460,9 +455,6 @@ function updateModelSelect(models, tabName) {
             }
             modelList.classList.remove('loading');
           }, 150);
-
-          // 更新全局模型列表
-          updateGlobalModels(tabName, models);
         }, 150);
       });
     });
@@ -489,29 +481,6 @@ function loadMoreModels(tabContent) {
 
   // 隐藏加载更多按钮
   loadMoreBtn.style.display = 'none';
-}
-
-/**
- * 更新全局模型列表
- * @param {string} provider 供应商标识
- * @param {Array} models 模型列表
- */
-function updateGlobalModels(provider, models) {
-  chrome.storage.local.get('globalModels', function (result) {
-    let globalModels = result.globalModels || {};
-
-    // 更新特定供应商的模型列表
-    globalModels[provider] = models.map(model => ({
-      value: model.id,
-      label: model.id
-    }));
-
-    // 保存更新后的全局模型列表
-    chrome.storage.local.set({ globalModels }, function () {
-      // 重新加载划词翻译的模型选择下拉框
-      loadGlobalModelsToQuickTrans();
-    });
-  });
 }
 
 /**
@@ -608,53 +577,6 @@ function showErrorMessage(element, message) {
   element.textContent = message;
   element.className = 'checkapi-message error';
   element.style.display = "block";
-}
-
-/**
- * 加载全局模型列表到划词翻译的模型选择下拉框
- */
-function loadGlobalModelsToQuickTrans() {
-  chrome.storage.local.get('globalModels', function (result) {
-    if (!result.globalModels) {
-      console.log('No global models found');
-      return;
-    }
-
-    const modelSelect = document.getElementById('model-select');
-    if (!modelSelect) {
-      console.log('Model select element not found');
-      return;
-    }
-
-    // 清空现有选项
-    modelSelect.innerHTML = '';
-
-    // 遍历每个供应商的模型
-    Object.entries(result.globalModels).forEach(([provider, models]) => {
-      if (!models || models.length === 0) return;
-
-      // 创建供应商分组
-      const group = document.createElement('optgroup');
-      group.label = getProviderDisplayName(provider);
-
-      // 添加该供应商的所有模型
-      models.forEach(model => {
-        const option = document.createElement('option');
-        option.value = model.value;
-        option.textContent = model.value;
-        group.appendChild(option);
-      });
-
-      modelSelect.appendChild(group);
-    });
-
-    // 恢复之前选择的模型
-    chrome.storage.local.get('quick-trans', function (result) {
-      if (result['quick-trans'] && result['quick-trans'].selectedModel) {
-        modelSelect.value = result['quick-trans'].selectedModel;
-      }
-    });
-  });
 }
 
 /**
@@ -774,38 +696,6 @@ document.addEventListener('DOMContentLoaded', function () {
       togglePasswordVisibility(this);
     });
   });
-
-  // 保存快捷翻译配置
-  const quickTransBtn = document.querySelector('.quicktrans-save-btn');
-  quickTransBtn.addEventListener('click', function () {
-    // 获取外层div的ID
-    var tabContent = this.closest('.tab-content');
-    var tabId = tabContent.id;
-
-    // 是否开启快捷翻译
-    const toggleSwitch = document.getElementById('quickTransToggle');
-    const enabled = toggleSwitch.checked;
-
-    // 模型选择
-    const modelSelection = document.querySelector('#model-select');
-    const selectedModel = modelSelection.value;
-
-    // 保存KV & 显示保存成功
-    var quickTransDiv = document.querySelector('#quick-trans');
-    var saveMessage = quickTransDiv.querySelector('.save-message');
-    storeParams(tabId, enabled, selectedModel, saveMessage);
-  });
-
-  // 加载全局模型列表到划词翻译的模型选择
-  loadGlobalModelsToQuickTrans();
-
-  // 当打开quick-trans标签页时也重新加载模型列表
-  const quickTransTab = document.querySelector('[data-tab="quick-trans"]');
-  if (quickTransTab) {
-    quickTransTab.addEventListener('click', function () {
-      loadGlobalModelsToQuickTrans();
-    });
-  }
 
   // 添加加载更多按钮的点击事件监听
   document.querySelectorAll('.load-more-btn').forEach(button => {
