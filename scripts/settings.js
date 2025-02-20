@@ -289,6 +289,9 @@ async function getModelList(baseUrl, model, apiKey) {
   } else if (model.includes(PROVIDERS.SILICONFLOW)) {
     apiUrl += OPENAI_MODELS_API_PATH;  // 确保使用正确的 API 路径
     headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(PROVIDERS.OPENROUTER)) {
+    apiUrl += OPENROUTER_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (model.includes(PROVIDERS.MISTRAL)) {
     apiUrl += MISTRAL_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
@@ -347,8 +350,6 @@ async function getModelList(baseUrl, model, apiKey) {
           object: model.object,
           owned_by: model.owned_by
         }));
-
-      console.log('Filtered OpenAI models:', filteredModels);
       return filteredModels;
     } else if (model.includes(PROVIDERS.GEMINI)) {
       // Gemini 格式处理
@@ -370,6 +371,13 @@ async function getModelList(baseUrl, model, apiKey) {
         id: `siliconflow-${model.id}`,
         object: model.object,
         owned_by: model.owned_by
+      }));
+    } else if (model.includes(PROVIDERS.OPENROUTER)) {
+      // OpenRouter 格式处理
+      return data.data.map(model => ({
+        id: `openrouter-${model.id}`,
+        object: 'model',
+        owned_by: model.name.split(':')[0] || 'unknown'
       }));
     } else if (model.includes(PROVIDERS.GITHUB)) {
       // GitHub 格式处理

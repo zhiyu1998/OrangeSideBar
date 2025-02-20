@@ -30,6 +30,9 @@ const OPENAI_CHAT_API_PATH = "/v1/chat/completions";
 const SILICONFLOW_BASE_URL = "https://api.siliconflow.cn";
 const SILICONFLOW_CHAT_API_PATH = "/v1/chat/completions";
 
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api";
+const OPENROUTER_CHAT_API_PATH = "/v1/chat/completions";
+
 const GLM_BASE_URL = "https://open.bigmodel.cn";
 const GLM_CHAT_API_PATH = "/api/paas/v4/chat/completions";
 
@@ -71,6 +74,7 @@ const MOONSHOT_MODELS_API_PATH = "/v1/models";
 const DEEPSEEK_MODELS_API_PATH = "/v1/models";
 const GITHUB_MODELS_API_PATH = "/models";
 const QWEN_MODELS_API_PATH = "/v1/models";
+const OPENROUTER_MODELS_API_PATH = "/v1/models";
 
 // 添加供应商相关常量
 const PROVIDERS = {
@@ -84,6 +88,7 @@ const PROVIDERS = {
   GEMINI: 'gemini',
   ANTHROPIC: 'anthropic',
   SILICONFLOW: 'siliconflow',
+  OPENROUTER: 'openrouter',
   GROQ: 'groq',
   MISTRAL: 'open-mistral',
   OLLAMA: 'ollama'
@@ -101,6 +106,7 @@ const PROVIDER_DISPLAY_NAMES = {
   [PROVIDERS.GEMINI]: 'Google Gemini',
   [PROVIDERS.ANTHROPIC]: 'Anthropic',
   [PROVIDERS.SILICONFLOW]: '硅基流动',
+  [PROVIDERS.OPENROUTER]: 'OpenRouter',
   [PROVIDERS.GROQ]: 'Groq',
   [PROVIDERS.MISTRAL]: 'Mistral',
   [PROVIDERS.OLLAMA]: 'Ollama'
@@ -130,6 +136,12 @@ const MODEL_MAPPINGS = [
   {
     prefix: ['siliconflow-'],
     provider: PROVIDERS.SILICONFLOW
+  },
+
+  // OpenRouter Models
+  {
+    prefix: ['openrouter-'],
+    provider: PROVIDERS.OPENROUTER
   },
 
   // GLM Models
@@ -223,6 +235,7 @@ const DEFAULT_LLM_URLS = [
   { key: PROVIDERS.GROQ, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL },
   { key: PROVIDERS.OLLAMA, baseUrl: OLLAMA_BASE_URL, apiPath: OLLAMA_CHAT_API_PATH, defaultModel: '' },
   { key: PROVIDERS.MISTRAL, baseUrl: MISTRAL_BASE_URL, apiPath: MISTRAL_CHAT_API_PATH, defaultModel: MISTRA_DEFAULTL_MODEL },
+  { key: PROVIDERS.OPENROUTER, baseUrl: OPENROUTER_BASE_URL, apiPath: OPENROUTER_CHAT_API_PATH },
 ];
 
 

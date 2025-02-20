@@ -54,7 +54,7 @@ async function getBaseUrlAndApiKey(model) {
   if (nonGptMapping) {
     // 检查是否配置了该服务商的信息
     const providerInfo = await getModelInfoFromChromeStorage(nonGptMapping.provider);
-    if (providerInfo && providerInfo.apiKey) {
+    if (providerInfo) {
       // 如果找到非 GPT 服务商的配置，使用该配置
       const defaultConfig = DEFAULT_LLM_URLS.find(url => url.key === nonGptMapping.provider);
       if (defaultConfig) {
@@ -345,6 +345,8 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
     realModelName = realModelName.replace('groq-', '');
   } else if (modelName.startsWith('siliconflow-')) {
     realModelName = realModelName.replace('siliconflow-', '');
+  } else if (modelName.startsWith('openrouter-')) {
+    realModelName = realModelName.replace('openrouter-', '');
   } else if (modelName.startsWith('github-')) {
     realModelName = realModelName.replace('github-', '');
   } else if (modelName.startsWith('Qwen-')) {

@@ -3,6 +3,7 @@
  * @returns
  */
 async function verifyApiKeyConfigured(model) {
+  console.log('Verifying API key for model:', model);
   // 根据模型名称判断使用哪个供应商的配置
   let provider = '';
 
@@ -19,9 +20,15 @@ async function verifyApiKeyConfigured(model) {
     provider = 'groq';
   } else if (model.includes(PROVIDERS.SILICONFLOW)) {
     provider = 'siliconflow';
+  } else if (model.includes(PROVIDERS.OPENROUTER)) {
+    provider = 'openrouter';
   }
 
   const { baseUrl, apiKey } = await getBaseUrlAndApiKey(provider);
+
+  console.log('Provider:', provider);
+  console.log('Base URL:', baseUrl);
+  console.log('API Key:', apiKey ? '已设置' : '未设置');
 
   // 检查是否需要 API Key（Ollama 不需要）
   const needsApiKey = !model.includes(PROVIDERS.OLLAMA);
