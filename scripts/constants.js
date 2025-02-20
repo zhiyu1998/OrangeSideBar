@@ -42,8 +42,8 @@ const DEEPSEEK_CHAT_API_PATH = "/chat/completions";
 const GITHUB_BASE_URL = "https://models.inference.ai.azure.com";
 const GITHUB_CHAT_API_PATH = "/v1/chat/completions";
 
-const QWEN_BASE_URL = "https://chat.qwenlm.ai/api";
-const QWEN_CHAT_API_PATH = "/chat/completions";
+const QWEN_BASE_URL = "https://chat.qwenlm.ai";
+const QWEN_CHAT_API_PATH = "/v1/chat/completions";
 
 const AZURE_OPENAI_BASE_URL = "https://{YOUR_RESOURCE_NAME}.openai.azure.com";
 const AZURE_OPENAI_CHAT_API_PATH = "/openai/deployments/{MODEL_NAME}/chat/completions?api-version=2024-04-01-preview";
@@ -70,7 +70,7 @@ const MISTRAL_MODELS_API_PATH = "/v1/models";
 const MOONSHOT_MODELS_API_PATH = "/v1/models";
 const DEEPSEEK_MODELS_API_PATH = "/v1/models";
 const GITHUB_MODELS_API_PATH = "/models";
-const QWEN_MODELS_API_PATH = "/models";
+const QWEN_MODELS_API_PATH = "/v1/models";
 
 // 添加供应商相关常量
 const PROVIDERS = {
