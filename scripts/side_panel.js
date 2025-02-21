@@ -443,28 +443,34 @@ function getPageTitle() {
   });
 }
 
+/**
+ * 更新模型选择列表
+ */
 function updateModelSelection(globalModels) {
   const modelSelection = document.getElementById('model-selection');
-  modelSelection.innerHTML = ''; // 清空现有选项
+  modelSelection.innerHTML = '';
 
-  console.log('Updating model selection with:', globalModels); // 添加日志
+  // 获取免费过滤设置
+  const showFreeOnly = localStorage.getItem('openrouter-free-only') === 'true';
 
   // 使用 constants.js 中的服务商数据
   const providerOrder = Object.values(PROVIDERS);
   const providerDisplayName = PROVIDER_DISPLAY_NAMES;
 
-  // 按照指定顺序遍历供应商
   providerOrder.forEach(provider => {
     const models = globalModels[provider];
     if (models && models.length > 0) {
-      console.log(`Adding models for provider ${provider}:`, models); // 添加日志
+      // 应用OpenRouter过滤
+      let filteredModels = models;
+      if (provider === PROVIDERS.OPENROUTER && showFreeOnly) {
+        filteredModels = models.filter(m => m.value.includes(':free'));
+      }
 
       // 创建分组
       const group = document.createElement('optgroup');
       group.label = providerDisplayName[provider] || provider.toUpperCase();
 
-      // 添加该提供商的所有模型
-      models.forEach(model => {
+      filteredModels.forEach(model => {
         const option = document.createElement('option');
         option.value = model.value;
         option.textContent = model.value;

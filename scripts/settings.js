@@ -83,6 +83,12 @@ function storeParams(tabName, param1, param2, saveMessage, models = null) {
       }
     }
 
+    // 新增：存储免费过滤选项
+    const freeOnlyFilter = document.getElementById('free-only-filter')?.checked;
+    if (freeOnlyFilter !== undefined) {
+      localStorage.setItem('openrouter-free-only', freeOnlyFilter);
+    }
+
     // 保存到 Chrome 存储
     chrome.storage.local.set({ [tabName]: modelInfo }, function () {
       console.log('Saved:', { [tabName]: modelInfo });
@@ -374,11 +380,21 @@ async function getModelList(baseUrl, model, apiKey) {
       }));
     } else if (model.includes(PROVIDERS.OPENROUTER)) {
       // OpenRouter 格式处理
-      return data.data.map(model => ({
-        id: `openrouter-${model.id}`,
-        object: 'model',
-        owned_by: model.name.split(':')[0] || 'unknown'
-      }));
+      return data.data
+        .filter(modelData => {
+          // 获取存储的过滤设置
+          const showFreeOnly = localStorage.getItem('openrouter-free-only') === 'true';
+          // 如果启用免费过滤，只保留包含:free的模型
+          if (showFreeOnly) {
+            return modelData.id.includes(':free');
+          }
+          return true; // 不过滤时返回所有模型
+        })
+        .map(model => ({
+          id: `openrouter-${model.id}`,
+          object: 'model',
+          owned_by: model.name.split(':')[0] || 'unknown'
+        }));
     } else if (model.includes(PROVIDERS.GITHUB)) {
       // GitHub 格式处理
       return data.map(model => ({
@@ -714,6 +730,13 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   initThemeToggle();
+
+  // 在初始化时恢复过滤状态
+  const freeOnlyFilter = localStorage.getItem('openrouter-free-only') === 'true';
+  const filterCheckbox = document.getElementById('free-only-filter');
+  if (filterCheckbox) {
+    filterCheckbox.checked = freeOnlyFilter;
+  }
 });
 
 // 修改显示消息的逻辑

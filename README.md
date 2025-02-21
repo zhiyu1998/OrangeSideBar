@@ -53,6 +53,7 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 - [x] Mistral
 - [ ] Ollama
 - [x] DeepSeek-R1 / 硅基流动-DeepSeek-R1
+- [x] OpenRouter
 
 ## 🌼 致谢
 
