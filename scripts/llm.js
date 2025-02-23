@@ -969,10 +969,10 @@ async function parseAndUpdateChatContent(response, modelName, type) {
     }
 
     // 完成后移除思考框
-    if (thinkingDiv) {
-      const contentDiv = document.querySelector('.chat-content');
-      contentDiv.removeChild(thinkingDiv);
-    }
+    // if (thinkingDiv) {
+    //   const contentDiv = document.querySelector('.chat-content');
+    //   contentDiv.removeChild(thinkingDiv);
+    // }
 
     // 在完成读取后，将AI的回答添加到对话历史中
     if (completeText) {
