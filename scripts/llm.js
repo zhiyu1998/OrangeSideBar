@@ -807,6 +807,7 @@ async function parseAndUpdateChatContent(response, modelName, type) {
         <div class="thinking-indicator">
           <div class="thinking-spinner"></div>
           <span>AI 思考中...</span>
+          <span class="thinking-time"></span>
         </div>
         <button class="thinking-toggle expanded">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -817,6 +818,17 @@ async function parseAndUpdateChatContent(response, modelName, type) {
       <div class="thinking-content" style="display: block;"></div>
     `;
     contentDiv.insertBefore(thinkingDiv, lastDiv);
+
+    // 初始化开始时间和启动定时器
+    thinkingDiv.dataset.startTime = Date.now();
+    setInterval(() => {
+      if (thinkingDiv.dataset.startTime) {
+        const startTime = parseInt(thinkingDiv.dataset.startTime);
+        const elapsedTime = (Date.now() - startTime) / 1000;
+        const timeSpan = thinkingDiv.querySelector('.thinking-time');
+        timeSpan.textContent = ` (${elapsedTime.toFixed(1)}s)`;
+      }
+    }, 100);
 
     // 添加点击事件处理
     const toggleBtn = thinkingDiv.querySelector('.thinking-toggle');
@@ -870,9 +882,19 @@ async function parseAndUpdateChatContent(response, modelName, type) {
                 const spinner = thinkingDiv.querySelector('.thinking-spinner');
                 spinner.classList.add('thinking-complete');
 
+                // 清除开始时间，停止计时器更新
+                delete thinkingDiv.dataset.startTime;
+
                 // 更新状态文本
                 const statusText = thinkingDiv.querySelector('.thinking-indicator span');
-                statusText.textContent = '思考完成';
+                // 确保 startTime 存在再进行计算
+                if (thinkingDiv.dataset.startTime) {
+                  const startTime = parseInt(thinkingDiv.dataset.startTime);
+                  const elapsedTime = (Date.now() - startTime) / 1000;
+                  statusText.textContent = `思考完成 (${elapsedTime.toFixed(1)}s)`;
+                } else {
+                  statusText.textContent = '思考完成'; // 如果没有 startTime，则不显示时间
+                }
 
                 // 收起思考内容
                 const thinkingContent = thinkingDiv.querySelector('.thinking-content');
