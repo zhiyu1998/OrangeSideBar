@@ -874,6 +874,10 @@ async function parseAndUpdateChatContent(response, modelName, type) {
               if (thinkingDiv) {
                 const thinkingContent = thinkingDiv.querySelector('.thinking-content');
                 thinkingContent.innerHTML = marked.parse(reasoningContent);
+
+                // 确保思考内容区域滚动到最新内容
+                const contentDiv = document.querySelector('.thinking-content');
+                contentDiv.scrollTop = contentDiv.scrollHeight; // 滚动到底部
               }
             } else if (jsonData.choices[0].delta.content) {
               // 检测到内容输出，说明思考已完成
