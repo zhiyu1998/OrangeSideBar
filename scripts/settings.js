@@ -351,7 +351,7 @@ async function getModelList(baseUrl, model, apiKey) {
           return hasValidPrefix && isNotDeprecated && isNotTest;
         })
         .map(model => ({
-          id: model.id,
+          id: `openai-${model.id}`,
           object: model.object,
           owned_by: model.owned_by
         }));
@@ -564,24 +564,11 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
       }));
     } else if (model === 'gpt') {
       // 处理 OpenAI 格式
-      formattedModels = data.data
-        .filter(model => {
-          const validPrefixes = MODEL_MAPPINGS
-            .filter(m => m.provider === 'gpt')
-            .map(m => m.prefix)
-            .flat();
-          const hasValidPrefix = validPrefixes.some(prefix =>
-            model.id.startsWith(prefix)
-          );
-          const isNotDeprecated = !model.id.includes('deprecated');
-          const isNotTest = !model.id.includes('test');
-          return hasValidPrefix && isNotDeprecated && isNotTest;
-        })
-        .map(model => ({
-          id: model.id,
-          object: model.object,
-          owned_by: model.owned_by
-        }));
+      formattedModels = data.data.map(model => ({
+        id: `openai-${model.id}`,
+        object: model.object,
+        owned_by: model.owned_by
+      }));
     } else {
       formattedModels = data.data || data.models || [];
     }

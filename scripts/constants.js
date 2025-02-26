@@ -116,18 +116,7 @@ const PROVIDER_DISPLAY_NAMES = {
 const MODEL_MAPPINGS = [
   {
     prefix: [
-      'gpt-',
-      'claude-',
-      'text-',
-      'dall-e-',
-      'tts-',
-      'whisper-',
-      'GLM-',
-      'glm-',
-      'moonshot-',
-      'deepseek-',
-      'yi-',
-      'gemini-',
+      'openai-',
     ],
     provider: PROVIDERS.GPT
   },

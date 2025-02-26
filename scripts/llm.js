@@ -352,6 +352,8 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
   } else if (modelName.startsWith('Qwen-')) {
     // 使用映射表获取正确的模型名称
     realModelName = QWEN_MODEL_MAPPINGS[modelName] || modelName.replace('Qwen-', '').replace('2.5', '').toLowerCase() + '-latest';
+  } else if (modelName.startsWith('openai-')) {
+    realModelName = realModelName.replace("openai-", '');
   }
 
   const { temperature, topP, maxTokens, frequencyPenalty, presencePenalty } = await getModelParameters();
