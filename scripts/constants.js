@@ -170,7 +170,7 @@ const MODEL_MAPPINGS = [
 
   // QwenLLM Models
   {
-    prefix: ['Qwen-'],
+    prefix: ['Qwen-', 'qwen-'],
     provider: PROVIDERS.QWEN
   },
 

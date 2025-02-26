@@ -309,7 +309,6 @@ async function getModelList(baseUrl, model, apiKey) {
   }
 
   try {
-    console.log('Fetching models from:', apiUrl);
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: headers
@@ -325,10 +324,10 @@ async function getModelList(baseUrl, model, apiKey) {
     // 处理不同的返回格式
     if (model.includes(PROVIDERS.QWEN)) {
       // Qwen 格式处理
-      return data.data.map(model => ({
-        id: `Qwen-${model.name}`,  // 添加 Qwen- 前缀
-        object: model.object || 'model',
-        owned_by: model.owned_by || 'alibaba'
+      return data.data.map(item => ({
+        id: `Qwen-${item.name || item.id}`,  // 添加 Qwen- 前缀
+        object: item.object || 'model',
+        owned_by: item.owned_by || 'alibaba'
       }));
     } else if (model === 'gpt') {
       // OpenAI 格式处理
@@ -510,7 +509,7 @@ function loadMoreModels(tabContent) {
 /**
  * 检查API可用性
  */
-function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
+async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
   const tabContent = resultElement.closest('.tab-content');
   const modelList = tabContent.querySelector('#model-list');
   const checkButton = tabContent.querySelector('.checkapi-button');
@@ -531,67 +530,93 @@ function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
     modelList.classList.add('loading');
   }
 
-  // 构建API请求参数
-  let apiUrl, params;
-  if (model.includes(TOOL_KEY)) {
-    ({ apiUrl, params } = getToolsParamForCheck(baseUrl, model, apiKey));
-  } else {
-    ({ apiUrl, params } = getModelBaseParamForCheck(baseUrl, model, apiKey));
-  }
+  try {
+    // 构建API请求参数
+    let apiUrl, params;
+    if (model.includes(TOOL_KEY)) {
+      ({ apiUrl, params } = getToolsParamForCheck(baseUrl, model, apiKey));
+    } else {
+      ({ apiUrl, params } = getModelBaseParamForCheck(baseUrl, model, apiKey));
+    }
 
-  // API 检查逻辑
-  fetch(apiUrl, params)
-    .then(response => {
-      if (response.ok) {
-        resultElement.textContent = '检查通过';
-        resultElement.className = 'checkapi-message success';
-        resultElement.style.display = "block";
+    // 发起API请求
+    const response = await fetch(apiUrl, params);
 
-        // 获取模型列表
-        return getModelList(baseUrl, model, apiKey);
-      }
+    if (!response.ok) {
       throw new Error('API 请求失败，状态码：' + response.status);
-    })
-    .then(models => {
-      if (models && models.length > 0) {
-        const tabId = tabContent.id;
-        const saveMessage = tabContent.querySelector('.save-message');
+    }
 
-        const formattedModels = models.map(model => ({
+    // 显示成功消息
+    resultElement.textContent = '检查通过';
+    resultElement.className = 'checkapi-message success';
+    resultElement.style.display = "block";
+
+    // 直接处理响应数据
+    const data = await response.json();
+
+    // 处理模型数据
+    let formattedModels = [];
+    if (model.includes(PROVIDERS.QWEN)) {
+      formattedModels = data.data.map(item => ({
+        id: `Qwen-${item.name || item.id}`,
+        object: item.object || 'model',
+        owned_by: item.owned_by || 'alibaba'
+      }));
+    } else if (model === 'gpt') {
+      // 处理 OpenAI 格式
+      formattedModels = data.data
+        .filter(model => {
+          const validPrefixes = MODEL_MAPPINGS
+            .filter(m => m.provider === 'gpt')
+            .map(m => m.prefix)
+            .flat();
+          const hasValidPrefix = validPrefixes.some(prefix =>
+            model.id.startsWith(prefix)
+          );
+          const isNotDeprecated = !model.id.includes('deprecated');
+          const isNotTest = !model.id.includes('test');
+          return hasValidPrefix && isNotDeprecated && isNotTest;
+        })
+        .map(model => ({
           id: model.id,
-          object: model.object || 'model',
-          owned_by: model.owned_by || 'unknown'
+          object: model.object,
+          owned_by: model.owned_by
         }));
+    } else {
+      formattedModels = data.data || data.models || [];
+    }
 
-        // 保存并更新模型列表
-        storeParams(tabId, baseUrl, apiKey, saveMessage, formattedModels);
-      }
-    })
-    .catch(error => {
-      console.error('API check failed:', error);
-      showErrorMessage(resultElement, '检查未通过');
-    })
-    .finally(() => {
-      // 恢复按钮状态
-      if (checkButton) {
-        checkButton.disabled = false;
-        checkButton.style.opacity = '1';
-        checkButton.textContent = '连通性测试';
-      }
+    // 如果有模型数据，保存并更新显示
+    if (formattedModels && formattedModels.length > 0) {
+      const tabId = tabContent.id;
+      const saveMessage = tabContent.querySelector('.save-message');
+      storeParams(tabId, baseUrl, apiKey, saveMessage, formattedModels);
+    }
 
-      // 隐藏加载动画
-      if (loadingElement) {
-        loadingElement.style.display = 'none';
-      }
-      if (modelList) {
-        modelList.classList.remove('loading');
-      }
+  } catch (error) {
+    console.error('API check failed:', error);
+    showErrorMessage(resultElement, '检查未通过');
+  } finally {
+    // 恢复按钮状态
+    if (checkButton) {
+      checkButton.disabled = false;
+      checkButton.style.opacity = '1';
+      checkButton.textContent = '连通性测试';
+    }
 
-      // 设置消息消失时间
-      setTimeout(() => {
-        resultElement.style.display = 'none';
-      }, 2000);
-    });
+    // 隐藏加载动画
+    if (loadingElement) {
+      loadingElement.style.display = 'none';
+    }
+    if (modelList) {
+      modelList.classList.remove('loading');
+    }
+
+    // 设置消息消失时间
+    setTimeout(() => {
+      resultElement.style.display = 'none';
+    }, 2000);
+  }
 }
 
 /**
