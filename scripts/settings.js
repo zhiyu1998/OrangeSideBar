@@ -576,6 +576,25 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
         object: model.object,
         owned_by: model.owned_by
       }));
+    } else if (model === 'openrouter') {
+      formattedModels = data.data
+        .filter(item => {
+          const showFreeOnly = localStorage.getItem('openrouter-free-only') === 'true';
+          if (showFreeOnly) {
+            return item.id.includes(':free');
+          }
+          return true;
+        }).map(model => ({
+          id: `openrouter-${model.id}`,
+          object: 'model',
+          owned_by: model.name.split(':')[0] || 'unknown'
+        }));
+    } else if (model === 'siliconflow') {
+      formattedModels = data.data.map(model => ({
+        id: `siliconflow-${model.id}`,
+        object: model.object,
+        owned_by: model.owned_by
+      }));
     } else {
       formattedModels = data.data || data.models || [];
     }
@@ -749,13 +768,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   initThemeToggle();
-
-  // 在初始化时恢复过滤状态
-  const freeOnlyFilter = localStorage.getItem('openrouter-free-only') === 'true';
-  const filterCheckbox = document.getElementById('free-only-filter');
-  if (filterCheckbox) {
-    filterCheckbox.checked = freeOnlyFilter;
-  }
 });
 
 // 修改显示消息的逻辑
