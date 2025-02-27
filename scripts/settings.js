@@ -569,6 +569,13 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
         object: model.object,
         owned_by: model.owned_by
       }));
+    } else if (model === 'gemini') {
+      // Gemini格式
+      formattedModels = data.models.map(model => ({
+        id: `${model.name.replace("models\/", "")}`,
+        object: model.object,
+        owned_by: model.owned_by
+      }));
     } else {
       formattedModels = data.data || data.models || [];
     }
