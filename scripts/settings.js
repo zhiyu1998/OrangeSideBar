@@ -818,7 +818,8 @@ function initPromptSettings() {
     }
 
     chrome.storage.local.set({ 'systemPrompt': customPrompt }, function () {
-      showMessage(document.querySelector('.save-message'));
+      const saveMessageElement = saveSystemPromptBtn.closest('.settings-section').querySelector('.save-message');
+      showMessage(saveMessageElement);
     });
   });
 
@@ -848,7 +849,8 @@ function initPromptSettings() {
       }
 
       chrome.storage.local.set({ 'summaryPrompt': customPrompt }, function () {
-        showMessage(document.querySelector('.save-message'));
+        const saveMessageElement = saveSummaryPromptBtn.closest('.settings-section').querySelector('.save-message');
+        showMessage(saveMessageElement);
       });
     });
   }

@@ -906,6 +906,58 @@ input:checked + .slider:after {
   border: none;
 }
 
+.prompt-save-message {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #10B981;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+}
+
+.prompt-save-message::before {
+  content: '✓';
+  margin-right: 8px;
+  font-weight: bold;
+}
+
+.prompt-save-message.show {
+  opacity: 1;
+  transform: translateY(0);
+  animation: promptSlideIn 0.3s forwards, promptSlideOut 0.3s forwards 2s;
+}
+
+@keyframes promptSlideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes promptSlideOut {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+}
+
 .settings-section {
   margin-bottom: 30px;
   padding: 15px;
