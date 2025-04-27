@@ -52,7 +52,7 @@ const AZURE_OPENAI_BASE_URL = "https://{YOUR_RESOURCE_NAME}.openai.azure.com";
 const AZURE_OPENAI_CHAT_API_PATH = "/openai/deployments/{MODEL_NAME}/chat/completions?api-version=2024-04-01-preview";
 
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
-const GEMINI_CHA_API_PAH = "/v1beta/models/{MODEL_NAME}:streamGenerateContent?alt=sse&key={API_KEY}";
+const GEMINI_CHA_API_PATH = "/v1beta/models/{MODEL_NAME}:streamGenerateContent?alt=sse&key={API_KEY}";
 
 const GROQ_BASE_URL = "https://api.groq.com";
 const GROQ_CHAT_API_PATH = "/openai/v1/chat/completions";
@@ -220,7 +220,7 @@ const DEFAULT_LLM_URLS = [
   { key: PROVIDERS.GITHUB, baseUrl: GITHUB_BASE_URL, apiPath: GITHUB_CHAT_API_PATH, defaultModel: GITHUB_DEFAULT_MODEL },
   { key: PROVIDERS.QWEN, baseUrl: QWEN_BASE_URL, apiPath: QWEN_CHAT_API_PATH, defaultModel: QWEN_DEFAULT_MODEL },
   { key: PROVIDERS.CLAUDE, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: 'claude-3-opus-20240229' },
-  { key: PROVIDERS.GEMINI, baseUrl: GEMINI_BASE_URL, apiPath: GEMINI_CHA_API_PAH, defaultModel: GEMINI_DEFAULT_MODEL },
+  { key: PROVIDERS.GEMINI, baseUrl: GEMINI_BASE_URL, apiPath: GEMINI_CHA_API_PATH, defaultModel: GEMINI_DEFAULT_MODEL },
   { key: PROVIDERS.GROQ, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL },
   { key: PROVIDERS.OLLAMA, baseUrl: OLLAMA_BASE_URL, apiPath: OLLAMA_CHAT_API_PATH, defaultModel: '' },
   { key: PROVIDERS.MISTRAL, baseUrl: MISTRAL_BASE_URL, apiPath: MISTRAL_CHAT_API_PATH, defaultModel: MISTRA_DEFAULTL_MODEL },

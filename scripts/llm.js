@@ -480,6 +480,12 @@ async function chatWithGemini(baseUrl, model, type, tools = []) {
     // 获取模型参数
     const { temperature, topP, maxTokens } = await getModelParameters();
 
+    // 为 Gemini-2.5 系列模型调整 maxOutputTokens 参数
+    let adjustedMaxTokens = maxTokens;
+    if (model.includes('gemini-2.5')) {
+      adjustedMaxTokens = 5120; // 为 Gemini-2.5 系列设置更高的 token 限制
+    }
+
     // 构建请求体
     const requestBody = {
       contents: [{
@@ -490,9 +496,16 @@ async function chatWithGemini(baseUrl, model, type, tools = []) {
       generationConfig: {
         temperature: temperature,
         topP: topP,
-        maxOutputTokens: maxTokens
+        maxOutputTokens: adjustedMaxTokens
       }
     };
+
+    // 如果是 Gemini-2.5 系列，添加 thinkingConfig (如果未显式禁用)
+    if (model.includes('gemini-2.5')) {
+      requestBody.generationConfig.thinkingConfig = {
+        thinkingBudget: adjustedMaxTokens // 使用相同的 token 限制作为思考预算
+      };
+    }
 
     // 如果是支持联网搜索的模型且启用了联网搜索,添加googleSearch工具
     if (GEMINI_SEARCH_MODELS.includes(model) && hasWebSearch) {
@@ -573,24 +586,29 @@ async function processGeminiResponse(buffer, model, hasWebSearch) {
     for (const line of lines) {
       if (line.startsWith('data: ')) {
         const jsonStr = line.slice(5);
-        const data = JSON.parse(jsonStr);
+        try {
+          const data = JSON.parse(jsonStr);
 
-        // 提取文本内容
-        const content = data.candidates?.[0]?.content;
-        if (content?.parts) {
-          text += content.parts.map(part => part.text || '').join('');
-        }
+          // 提取文本内容
+          const content = data.candidates?.[0]?.content;
+          if (content?.parts) {
+            text += content.parts.map(part => part.text || '').join('');
+          }
 
-        // 如果启用了联网搜索,处理搜索结果
-        if (hasWebSearch && data.candidates?.[0]?.groundingMetadata?.groundingChunks) {
-          const searchResults = data.candidates[0].groundingMetadata.groundingChunks
-            .map(chunk => {
-              const web = chunk.web;
-              return `\n\n📌 来源: [${web.title}](${web.uri})`;
-            })
-            .join('\n');
 
-          text += '\n\n### 参考来源' + searchResults;
+          // 如果启用了联网搜索,处理搜索结果
+          if (hasWebSearch && data.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+            const searchResults = data.candidates[0].groundingMetadata.groundingChunks
+              .map(chunk => {
+                const web = chunk.web;
+                return `\n\n📌 来源: [${web.title}](${web.uri})`;
+              })
+              .join('\n');
+
+            text += '\n\n### 参考来源' + searchResults;
+          }
+        } catch (error) {
+          console.error('Error parsing JSON in Gemini response:', error, 'Line:', jsonStr);
         }
       }
     }
