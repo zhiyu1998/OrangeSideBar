@@ -206,6 +206,8 @@ body {
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
+  min-width: 90px;
+  text-align: center;
 }
 
 .checkapi-button {
@@ -872,19 +874,36 @@ input:checked + .slider:after {
   gap: 10px;
 }
 
-.reset-button {
-  padding: 8px 16px;
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+.prompt-actions .reset-button,
+.prompt-actions .save-button {
+  padding: 10px 20px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 100px;
+  text-align: center;
+  flex: 1 1 0;
+  max-width: 120px;
+  margin-top: 0;
 }
 
-.reset-button:hover {
+.prompt-actions .reset-button {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.prompt-actions .reset-button:hover {
   background-color: var(--bg-secondary);
   transform: translateY(-1px);
+}
+
+.prompt-actions .save-button {
+  background-color: #3B82F6;
+  color: white;
+  border: none;
 }
 
 .settings-section {
