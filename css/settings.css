@@ -851,3 +851,51 @@ input:checked + .slider:after {
 .toggle-switch:hover .slider {
   border-color: var(--accent-color);
 }
+
+/* Prompt settings styles */
+.prompt-textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: monospace;
+  resize: vertical;
+}
+
+.prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+  gap: 10px;
+}
+
+.reset-button {
+  padding: 8px 16px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-button:hover {
+  background-color: var(--bg-secondary);
+  transform: translateY(-1px);
+}
+
+.settings-section {
+  margin-bottom: 30px;
+  padding: 15px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.settings-description {
+  color: var(--text-secondary);
+  margin-bottom: 15px;
+  font-size: 14px;
+}

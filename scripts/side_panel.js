@@ -703,7 +703,11 @@ function initResultPage() {
       return;
     }
 
-    await clearAndGenerate(model, SUMMARY_PROMPT + inputText, null);
+    // 获取自定义摘要提示词，如果存在则使用，否则使用默认的
+    chrome.storage.local.get(['summaryPrompt'], function (result) {
+      const promptToUse = result.summaryPrompt || SUMMARY_PROMPT;
+      clearAndGenerate(model, promptToUse + inputText, null);
+    });
   });
 
   // 网页翻译
@@ -954,7 +958,18 @@ function initResultPage() {
         // 构造content
         let newInputText = '';
         if (inputText.startsWith(SHORTCUT_SUMMAY)) {
-          newInputText = SUMMARY_PROMPT + inputText.replace(SHORTCUT_SUMMAY, '');
+          // 获取自定义摘要提示词，如果存在则使用，否则使用默认的
+          chrome.storage.local.get(['summaryPrompt'], function (result) {
+            const promptToUse = result.summaryPrompt || SUMMARY_PROMPT;
+            newInputText = promptToUse + inputText.replace(SHORTCUT_SUMMAY, '');
+            // 继续处理，发送请求
+            contentDiv.scrollTop = contentDiv.scrollHeight;
+            userInput.value = "";
+            const previewArea = document.querySelector('.image-preview-area');
+            previewArea.innerHTML = '';
+            chatLLMAndUIUpdate(model, newInputText, base64Images);
+          });
+          return; // 提前返回，防止直接执行下面的代码
         } else if (inputText.startsWith(SHORTCUT_DICTION)) {
           newInputText = DICTION_PROMPT + inputText.replace(SHORTCUT_DICTION, '');
         } else if (inputText.startsWith(SHORTCUT_TRANSLATION)) {

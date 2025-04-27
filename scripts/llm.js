@@ -176,48 +176,93 @@ function createRequestParams(additionalHeaders, body) {
  * @returns
  */
 async function chatWithLLM(model, inputText, base64Images, type) {
-  var { baseUrl, apiKey } = await getBaseUrlAndApiKey(model);
-
-  if (!baseUrl) {
-    throw new Error('模型 ' + model + ' 的 API 代理地址为空，请检查！');
+  // Initialize chat history if not exists
+  if (!window.chatHistory) {
+    initChatHistory();
   }
 
-  if (!apiKey) {
-    throw new Error('模型 ' + model + ' 的 API Key 为空，请检查！');
-  }
-
-  const openaiDialogueEntry = createDialogueEntry('user', 'content', inputText, base64Images, model);
-  const geminiDialogueEntry = createDialogueEntry('user', 'parts', inputText, base64Images, model);
-
-  // 将用户提问更新到对话历史
-  dialogueHistory.push(openaiDialogueEntry);
-  geminiDialogueHistory.push(geminiDialogueEntry);
-
-  // 取最近的 X 条对话记录
-  if (dialogueHistory.length > MAX_DIALOG_LEN) {
-    dialogueHistory = dialogueHistory.slice(-MAX_DIALOG_LEN);
-  }
-
-  // 获取当前启用的工具
-  const toolsResult = await new Promise((resolve) => {
-    chrome.storage.local.get(['selectedTools'], function (result) {
-      resolve(result.selectedTools || []);
+  // Get custom system prompt if available
+  const { systemPrompt } = await new Promise(resolve => {
+    chrome.storage.local.get(['systemPrompt'], function (result) {
+      resolve(result);
     });
   });
 
-  let result = { completeText: '', tools: [] };
-  if (model.includes(PROVIDERS.GEMINI)) {
-    baseUrl = baseUrl.replace('{MODEL_NAME}', model).replace('{API_KEY}', apiKey);
-    result = await chatWithGemini(baseUrl, model, type, toolsResult);
-  } else {
-    result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type);
+  // Use custom prompt if available, otherwise use default
+  const promptToUse = systemPrompt || SYSTEM_PROMPT;
+
+  // Get provider from model name
+  const provider = getProvider(model);
+
+  // Get base URL and API key
+  const { baseUrl, apiKey } = await getBaseUrlAndApiKey(model);
+  if (!baseUrl || !apiKey) {
+    if (provider !== PROVIDERS.OLLAMA) {  // Ollama doesn't need an API key
+      console.error("Base URL or API key not found for model:", model);
+      return "请先去设置 Model 和 API KEY";
+    }
   }
 
-  while (result.tools.length > 0) {
-    result = await parseFunctionCalling(result, baseUrl, apiKey, model, type);
+  // Create dialogue entries and update history
+  const openaiDialogueEntry = createDialogueEntry('user', 'content', inputText, base64Images, model);
+  const geminiDialogueEntry = createDialogueEntry('user', 'parts', inputText, base64Images, model);
+
+  // Add to dialogue history
+  dialogueHistory.push(openaiDialogueEntry);
+  geminiDialogueHistory.push(geminiDialogueEntry);
+
+  // Limit dialogue history length
+  if (dialogueHistory.length > MAX_DIALOG_LEN) {
+    dialogueHistory = dialogueHistory.slice(-MAX_DIALOG_LEN);
+  }
+  if (geminiDialogueHistory.length > MAX_DIALOG_LEN) {
+    geminiDialogueHistory = geminiDialogueHistory.slice(-MAX_DIALOG_LEN);
   }
 
-  return result.completeText;
+  // Check if model supports web search
+  const hasWebSearch = isModelSupportWebSearch(model);
+
+  // Create web search tool if needed
+  const tools = [];
+  if (hasWebSearch && type === AGENT_TYPE) {
+    tools.push(createWebSearchTool());
+  }
+
+  // Add more tools based on model and type
+  if (type === AGENT_TYPE) {
+    const moreTools = await getToolsSelectedStatus();
+    if (moreTools && moreTools.length > 0) {
+      tools.push(...moreTools);
+    }
+  }
+
+  // Use different chat implementations based on provider
+  try {
+    let result;
+
+    // Replace {current_time} placeholder with actual time
+    const promptWithTime = promptToUse.replace('{current_time}', getCurrentTime());
+
+    // Provider-specific chat implementation
+    if (provider === PROVIDERS.GEMINI) {
+      result = await chatWithGemini(baseUrl, model, type, tools);
+    } else if (provider === PROVIDERS.OLLAMA) {
+      // Ollama implementation
+    } else {
+      // Default OpenAI-compatible implementation
+      result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
+    }
+
+    // Handle function calling
+    while (result.tools && result.tools.length > 0) {
+      result = await parseFunctionCalling(result, baseUrl, apiKey, model, type);
+    }
+
+    return result.completeText || result;
+  } catch (error) {
+    console.error("Error in chatWithLLM:", error);
+    return `Error: ${error.message}`;
+  }
 }
 
 
@@ -338,11 +383,11 @@ async function parseFunctionCalling(result, baseUrl, apiKey, model, type) {
  * @param {string} type
  * @returns
  */
-async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
+async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type, tools = [], systemPrompt = SYSTEM_PROMPT) {
   let realModelName = modelName;
   // 如果是 groq 模型,去掉 groq- 前缀
   if (modelName.startsWith('groq-')) {
-    realModelName = realModelName.replace('groq-', '');
+    realModelName = modelName.substring(5);
   } else if (modelName.startsWith('siliconflow-')) {
     realModelName = realModelName.replace('siliconflow-', '');
   } else if (modelName.startsWith('openrouter-')) {
@@ -356,38 +401,57 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type) {
     realModelName = realModelName.replace("openai-", '');
   }
 
-  const { temperature, topP, maxTokens, frequencyPenalty, presencePenalty } = await getModelParameters();
+  // 获取 modelParams 参数
+  const modelParams = await getModelParameters();
+
+  // 初始化提问信息，增加工具相关的内容
+  let systemContent = systemPrompt;
+  if (type === AGENT_TYPE && tools.length > 0) {
+    let toolPrompt = TOOL_PROMPT_PREFIX;
+    tools.forEach(tool => {
+      if (tool.type === 'builtin_function' && tool.function.name === '$web_search') {
+        toolPrompt += WEB_SEARCH_PROMTP;
+      }
+    });
+    systemContent = systemContent.replace(/{tools-list}/g, toolPrompt);
+  } else {
+    systemContent = systemContent.replace(/{tools-list}/g, '');
+  }
+
+  // Create messages array with system prompt and dialogue history
+  const messages = [
+    {
+      role: 'system',
+      content: systemContent
+    },
+    ...dialogueHistory // Include conversation history
+  ];
 
   const body = {
     model: realModelName,
-    temperature: temperature,
-    top_p: topP,
-    max_tokens: maxTokens,
+    temperature: modelParams.temperature,
+    top_p: modelParams.topP,
+    max_tokens: modelParams.maxTokens,
     stream: true,
-    messages: dialogueHistory,
+    messages: messages,
     tools: []
   };
 
   // mistral 的模型传以下两个参数会报错，这里过滤掉
   if (!modelName.includes(PROVIDERS.MISTRAL)) {
-    body.frequency_penalty = frequencyPenalty;
-    body.presence_penalty = presencePenalty;
+    body.frequency_penalty = modelParams.frequencyPenalty;
+    body.presence_penalty = modelParams.presencePenalty;
   }
 
   // 获取工具选择情况
   const serpapi_checked = await getValueFromChromeStorage(SERPAPI);
-  let tools_list_prompt = TOOL_PROMPT_PREFIX;
   if (serpapi_checked != null && serpapi_checked) {
-    tools_list_prompt += WEB_SEARCH_PROMTP;
     body.tools.push(FUNCTION_SERAPI);
   }
   // 如果tools数组为空，则删除tools属性
   if (body.tools.length === 0) {
     delete body.tools;
   }
-
-  // 根据选择的工具状态来更新 system prompt
-  dialogueHistory[0].content = systemPrompt.replace('{tools-list}', tools_list_prompt);
 
   let additionalHeaders = { 'Authorization': 'Bearer ' + apiKey };
 

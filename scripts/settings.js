@@ -768,6 +768,9 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   initThemeToggle();
+
+  // Initialize prompt settings tab
+  initPromptSettings();
 });
 
 // 修改显示消息的逻辑
@@ -776,5 +779,84 @@ function showMessage(element) {
   setTimeout(() => {
     element.style.display = 'none';
   }, 2000); // 2秒后消失
+}
+
+// Initialize prompt settings tab
+function initPromptSettings() {
+  const systemPromptTextarea = document.getElementById('systemPrompt');
+  const resetSystemPromptBtn = document.getElementById('resetSystemPrompt');
+  const saveSystemPromptBtn = document.getElementById('saveSystemPrompt');
+  const summaryPromptTextarea = document.getElementById('summaryPrompt');
+  const resetSummaryPromptBtn = document.getElementById('resetSummaryPrompt');
+  const saveSummaryPromptBtn = document.getElementById('saveSummaryPrompt');
+
+  if (!systemPromptTextarea || !resetSystemPromptBtn || !saveSystemPromptBtn) {
+    return; // Elements not found, exit
+  }
+
+  // Load saved system prompt if exists
+  chrome.storage.local.get(['systemPrompt'], function (result) {
+    if (result.systemPrompt) {
+      systemPromptTextarea.value = result.systemPrompt;
+    } else {
+      // Load default prompt from constants.js
+      systemPromptTextarea.value = SYSTEM_PROMPT;
+    }
+  });
+
+  // Reset system prompt to default
+  resetSystemPromptBtn.addEventListener('click', function () {
+    systemPromptTextarea.value = SYSTEM_PROMPT;
+  });
+
+  // Save custom system prompt
+  saveSystemPromptBtn.addEventListener('click', function () {
+    const customPrompt = systemPromptTextarea.value;
+    if (customPrompt.trim() === '') {
+      alert('提示词不能为空');
+      return;
+    }
+
+    chrome.storage.local.set({ 'systemPrompt': customPrompt }, function () {
+      showMessage(document.querySelector('.save-message'));
+    });
+  });
+
+  // Handle summary prompt settings if elements exist
+  if (summaryPromptTextarea && resetSummaryPromptBtn && saveSummaryPromptBtn) {
+    // Load saved summary prompt if exists
+    chrome.storage.local.get(['summaryPrompt'], function (result) {
+      if (result.summaryPrompt) {
+        summaryPromptTextarea.value = result.summaryPrompt;
+      } else {
+        // Load default summary prompt from constants.js
+        summaryPromptTextarea.value = SUMMARY_PROMPT;
+      }
+    });
+
+    // Reset summary prompt to default
+    resetSummaryPromptBtn.addEventListener('click', function () {
+      summaryPromptTextarea.value = SUMMARY_PROMPT;
+    });
+
+    // Save custom summary prompt
+    saveSummaryPromptBtn.addEventListener('click', function () {
+      const customPrompt = summaryPromptTextarea.value;
+      if (customPrompt.trim() === '') {
+        alert('提示词不能为空');
+        return;
+      }
+
+      chrome.storage.local.set({ 'summaryPrompt': customPrompt }, function () {
+        showMessage(document.querySelector('.save-message'));
+      });
+    });
+  }
+}
+
+// Get active tab name
+function getActiveTabName() {
+  const activeTab = document.querySelector('.tab-link.active');
+  return activeTab ? activeTab.getAttribute('data-tab') : null;
 }
 

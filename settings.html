@@ -120,6 +120,14 @@
                 <span style="margin-left:8px">SerpApi</span>
             </button>
         </div>
+        <button class="tab-link" data-tab="promptSettings">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-3">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            <span>提示词设置</span>
+        </button>
         <button class="tab-link" data-tab="about">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="transparent" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
             <span>关于</span>
@@ -793,6 +801,31 @@
             <a href="https://github.com/zhiyu1998" target="_blank" class="social-link blog-link">
                 <svg xmlns="http://www.w3.org/2000/svg" class="github-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-github"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
             </a>
+        </div>
+    </div>
+
+    <div class="tab-content" id="promptSettings">
+        <h2>提示词设置</h2>
+        <p>自定义各种场景下的提示词模板，根据需要调整AI助手的回答内容与风格</p>
+        
+        <div class="settings-section">
+            <h3>系统提示词</h3>
+            <p class="settings-description">定义AI助手的基本行为和回答风格</p>
+            <textarea id="systemPrompt" class="prompt-textarea" rows="10"></textarea>
+            <div class="prompt-actions">
+                <button id="resetSystemPrompt" class="reset-button">恢复默认</button>
+                <button id="saveSystemPrompt" class="save-button">保存</button>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h3>摘要提示词</h3>
+            <p class="settings-description">定义AI助手生成摘要的格式和内容</p>
+            <textarea id="summaryPrompt" class="prompt-textarea" rows="10"></textarea>
+            <div class="prompt-actions">
+                <button id="resetSummaryPrompt" class="reset-button">恢复默认</button>
+                <button id="saveSummaryPrompt" class="save-button">保存</button>
+            </div>
         </div>
     </div>
 
