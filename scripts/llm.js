@@ -157,8 +157,6 @@ function createRequestParams(additionalHeaders, body) {
   currentController = controller;
   headers = { ...headers, ...additionalHeaders };
 
-  console.log('body>>>', body);
-
   return {
     method: 'POST',
     headers,
@@ -192,7 +190,7 @@ async function chatWithLLM(model, inputText, base64Images, type) {
   const promptToUse = systemPrompt || SYSTEM_PROMPT;
 
   // Get provider from model name
-  const provider = getProvider(model);
+  const provider = getProviderDisplayName(model);
 
   // Get base URL and API key
   const { baseUrl, apiKey } = await getBaseUrlAndApiKey(model);
@@ -437,8 +435,8 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type, tools = []
     tools: []
   };
 
-  // mistral 的模型传以下两个参数会报错，这里过滤掉
-  if (!modelName.includes(PROVIDERS.MISTRAL)) {
+  // TODO: 重点关注，bug问题最多，mistral 的模型传以下两个参数会报错，这里过滤掉
+  if (body.frequencyPenalty > 0 && body.presence_penalty > 0) {
     body.frequency_penalty = modelParams.frequencyPenalty;
     body.presence_penalty = modelParams.presencePenalty;
   }
@@ -461,8 +459,8 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type, tools = []
   }
 
   const params = createRequestParams(additionalHeaders, body);
-  console.log(baseUrl);
-  console.log(params);
+  // console.log("baseUrl>>>", baseUrl);
+  // console.log("params>>>", params);
 
   return await fetchAndHandleResponse(baseUrl, params, modelName, type);
 }
@@ -993,7 +991,8 @@ async function parseAndUpdateChatContent(response, modelName, type) {
             }
           }
 
-          if (modelName.includes(PROVIDERS.GEMINI)) {
+          // 如果是 Gemini 模型，并且不是 OpenAI规范出来的，那么就走这个逻辑
+          if (modelName.includes(PROVIDERS.GEMINI) && !modelName.startsWith("openai-")) {
             jsonData.candidates[0].content.parts.forEach(part => {
               if (part.text !== undefined && part.text != null) {
                 content += part.text;

@@ -1181,7 +1181,7 @@ async function chatWithLLM(model, inputText, base64Images, type, tools = []) {
   }
 
   let result = { completeText: '', tools: [] };
-  if (model.includes(PROVIDERS.GEMINI)) {
+  if (model.includes(PROVIDERS.GEMINI) && !model.startsWith("openai-")) {
     baseUrl = baseUrl.replace('{MODEL_NAME}', model).replace('{API_KEY}', apiKey);
     result = await chatWithGemini(baseUrl, model, type, tools);
   } else {
