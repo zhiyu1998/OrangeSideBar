@@ -416,14 +416,13 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type, tools = []
     systemContent = systemContent.replace(/{tools-list}/g, '');
   }
 
+  // 检查dialogueHistory是否已包含system消息
+  const hasSystemMessage = dialogueHistory.some(msg => msg.role === 'system');
+
   // Create messages array with system prompt and dialogue history
-  const messages = [
-    {
-      role: 'system',
-      content: systemContent
-    },
-    ...dialogueHistory // Include conversation history
-  ];
+  const messages = hasSystemMessage
+    ? [...dialogueHistory]
+    : [{ role: 'system', content: systemContent }, ...dialogueHistory];
 
   const body = {
     model: realModelName,
