@@ -246,6 +246,12 @@ async function chatWithLLM(model, inputText, base64Images, type) {
       result = await chatWithGemini(baseUrl, model, type, tools);
     } else if (provider === PROVIDERS.OLLAMA) {
       // Ollama implementation
+    } else if (provider === PROVIDERS.GROQ) {
+      // Groq uses OpenAI format
+      result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
+    } else if (provider === PROVIDERS.GROK) {
+      // Grok also uses OpenAI format
+      result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
     } else {
       // Default OpenAI-compatible implementation
       result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);

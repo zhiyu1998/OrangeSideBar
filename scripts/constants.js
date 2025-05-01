@@ -64,6 +64,9 @@ const OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 const OLLAMA_CHAT_API_PATH = "/api/chat";
 const OLLAMA_LIST_MODEL_PATH = "/api/tags";
 
+const GROK_BASE_URL = "https://api.x.ai"
+const GROK_CHAT_API_PATH = "/v1/chat/completions"
+
 // 获取模型列表的API路径
 const OPENAI_MODELS_API_PATH = "/v1/models";
 const AZURE_MODELS_API_PATH = "/openai/models?api-version=2024-04-01-preview";
@@ -90,6 +93,7 @@ const PROVIDERS = {
   SILICONFLOW: 'siliconflow',
   OPENROUTER: 'openrouter',
   GROQ: 'groq',
+  GROK: 'grok',
   MISTRAL: 'open-mistral',
   OLLAMA: 'ollama'
 };
@@ -108,6 +112,7 @@ const PROVIDER_DISPLAY_NAMES = {
   [PROVIDERS.SILICONFLOW]: '硅基流动',
   [PROVIDERS.OPENROUTER]: 'OpenRouter',
   [PROVIDERS.GROQ]: 'Groq',
+  [PROVIDERS.GROK]: 'Grok',
   [PROVIDERS.MISTRAL]: 'Mistral',
   [PROVIDERS.OLLAMA]: 'Ollama'
 };
@@ -181,6 +186,12 @@ const MODEL_MAPPINGS = [
     provider: PROVIDERS.GROQ
   },
 
+  // Grok Models
+  {
+    prefix: ['grok-'],
+    provider: PROVIDERS.GROK
+  },
+
   // Mistral Models
   {
     prefix: ['open-mistral-', 'mistral-', 'pixtral-'],
@@ -193,6 +204,7 @@ const GPT_DEFAULT_MODEL = "gpt-3.5-turbo";
 const AZURE_GPT_DEFAULT_MODEL = "azure-gpt-35-turbo";
 const GEMINI_DEFAULT_MODEL = "gemini-2.0-flash-exp";
 const GROQ_DEFAULT_MODEL = "llama-3.2-1b-preview";
+const GROK_DEFAULT_MODEL = "grok-2";
 const MISTRA_DEFAULTL_MODEL = "open-mistral-nemo";
 const SILICONFLOW_DEFAULT_MODEL = "Qwen/Qwen2.5-7B-Instruct";
 const MOONSHOT_DEFAULT_MODEL = "moonshot-v1-auto";
@@ -222,6 +234,7 @@ const DEFAULT_LLM_URLS = [
   { key: PROVIDERS.CLAUDE, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: 'claude-3-opus-20240229' },
   { key: PROVIDERS.GEMINI, baseUrl: GEMINI_BASE_URL, apiPath: GEMINI_CHA_API_PATH, defaultModel: GEMINI_DEFAULT_MODEL },
   { key: PROVIDERS.GROQ, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL },
+  { key: PROVIDERS.GROK, baseUrl: GROK_BASE_URL, apiPath: GROK_CHAT_API_PATH, defaultModel: GROK_DEFAULT_MODEL },
   { key: PROVIDERS.OLLAMA, baseUrl: OLLAMA_BASE_URL, apiPath: OLLAMA_CHAT_API_PATH, defaultModel: '' },
   { key: PROVIDERS.MISTRAL, baseUrl: MISTRAL_BASE_URL, apiPath: MISTRAL_CHAT_API_PATH, defaultModel: MISTRA_DEFAULTL_MODEL },
   { key: PROVIDERS.OPENROUTER, baseUrl: OPENROUTER_BASE_URL, apiPath: OPENROUTER_CHAT_API_PATH },

@@ -292,6 +292,9 @@ async function getModelList(baseUrl, model, apiKey) {
   } else if (model.includes(PROVIDERS.GROQ)) {
     apiUrl += GROQ_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(PROVIDERS.GROK)) {
+    apiUrl += OPENAI_MODELS_API_PATH;  // Grok使用OpenAI兼容的API路径
+    headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (model.includes(PROVIDERS.SILICONFLOW)) {
     apiUrl += OPENAI_MODELS_API_PATH;  // 确保使用正确的 API 路径
     headers['Authorization'] = `Bearer ${apiKey}`;
@@ -367,6 +370,13 @@ async function getModelList(baseUrl, model, apiKey) {
       // Groq 格式处理 - 添加 groq- 前缀
       return data.data.map(model => ({
         id: `groq-${model.id}`,  // 添加 groq- 前缀
+        object: model.object,
+        owned_by: model.owned_by
+      }));
+    } else if (model.includes(PROVIDERS.GROK)) {
+      // Grok 格式处理 - 添加 grok- 前缀
+      return data.data.map(model => ({
+        id: `grok-${model.id}`,  // 添加 grok- 前缀
         object: model.object,
         owned_by: model.owned_by
       }));
