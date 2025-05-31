@@ -1109,10 +1109,22 @@ function updateChatContent(completeText, type) {
     const lastDiv = contentDiv.lastElementChild;
     lastDiv.innerHTML = marked.parse(completeText);
 
+    // 渲染数学公式
+    if (typeof window.renderMathInElement === 'function') {
+      window.renderMathInElement(lastDiv, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false },
+          { left: "\\(", right: "\\)", display: false },
+          { left: "\\[", right: "\\]", display: true }
+        ],
+        throwOnError: false
+      });
+    }
+
     if (isAtBottom) {
       contentDiv.scrollTop = contentDiv.scrollHeight; // 滚动到底部
     }
-
   }
 }
 

@@ -165,8 +165,29 @@ function createCopyButton(completeText) {
   const contentDiv = document.querySelector('.chat-content');
   let lastDiv = contentDiv.lastElementChild;
   lastDiv.appendChild(copySvg);
+
+  // 渲染数学公式
+  renderKatexMath(lastDiv);
 }
 
+/**
+ * 渲染数学公式
+ * @param {HTMLElement} element 需要渲染的元素
+ */
+function renderKatexMath(element) {
+  if (typeof window.renderMathInElement === 'function') {
+    // 使用KaTeX自动渲染函数
+    window.renderMathInElement(element, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "$", right: "$", display: false },
+        { left: "\\(", right: "\\)", display: false },
+        { left: "\\[", right: "\\]", display: true }
+      ],
+      throwOnError: false
+    });
+  }
+}
 
 /**
  * 隐藏提交按钮 & 展示生成按钮
@@ -1188,8 +1209,19 @@ async function chatWithLLM(model, inputText, base64Images, type, tools = []) {
     result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools);
   }
 
+  // 渲染最新添加的内容中的数学公式
+  const contentDiv = document.querySelector('.chat-content');
+  const aiMessageDiv = contentDiv.querySelector('.ai-message');
+  if (aiMessageDiv) {
+    renderKatexMath(aiMessageDiv);
+  }
+
   while (result.tools.length > 0) {
     result = await parseFunctionCalling(result, baseUrl, apiKey, model, type);
+    // 每次工具调用返回后也渲染数学公式
+    if (aiMessageDiv) {
+      renderKatexMath(aiMessageDiv);
+    }
   }
 
   return result.completeText;
