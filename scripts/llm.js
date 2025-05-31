@@ -1111,15 +1111,26 @@ function updateChatContent(completeText, type) {
 
     // 渲染数学公式
     if (typeof window.renderMathInElement === 'function') {
-      window.renderMathInElement(lastDiv, {
-        delimiters: [
-          { left: "$$", right: "$$", display: true },
-          { left: "$", right: "$", display: false },
-          { left: "\\(", right: "\\)", display: false },
-          { left: "\\[", right: "\\]", display: true }
-        ],
-        throwOnError: false
-      });
+      try {
+        window.renderMathInElement(lastDiv, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "$", right: "$", display: false },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "\\[", right: "\\]", display: true }
+          ],
+          throwOnError: false,
+          errorColor: '#f00',
+          strict: false,
+          trust: true,
+          macros: {
+            // 添加常用宏，帮助修复一些常见错误
+            "\\E": "\\mathbb{E}"
+          }
+        });
+      } catch (e) {
+        console.error("KaTeX rendering error:", e);
+      }
     }
 
     if (isAtBottom) {

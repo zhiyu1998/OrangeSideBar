@@ -176,16 +176,27 @@ function createCopyButton(completeText) {
  */
 function renderKatexMath(element) {
   if (typeof window.renderMathInElement === 'function') {
-    // 使用KaTeX自动渲染函数
-    window.renderMathInElement(element, {
-      delimiters: [
-        { left: "$$", right: "$$", display: true },
-        { left: "$", right: "$", display: false },
-        { left: "\\(", right: "\\)", display: false },
-        { left: "\\[", right: "\\]", display: true }
-      ],
-      throwOnError: false
-    });
+    try {
+      // 使用KaTeX自动渲染函数
+      window.renderMathInElement(element, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false },
+          { left: "\\(", right: "\\)", display: false },
+          { left: "\\[", right: "\\]", display: true }
+        ],
+        throwOnError: false,
+        errorColor: '#f00',
+        strict: false,
+        trust: true,
+        macros: {
+          // 添加常用宏，帮助修复一些常见错误
+          "\\E": "\\mathbb{E}"
+        }
+      });
+    } catch (e) {
+      console.error("KaTeX rendering error:", e);
+    }
   }
 }
 
