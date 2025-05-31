@@ -8,6 +8,34 @@ let geminiDialogueHistory = [];
 const currentTime = getCurrentTime();
 const systemPrompt = SYSTEM_PROMPT.replace(/{current_time}/g, currentTime);
 
+/**
+ * 解析Base64图像格式
+ * @param {string} base64String - 完整的Base64字符串（可能包含前缀）
+ * @returns {object} - 包含mimeType和data的对象
+ */
+function parseBase64Image(base64String) {
+  // 检查是否有data URI前缀
+  let mimeType = 'image/jpeg'; // 默认MIME类型
+  let data = base64String;
+
+  // 如果是data URI格式 (例如: data:image/jpeg;base64,/9j/4AAQSkZ...)
+  if (base64String.startsWith('data:')) {
+    const matches = base64String.match(/^data:([^;]+);base64,(.+)$/);
+    if (matches && matches.length === 3) {
+      mimeType = matches[1];
+      data = matches[2];
+    } else {
+      // 如果格式不符合预期，尝试去掉前缀
+      data = base64String.split(',')[1] || base64String;
+    }
+  }
+
+  return {
+    mimeType: mimeType,
+    data: data
+  };
+}
+
 // gemini system prompt
 let geminiSystemPrompt = {
   "role": "model",
@@ -492,9 +520,7 @@ async function chatWithGemini(baseUrl, model, type, tools = []) {
     // 构建请求体
     const requestBody = {
       contents: [{
-        parts: geminiDialogueHistory.map(msg => ({
-          text: msg.parts[0].text
-        }))
+        parts: []
       }],
       generationConfig: {
         temperature: temperature,
@@ -502,6 +528,17 @@ async function chatWithGemini(baseUrl, model, type, tools = []) {
         maxOutputTokens: adjustedMaxTokens
       }
     };
+
+    // 正确处理对话历史，包括图像
+    if (geminiDialogueHistory.length > 0) {
+      // 遍历对话历史中的所有消息
+      geminiDialogueHistory.forEach(msg => {
+        if (msg.parts && Array.isArray(msg.parts)) {
+          // 直接使用完整的parts数组，这样就能保留图像和其他非文本内容
+          requestBody.contents[0].parts = requestBody.contents[0].parts.concat(msg.parts);
+        }
+      });
+    }
 
     // 如果是 Gemini-2.5 系列，添加 thinkingConfig (如果未显式禁用)
     if (model.includes('gemini-2.5')) {

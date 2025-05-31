@@ -226,27 +226,25 @@ function showSubmitBtnAndHideGenBtn() {
 }
 
 /**
- * 根据选择的模型判断是否支持上传图像或文件
+ * 设置图像上传控件
  * @param {string} selectedModel
  */
 function toggleImageUpload(selectedModel) {
   const imageUploadDiv = document.getElementById('image-upload-div');
   const imageUpload = document.getElementById('image-upload');
   const imageUploadLabel = document.getElementById('image-upload-label');
-  if (IMAGE_SUPPORT_MODELS.includes(selectedModel)) {
-    // 如果模型支持图像，启用上传区域
-    imageUploadDiv.style.opacity = '1';
-    imageUpload.disabled = false;
-    imageUploadLabel.style.pointerEvents = 'auto';
-    imageUpload.setAttribute('accept', 'image/*');
-    if (ANY_FILE_SUPPORT_MODELS.includes(selectedModel)) {
-      imageUpload.removeAttribute('accept');
-    }
-  } else {
-    // 如果模型不支持图像，禁用上传区域
-    imageUploadDiv.style.opacity = '0.5';
-    imageUpload.disabled = true;
-    imageUploadLabel.style.pointerEvents = 'none';
+
+  // 始终启用上传区域
+  imageUploadDiv.style.opacity = '1';
+  imageUpload.disabled = false;
+  imageUploadLabel.style.pointerEvents = 'auto';
+
+  // 默认接受所有图像
+  imageUpload.setAttribute('accept', 'image/*');
+
+  // 如果模型在ANY_FILE_SUPPORT_MODELS列表中，则接受任何文件类型
+  if (ANY_FILE_SUPPORT_MODELS.includes(selectedModel)) {
+    imageUpload.removeAttribute('accept');
   }
 }
 
@@ -664,13 +662,6 @@ function initResultPage() {
 
   // 粘贴
   document.addEventListener('paste', async (event) => {
-
-    const modelSelection = document.getElementById('model-selection');
-    const selectedModel = modelSelection.value;
-    if (!IMAGE_SUPPORT_MODELS.includes(selectedModel)) {
-      return;
-    }
-
     const items = event.clipboardData.items;
     let files = [];
     for (let item of items) {
