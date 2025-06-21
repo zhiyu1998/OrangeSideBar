@@ -765,6 +765,122 @@ function initResultPage() {
     await clearAndGenerate(model, TRANSLATE2CHN_PROMPT + inputText, null);
   });
 
+  // 本地PDF分析
+  var localPdfButton = document.querySelector('#my-extension-local-pdf-btn');
+  var pdfInput = document.getElementById('pdf-file-input');
+  var pdfPathDialog = document.getElementById('pdf-path-dialog');
+  var pdfPathInput = document.getElementById('pdf-path-input');
+  var pdfPathCancel = document.getElementById('pdf-path-cancel');
+  var pdfPathConfirm = document.getElementById('pdf-path-confirm');
+
+  localPdfButton.addEventListener('click', function () {
+    // 显示选择对话框，让用户选择上传文件还是输入路径
+    const useFilePath = confirm('是否直接输入本地PDF文件路径？\n\n点击"确定"输入文件路径\n点击"取消"上传PDF文件');
+
+    if (useFilePath) {
+      // 显示文件路径输入对话框
+      pdfPathDialog.style.display = 'flex';
+    } else {
+      // 使用文件上传
+      pdfInput.click();
+    }
+  });
+
+  // 处理取消按钮
+  pdfPathCancel.addEventListener('click', function () {
+    pdfPathDialog.style.display = 'none';
+    pdfPathInput.value = '';
+  });
+
+  // 处理确认按钮
+  pdfPathConfirm.addEventListener('click', async function () {
+    const filePath = pdfPathInput.value.trim();
+    if (!filePath) {
+      alert('请输入有效的PDF文件路径');
+      return;
+    }
+
+    // 隐藏对话框
+    pdfPathDialog.style.display = 'none';
+
+    const modelSelection = document.getElementById('model-selection');
+    const model = modelSelection.value;
+    const apiKeyValid = await verifyApiKeyConfigured(model);
+    if (!apiKeyValid) {
+      return;
+    }
+
+    try {
+      displayLoading('正在读取本地PDF文件...');
+      const pdfText = await extractPDFFromFilePath(filePath);
+
+      if (!pdfText || pdfText.trim().length === 0) {
+        hiddenLoadding();
+        displayErrorMessage('无法从PDF中提取文本内容');
+        return;
+      }
+
+      // 从路径中提取文件名
+      const fileName = filePath.split('/').pop().split('\\').pop();
+      await clearAndGenerate(
+        model,
+        `以下是PDF文件"${fileName}"的内容，请提供一个详细的摘要:\n\n${pdfText}`,
+        null
+      );
+    } catch (error) {
+      hiddenLoadding();
+      console.error('读取本地PDF失败:', error);
+      displayErrorMessage(`读取本地PDF失败: ${error.message}`);
+    } finally {
+      pdfPathInput.value = '';
+    }
+  });
+
+  pdfInput.addEventListener('change', async function (event) {
+    if (!event.target.files || event.target.files.length === 0) {
+      return;
+    }
+
+    const file = event.target.files[0];
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      displayErrorMessage('请选择有效的PDF文件');
+      return;
+    }
+
+    const modelSelection = document.getElementById('model-selection');
+    const model = modelSelection.value;
+    const apiKeyValid = await verifyApiKeyConfigured(model);
+    if (!apiKeyValid) {
+      return;
+    }
+
+    try {
+      displayLoading('正在读取本地PDF文件...');
+      const pdfText = await extractPDFTextFromFile(file);
+
+      if (!pdfText || pdfText.trim().length === 0) {
+        hiddenLoadding();
+        displayErrorMessage('无法从PDF中提取文本内容');
+        return;
+      }
+
+      // 根据文件名显示摘要提示
+      const fileName = file.name;
+      await clearAndGenerate(
+        model,
+        `以下是PDF文件"${fileName}"的内容，请提供一个详细的摘要:\n\n${pdfText}`,
+        null
+      );
+    } catch (error) {
+      hiddenLoadding();
+      console.error('读取本地PDF失败:', error);
+      displayErrorMessage(`读取本地PDF失败: ${error.message}`);
+    } finally {
+      // 清空文件输入，以便于下次选择相同文件时仍然触发change事件
+      event.target.value = '';
+    }
+  });
+
   // 停止生成逻辑
   var cancelBtn = document.querySelector('#my-extension-generate-btn');
   cancelBtn.addEventListener('click', function () {

@@ -42,6 +42,83 @@ async function extractPDFText(pdfUrl) {
 }
 
 /**
+ * 从本地File对象中抽取PDF文本
+ * @param {File} file PDF文件对象
+ * @returns {Promise<string>} 提取的文本内容
+ */
+async function extractPDFTextFromFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+            try {
+                const typedArray = new Uint8Array(e.target.result);
+                const pdf = await pdfjsLib.getDocument(typedArray).promise;
+                const totalPageCount = pdf.numPages;
+                let texts = [];
+
+                for (let currentPage = 1; currentPage <= totalPageCount; currentPage++) {
+                    const page = await pdf.getPage(currentPage);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join('');
+                    texts.push(pageText);
+                }
+
+                resolve(texts.join(''));
+            } catch (error) {
+                console.error("Error extracting text from PDF file:", error);
+                reject(error);
+            }
+        };
+        reader.onerror = function (error) {
+            console.error("Error reading file:", error);
+            reject(error);
+        };
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+/**
+ * 通过本地文件路径读取PDF文件
+ * @param {string} filePath 本地PDF文件路径，支持file:///格式
+ * @returns {Promise<string>} 提取的文本内容
+ */
+async function extractPDFFromFilePath(filePath) {
+    try {
+        // 移除file:///前缀，并处理URL编码
+        let path = filePath;
+        if (path.startsWith('file:///')) {
+            path = path.substring(8); // 移除file:///
+        }
+        path = decodeURIComponent(path); // 处理URL编码
+
+        // 使用fetch API获取文件内容
+        const response = await fetch(filePath);
+        if (!response.ok) {
+            throw new Error(`无法获取文件: ${response.statusText}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const typedArray = new Uint8Array(arrayBuffer);
+
+        const pdf = await pdfjsLib.getDocument(typedArray).promise;
+        const totalPageCount = pdf.numPages;
+        let texts = [];
+
+        for (let currentPage = 1; currentPage <= totalPageCount; currentPage++) {
+            const page = await pdf.getPage(currentPage);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join('');
+            texts.push(pageText);
+        }
+
+        return texts.join('');
+    } catch (error) {
+        console.error("Error extracting text from PDF path:", error);
+        throw error;
+    }
+}
+
+/**
  * 根据 url 判断是否访问的是 PDF 文件
  * @param {string} url 
  * @returns 
