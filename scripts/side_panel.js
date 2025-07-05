@@ -727,9 +727,24 @@ function initResultPage() {
     }
 
     // 获取自定义摘要提示词，如果存在则使用，否则使用默认的
-    chrome.storage.local.get(['summaryPrompt'], function (result) {
+    chrome.storage.local.get(['summaryPrompt'], async function (result) {
       const promptToUse = result.summaryPrompt || SUMMARY_PROMPT;
-      clearAndGenerate(model, promptToUse + inputText, null);
+      const fullPrompt = promptToUse + inputText;
+
+      // 隐藏初始推荐内容
+      hideRecommandContent();
+
+      // 创建并显示用户消息
+      const contentDiv = document.querySelector('.chat-content');
+      const userQuestionDiv = document.createElement('div');
+      userQuestionDiv.className = 'user-message';
+      // 在UI上显示一个简洁的指令，而不是完整的内容
+      userQuestionDiv.innerHTML = "对当前页面内容进行摘要";
+      contentDiv.appendChild(userQuestionDiv);
+      contentDiv.scrollTop = contentDiv.scrollHeight;
+
+      // 调用核心聊天函数，传入包含页面内容的完整提示
+      await chatLLMAndUIUpdate(model, fullPrompt, []);
     });
   });
 
