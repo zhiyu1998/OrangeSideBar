@@ -1170,6 +1170,31 @@ function updateChatContent(completeText, type) {
       }
     }
 
+    // 渲染Mermaid图表
+    try {
+      const mermaidElements = lastDiv.querySelectorAll('code.language-mermaid');
+      if (mermaidElements.length > 0) {
+        mermaidElements.forEach((element, index) => {
+          const originalContent = element.textContent;
+          const mermaidContainer = document.createElement('div');
+          mermaidContainer.id = `mermaid-container-${Date.now()}-${index}`;
+          mermaidContainer.className = 'mermaid';
+          mermaidContainer.textContent = originalContent;
+
+          // Replace the <pre> tag with the new container
+          const preElement = element.closest('pre');
+          if (preElement) {
+            preElement.parentNode.replaceChild(mermaidContainer, preElement);
+          }
+        });
+        mermaid.run({
+          nodes: lastDiv.querySelectorAll('.mermaid')
+        });
+      }
+    } catch (e) {
+      console.error("Mermaid rendering error:", e);
+    }
+
     if (isAtBottom) {
       contentDiv.scrollTop = contentDiv.scrollHeight; // 滚动到底部
     }
