@@ -566,6 +566,7 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
 
     // 处理模型数据
     let formattedModels = [];
+    // TODO 如果要加一些特殊模型的处理可以在这里
     if (model.includes(PROVIDERS.QWEN)) {
       formattedModels = data.data.map(item => ({
         id: `Qwen-${item.name || item.id}`,
@@ -602,6 +603,12 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
     } else if (model === 'siliconflow') {
       formattedModels = data.data.map(model => ({
         id: `siliconflow-${model.id}`,
+        object: model.object,
+        owned_by: model.owned_by
+      }));
+    } else if (model === 'groq') {
+      formattedModels = data.data.map(model => ({
+        id: `groq-${model.id}`,
         object: model.object,
         owned_by: model.owned_by
       }));

@@ -54,8 +54,8 @@ const AZURE_OPENAI_CHAT_API_PATH = "/openai/deployments/{MODEL_NAME}/chat/comple
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
 const GEMINI_CHA_API_PATH = "/v1beta/models/{MODEL_NAME}:streamGenerateContent?alt=sse&key={API_KEY}";
 
-const GROQ_BASE_URL = "https://api.groq.com";
-const GROQ_CHAT_API_PATH = "/openai/v1/chat/completions";
+const GROQ_BASE_URL = "https://api-proxy.me/groq";
+const GROQ_CHAT_API_PATH = "/v1/chat/completions";
 
 const MISTRAL_BASE_URL = "https://api.mistral.ai";
 const MISTRAL_CHAT_API_PATH = "/v1/chat/completions";
@@ -71,7 +71,7 @@ const GROK_CHAT_API_PATH = "/v1/chat/completions"
 const OPENAI_MODELS_API_PATH = "/v1/models";
 const AZURE_MODELS_API_PATH = "/openai/models?api-version=2024-04-01-preview";
 const GEMINI_MODELS_API_PATH = "/v1beta/models?key={API_KEY}";
-const GROQ_MODELS_API_PATH = "/openai/v1/models";
+const GROQ_MODELS_API_PATH = "/v1/models";
 const MISTRAL_MODELS_API_PATH = "/v1/models";
 const MOONSHOT_MODELS_API_PATH = "/v1/models";
 const DEEPSEEK_MODELS_API_PATH = "/v1/models";
