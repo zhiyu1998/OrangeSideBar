@@ -146,7 +146,7 @@ const MODEL_MAPPINGS = [
 
   // MoonShot Models
   {
-    prefix: ['moonshot-'],
+    prefix: ['moonshot-', 'kimi-'],
     provider: PROVIDERS.MOONSHOT
   },
 
