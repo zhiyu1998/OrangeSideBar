@@ -431,6 +431,8 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type, tools = []
     realModelName = QWEN_MODEL_MAPPINGS[modelName] || modelName.replace('Qwen-', '').replace('2.5', '').toLowerCase() + '-latest';
   } else if (modelName.startsWith('openai-')) {
     realModelName = realModelName.replace("openai-", '');
+  } else if (modelName.startsWith('modelscope-')) {
+    realModelName = realModelName.replace('modelscope-', '');
   }
 
   // 获取 modelParams 参数

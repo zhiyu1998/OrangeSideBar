@@ -67,6 +67,9 @@ const OLLAMA_LIST_MODEL_PATH = "/api/tags";
 const GROK_BASE_URL = "https://api.x.ai"
 const GROK_CHAT_API_PATH = "/v1/chat/completions"
 
+const MODELSCOPE_BASE_URL = "https://api-inference.modelscope.cn";
+const MODELSCOPE_CHAT_API_PATH = "/v1/chat/completions";
+
 // 获取模型列表的API路径
 const OPENAI_MODELS_API_PATH = "/v1/models";
 const AZURE_MODELS_API_PATH = "/openai/models?api-version=2024-04-01-preview";
@@ -78,6 +81,7 @@ const DEEPSEEK_MODELS_API_PATH = "/v1/models";
 const GITHUB_MODELS_API_PATH = "/models";
 const QWEN_MODELS_API_PATH = "/v1/models";
 const OPENROUTER_MODELS_API_PATH = "/v1/models";
+const MODELSCOPE_MODELS_API_PATH = "/v1/models";
 
 // 添加供应商相关常量
 const PROVIDERS = {
@@ -95,7 +99,8 @@ const PROVIDERS = {
   GROQ: 'groq',
   GROK: 'grok',
   MISTRAL: 'open-mistral',
-  OLLAMA: 'ollama'
+  OLLAMA: 'ollama',
+  MODELSCOPE: 'modelscope'
 };
 
 // 供应商显示名称映射
@@ -114,7 +119,8 @@ const PROVIDER_DISPLAY_NAMES = {
   [PROVIDERS.GROQ]: 'Groq',
   [PROVIDERS.GROK]: 'Grok',
   [PROVIDERS.MISTRAL]: 'Mistral',
-  [PROVIDERS.OLLAMA]: 'Ollama'
+  [PROVIDERS.OLLAMA]: 'Ollama',
+  [PROVIDERS.MODELSCOPE]: 'ModelScope 魔搭'
 };
 
 // 修改现有的 MODEL_MAPPINGS 使用 PROVIDERS 常量
@@ -196,6 +202,12 @@ const MODEL_MAPPINGS = [
   {
     prefix: ['open-mistral-', 'mistral-', 'pixtral-'],
     provider: PROVIDERS.MISTRAL
+  },
+  
+  // ModelScope Models
+  {
+    prefix: ['modelscope-'],
+    provider: PROVIDERS.MODELSCOPE
   }
 ];
 
@@ -212,6 +224,7 @@ const GLM_DEFAULT_MODEL = "GLM-4-Flash";
 const DEEPSEEK_DEFAULT_MODEL = "deepseek-chat";
 const GITHUB_DEFAULT_MODEL = "Mistral-Nemo";
 const QWEN_DEFAULT_MODEL = "Qwen2.5-Turbo";
+const MODELSCOPE_DEFAULT_MODEL = "modelscope-qwen/Qwen2.5-7B-Instruct";
 
 // 支持任意文件类型的模型
 const ANY_FILE_SUPPORT_MODELS = ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp'];
@@ -237,6 +250,7 @@ const DEFAULT_LLM_URLS = [
   { key: PROVIDERS.OLLAMA, baseUrl: OLLAMA_BASE_URL, apiPath: OLLAMA_CHAT_API_PATH, defaultModel: '' },
   { key: PROVIDERS.MISTRAL, baseUrl: MISTRAL_BASE_URL, apiPath: MISTRAL_CHAT_API_PATH, defaultModel: MISTRA_DEFAULTL_MODEL },
   { key: PROVIDERS.OPENROUTER, baseUrl: OPENROUTER_BASE_URL, apiPath: OPENROUTER_CHAT_API_PATH },
+  { key: PROVIDERS.MODELSCOPE, baseUrl: MODELSCOPE_BASE_URL, apiPath: MODELSCOPE_CHAT_API_PATH, defaultModel: MODELSCOPE_DEFAULT_MODEL },
 ];
 
 
@@ -298,6 +312,7 @@ const TRANSLATE2CHN_PROMPT = `
 - 遵守原意的前提下让内容更通俗易懂、符合中文表达习惯，但一定要保留原有格式不变。
 - 即使意译也要保留原始段落格式，以及保留术语，例如 FLAC，JPEG 等。保留公司缩写，例如 Microsoft, Amazon 等。
 - 要保留引用的论文，例如 [20] 这样的引用。
+- 对于 Figure 和 Table，翻译的同时保留原有格式，例如："Figure 1: "翻译为"图 1: "，"Table 1: "翻译为："表 1: "。
 - 对于 Figure 和 Table，翻译的同时保留原有格式，例如："Figure 1: "翻译为"图 1: "，"Table 1: "翻译为："表 1: "。
 - 对于\citep格式的引用转为小括号的方式呈现，例如\citep{wu2016google}转为(wu2016google) +
 # 特殊格式

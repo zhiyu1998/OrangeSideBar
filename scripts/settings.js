@@ -205,6 +205,9 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
     apiUrl = `${baseUrl}${GEMINI_MODELS_API_PATH}`.replace('{API_KEY}', apiKey);
   } else if (model.includes(PROVIDERS.OLLAMA)) {
     apiUrl = `${baseUrl}${OLLAMA_LIST_MODEL_PATH}`;
+  } else if (model.includes(PROVIDERS.MODELSCOPE)) {
+    apiUrl = `${baseUrl}${MODELSCOPE_MODELS_API_PATH}`;
+    headers['Authorization'] = `Bearer ${apiKey}`;
   } else {
     // 其他模型使用标准的模型列表API路径
     const modelsPath = getModelsApiPath(model);
@@ -236,6 +239,7 @@ function getModelsApiPath(model) {
   if (model.includes(PROVIDERS.DEEPSEEK)) return DEEPSEEK_MODELS_API_PATH;
   if (model.includes(PROVIDERS.GITHUB)) return GITHUB_MODELS_API_PATH;
   if (model.includes(PROVIDERS.QWEN)) return QWEN_MODELS_API_PATH;
+  if (model.includes(PROVIDERS.MODELSCOPE)) return MODELSCOPE_MODELS_API_PATH;
   return OPENAI_MODELS_API_PATH; // 默认返回OpenAI的路径
 }
 
@@ -410,6 +414,13 @@ async function getModelList(baseUrl, model, apiKey) {
         id: `github-${model.name}`, // 使用 name 而不是 id，因为原始id包含了完整路径
         object: 'model',  // 添加标准的 object 字段
         owned_by: model.publisher || 'unknown' // 使用 publisher 作为 owned_by
+      }));
+    } else if (model.includes(PROVIDERS.MODELSCOPE)) {
+      // ModelScope 格式处理 - 添加 modelscope- 前缀
+      return (data.data || data.models || []).map(model => ({
+        id: `modelscope-${model.id}`,
+        object: model.object || 'model',
+        owned_by: model.owned_by || 'unknown'
       }));
     } else {
       // 其他供应商的格式处理
@@ -611,6 +622,13 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
         id: `groq-${model.id}`,
         object: model.object,
         owned_by: model.owned_by
+      }));
+    } else if (model.includes(PROVIDERS.MODELSCOPE)) {
+      // ModelScope 格式处理
+      formattedModels = (data.data || data.models || []).map(model => ({
+        id: `modelscope-${model.id}`,
+        object: model.object || 'model',
+        owned_by: model.owned_by || 'unknown'
       }));
     } else {
       formattedModels = data.data || data.models || [];
