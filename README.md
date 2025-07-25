@@ -41,23 +41,6 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 
 > PDF 读取总结需要到插件设置开启 `Allow access to file URLs`
 
-### 🧪 已测试过的规范 && 未来会支持的规范
-
-- [x] OpenAI
-- [x] Gemini
-- [x] 硅基流动
-- [x] 智谱清言
-- [x] 月之暗面
-- [x] 深度求索
-- [x] GitHub Models
-- [x] QwenLLM
-- [ ] Azure OpenAl
-- [x] groq
-- [x] Mistral
-- [ ] Ollama
-- [x] DeepSeek-R1 / 硅基流动-DeepSeek-R1
-- [x] OpenRouter
-
 ## 🌼 致谢
 
 大部分想法和实现都来自下面的项目，但是由于作者长时间没有维护，就自行写了一个，因为平时用的挺频繁的
