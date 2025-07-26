@@ -824,6 +824,9 @@ function initPromptSettings() {
   const summaryPromptTextarea = document.getElementById('summaryPrompt');
   const resetSummaryPromptBtn = document.getElementById('resetSummaryPrompt');
   const saveSummaryPromptBtn = document.getElementById('saveSummaryPrompt');
+  const paperReadingPromptTextarea = document.getElementById('paperReadingPrompt');
+  const resetPaperReadingPromptBtn = document.getElementById('resetPaperReadingPrompt');
+  const savePaperReadingPromptBtn = document.getElementById('savePaperReadingPrompt');
 
   if (!systemPromptTextarea || !resetSystemPromptBtn || !saveSystemPromptBtn) {
     return; // Elements not found, exit
@@ -885,6 +888,38 @@ function initPromptSettings() {
 
       chrome.storage.local.set({ 'summaryPrompt': customPrompt }, function () {
         const saveMessageElement = saveSummaryPromptBtn.closest('.settings-section').querySelector('.save-message');
+        showMessage(saveMessageElement);
+      });
+    });
+  }
+
+  // Handle paper reading prompt settings if elements exist
+  if (paperReadingPromptTextarea && resetPaperReadingPromptBtn && savePaperReadingPromptBtn) {
+    // Load saved paper reading prompt if exists
+    chrome.storage.local.get(['paperReadingPrompt'], function (result) {
+      if (result.paperReadingPrompt) {
+        paperReadingPromptTextarea.value = result.paperReadingPrompt;
+      } else {
+        // Load default paper reading prompt from constants.js
+        paperReadingPromptTextarea.value = PAPER_READING_PROMPT;
+      }
+    });
+
+    // Reset paper reading prompt to default
+    resetPaperReadingPromptBtn.addEventListener('click', function () {
+      paperReadingPromptTextarea.value = PAPER_READING_PROMPT;
+    });
+
+    // Save custom paper reading prompt
+    savePaperReadingPromptBtn.addEventListener('click', function () {
+      const customPrompt = paperReadingPromptTextarea.value;
+      if (customPrompt.trim() === '') {
+        alert('提示词不能为空');
+        return;
+      }
+
+      chrome.storage.local.set({ 'paperReadingPrompt': customPrompt }, function () {
+        const saveMessageElement = savePaperReadingPromptBtn.closest('.settings-section').querySelector('.save-message');
         showMessage(saveMessageElement);
       });
     });

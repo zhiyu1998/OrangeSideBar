@@ -458,6 +458,7 @@ body,
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 6px center;
+  border: 1px solid var(--border-color);
 }
 
 #model-selection:hover {
@@ -489,6 +490,52 @@ body,
   color: var(--accent-color);
   background-color: var(--bg-secondary);
   padding: 8px 4px;
+}
+
+#prompt-mode-selection {
+  height: 30px;
+  padding: 0 24px 0 10px;
+  font-size: 13px;
+  width: 110px;
+  background-size: 12px;
+  line-height: 30px;
+  border-radius: 6px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  border: 1px solid var(--border-color);
+}
+
+#prompt-mode-selection:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+#prompt-mode-selection:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-color-alpha);
+  transform: translateY(-1px);
+}
+
+#prompt-mode-selection option {
+  padding: 8px 12px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: none;
+}
+
+#prompt-mode-selection option:hover {
+  background-color: var(--bg-tertiary);
 }
 
 #image-upload-label, #newchat-label, #params-label, #tools-label, #web-search-label {

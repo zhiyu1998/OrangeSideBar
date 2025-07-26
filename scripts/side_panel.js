@@ -405,6 +405,27 @@ function handleModelSelection() {
   });
 }
 
+// 提示词模式选择逻辑
+function initPromptModeSelection() {
+  const promptModeSelection = document.getElementById('prompt-mode-selection');
+
+  // 加载保存的模式设置
+  chrome.storage.local.get(['promptMode'], function (result) {
+    if (result.promptMode) {
+      promptModeSelection.value = result.promptMode;
+    }
+  });
+
+  // 监听模式切换事件
+  promptModeSelection.addEventListener('change', function () {
+    const selectedMode = this.value;
+    chrome.storage.local.set({ 'promptMode': selectedMode });
+
+    // 显示提示信息
+    showToast(selectedMode === 'paper' ? '已切换到论文模式' : '已切换到默认模式', 'info');
+  });
+}
+
 
 // 保存自定义模型参数
 function saveModelParams() {
@@ -535,6 +556,9 @@ function initResultPage() {
   loadOllamaModels(function () {
     handleModelSelection();
   });
+
+  // 初始化提示词模式选择
+  initPromptModeSelection();
 
   // 加载模型参数
   loadModelParams();
@@ -726,9 +750,22 @@ function initResultPage() {
       return;
     }
 
-    // 获取自定义摘要提示词，如果存在则使用，否则使用默认的
-    chrome.storage.local.get(['summaryPrompt'], async function (result) {
-      const promptToUse = result.summaryPrompt || SUMMARY_PROMPT;
+    // 获取当前提示词模式和相应的提示词
+    chrome.storage.local.get(['promptMode', 'summaryPrompt', 'paperReadingPrompt'], async function (result) {
+      const currentMode = result.promptMode || 'default';
+      let promptToUse;
+      let displayMessage;
+
+      if (currentMode === 'paper') {
+        // 论文模式：使用论文阅读提示词
+        promptToUse = result.paperReadingPrompt || PAPER_READING_PROMPT;
+        displayMessage = "对当前页面内容进行论文分析";
+      } else {
+        // 默认模式：使用摘要提示词
+        promptToUse = result.summaryPrompt || SUMMARY_PROMPT;
+        displayMessage = "对当前页面内容进行摘要";
+      }
+
       const fullPrompt = promptToUse + inputText;
 
       // 隐藏初始推荐内容
@@ -738,8 +775,8 @@ function initResultPage() {
       const contentDiv = document.querySelector('.chat-content');
       const userQuestionDiv = document.createElement('div');
       userQuestionDiv.className = 'user-message';
-      // 在UI上显示一个简洁的指令，而不是完整的内容
-      userQuestionDiv.innerHTML = "对当前页面内容进行摘要";
+      // 在UI上显示一个简洁的指令，根据模式显示不同的内容
+      userQuestionDiv.innerHTML = displayMessage;
       contentDiv.appendChild(userQuestionDiv);
       contentDiv.scrollTop = contentDiv.scrollHeight;
 
@@ -1112,9 +1149,19 @@ function initResultPage() {
         // 构造content
         let newInputText = '';
         if (inputText.startsWith(SHORTCUT_SUMMAY)) {
-          // 获取自定义摘要提示词，如果存在则使用，否则使用默认的
-          chrome.storage.local.get(['summaryPrompt'], function (result) {
-            const promptToUse = result.summaryPrompt || SUMMARY_PROMPT;
+          // 获取当前提示词模式和相应的提示词
+          chrome.storage.local.get(['promptMode', 'summaryPrompt', 'paperReadingPrompt'], function (result) {
+            const currentMode = result.promptMode || 'default';
+            let promptToUse;
+
+            if (currentMode === 'paper') {
+              // 论文模式：使用论文阅读提示词
+              promptToUse = result.paperReadingPrompt || PAPER_READING_PROMPT;
+            } else {
+              // 默认模式：使用摘要提示词
+              promptToUse = result.summaryPrompt || SUMMARY_PROMPT;
+            }
+
             newInputText = promptToUse + inputText.replace(SHORTCUT_SUMMAY, '');
             // 继续处理，发送请求
             contentDiv.scrollTop = contentDiv.scrollHeight;
