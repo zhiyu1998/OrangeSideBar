@@ -101,8 +101,9 @@ async function clearAndGenerate(model, inputText, base64Images) {
  * @param {string} model
  * @param {string} inputText
  * @param {Array} base64Images
+ * @param {string} customSystemPrompt - 可选的自定义系统提示词
  */
-async function chatLLMAndUIUpdate(model, inputText, base64Images) {
+async function chatLLMAndUIUpdate(model, inputText, base64Images, customSystemPrompt = null) {
   // loading
   displayLoading();
 
@@ -129,7 +130,7 @@ async function chatLLMAndUIUpdate(model, inputText, base64Images) {
       tools.push(WEB_SEARCH_TOOL);
     }
 
-    const completeText = await chatWithLLM(model, inputText, base64Images, CHAT_TYPE, tools);
+    const completeText = await chatWithLLM(model, inputText, base64Images, CHAT_TYPE, tools, customSystemPrompt);
     createCopyButton(completeText);
   } catch (error) {
     hiddenLoadding();
@@ -751,18 +752,21 @@ function initResultPage() {
     }
 
     // 获取当前提示词模式和相应的提示词
-    chrome.storage.local.get(['promptMode', 'summaryPrompt', 'paperReadingPrompt'], async function (result) {
+    chrome.storage.local.get(['promptMode', 'summaryPrompt', 'paperReadingPrompt', 'systemPrompt'], async function (result) {
       const currentMode = result.promptMode || 'default';
       let promptToUse;
       let displayMessage;
+      let systemPromptToUse;
 
       if (currentMode === 'paper') {
-        // 论文模式：使用论文阅读提示词
+        // 论文模式：使用论文阅读提示词和论文系统提示词
         promptToUse = result.paperReadingPrompt || PAPER_READING_PROMPT;
+        systemPromptToUse = PAPER_SYSTEM_PROMPT;
         displayMessage = "对当前页面内容进行论文分析";
       } else {
-        // 默认模式：使用摘要提示词
+        // 默认模式：使用摘要提示词和默认系统提示词
         promptToUse = result.summaryPrompt || SUMMARY_PROMPT;
+        systemPromptToUse = result.systemPrompt || SYSTEM_PROMPT;
         displayMessage = "对当前页面内容进行摘要";
       }
 
@@ -780,8 +784,8 @@ function initResultPage() {
       contentDiv.appendChild(userQuestionDiv);
       contentDiv.scrollTop = contentDiv.scrollHeight;
 
-      // 调用核心聊天函数，传入包含页面内容的完整提示
-      await chatLLMAndUIUpdate(model, fullPrompt, []);
+      // 调用核心聊天函数，传入包含页面内容的完整提示和系统提示词
+      await chatLLMAndUIUpdate(model, fullPrompt, [], systemPromptToUse);
     });
   });
 
@@ -1150,16 +1154,19 @@ function initResultPage() {
         let newInputText = '';
         if (inputText.startsWith(SHORTCUT_SUMMAY)) {
           // 获取当前提示词模式和相应的提示词
-          chrome.storage.local.get(['promptMode', 'summaryPrompt', 'paperReadingPrompt'], function (result) {
+          chrome.storage.local.get(['promptMode', 'summaryPrompt', 'paperReadingPrompt', 'systemPrompt'], function (result) {
             const currentMode = result.promptMode || 'default';
             let promptToUse;
+            let systemPromptToUse;
 
             if (currentMode === 'paper') {
-              // 论文模式：使用论文阅读提示词
+              // 论文模式：使用论文阅读提示词和论文系统提示词
               promptToUse = result.paperReadingPrompt || PAPER_READING_PROMPT;
+              systemPromptToUse = PAPER_SYSTEM_PROMPT;
             } else {
-              // 默认模式：使用摘要提示词
+              // 默认模式：使用摘要提示词和默认系统提示词
               promptToUse = result.summaryPrompt || SUMMARY_PROMPT;
+              systemPromptToUse = result.systemPrompt || SYSTEM_PROMPT;
             }
 
             newInputText = promptToUse + inputText.replace(SHORTCUT_SUMMAY, '');
@@ -1168,7 +1175,7 @@ function initResultPage() {
             userInput.value = "";
             const previewArea = document.querySelector('.image-preview-area');
             previewArea.innerHTML = '';
-            chatLLMAndUIUpdate(model, newInputText, base64Images);
+            chatLLMAndUIUpdate(model, newInputText, base64Images, systemPromptToUse);
           });
           return; // 提前返回，防止直接执行下面的代码
         } else if (inputText.startsWith(SHORTCUT_DICTION)) {
@@ -1358,7 +1365,7 @@ function showToast(message, type = 'info') {
   }, 2000);
 }
 
-async function chatWithLLM(model, inputText, base64Images, type, tools = []) {
+async function chatWithLLM(model, inputText, base64Images, type, tools = [], customSystemPrompt = null) {
   var { baseUrl, apiKey } = await getBaseUrlAndApiKey(model);
 
   if (!baseUrl) {
@@ -1367,6 +1374,26 @@ async function chatWithLLM(model, inputText, base64Images, type, tools = []) {
 
   if (!apiKey) {
     throw new Error('模型 ' + model + ' 的 API Key 为空，请检查！');
+  }
+
+  // 获取要使用的系统提示词
+  let systemPromptToUse = customSystemPrompt;
+  if (!systemPromptToUse) {
+    // 如果没有传入自定义系统提示词，根据当前模式选择
+    const promptModeResult = await new Promise(resolve => {
+      chrome.storage.local.get(['promptMode'], resolve);
+    });
+    const currentMode = promptModeResult.promptMode || 'default';
+
+    if (currentMode === 'paper') {
+      systemPromptToUse = PAPER_SYSTEM_PROMPT;
+    } else {
+      // 获取用户自定义的系统提示词，如果没有则使用默认的
+      const systemPromptResult = await new Promise(resolve => {
+        chrome.storage.local.get(['systemPrompt'], resolve);
+      });
+      systemPromptToUse = systemPromptResult.systemPrompt || SYSTEM_PROMPT;
+    }
   }
 
   const openaiDialogueEntry = createDialogueEntry('user', 'content', inputText, base64Images, model);
@@ -1384,9 +1411,9 @@ async function chatWithLLM(model, inputText, base64Images, type, tools = []) {
   let result = { completeText: '', tools: [] };
   if (model.includes(PROVIDERS.GEMINI) && !model.startsWith("openai-")) {
     baseUrl = baseUrl.replace('{MODEL_NAME}', model).replace('{API_KEY}', apiKey);
-    result = await chatWithGemini(baseUrl, model, type, tools);
+    result = await chatWithGemini(baseUrl, model, type, tools, systemPromptToUse);
   } else {
-    result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools);
+    result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, systemPromptToUse);
   }
 
   // 渲染最新添加的内容中的数学公式

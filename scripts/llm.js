@@ -503,7 +503,7 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type, tools = []
 /**
  * 使用Gemini模型进行对话
  */
-async function chatWithGemini(baseUrl, model, type, tools = []) {
+async function chatWithGemini(baseUrl, model, type, tools = [], systemPrompt = SYSTEM_PROMPT) {
   try {
     // 检查是否启用了web search
     const hasWebSearch = tools.some(tool =>
@@ -519,6 +519,22 @@ async function chatWithGemini(baseUrl, model, type, tools = []) {
       adjustedMaxTokens = 5120; // 为 Gemini-2.5 系列设置更高的 token 限制
     }
 
+    // 处理系统提示词，替换时间和工具占位符
+    const currentTime = getCurrentTime();
+    let processedSystemPrompt = systemPrompt.replace(/{current_time}/g, currentTime);
+
+    if (type === AGENT_TYPE && tools.length > 0) {
+      let toolPrompt = TOOL_PROMPT_PREFIX;
+      tools.forEach(tool => {
+        if (tool.function && tool.function.name === '$web_search') {
+          toolPrompt += WEB_SEARCH_PROMTP;
+        }
+      });
+      processedSystemPrompt = processedSystemPrompt.replace(/{tools-list}/g, toolPrompt);
+    } else {
+      processedSystemPrompt = processedSystemPrompt.replace(/{tools-list}/g, '');
+    }
+
     // 构建请求体
     const requestBody = {
       contents: [{
@@ -530,6 +546,15 @@ async function chatWithGemini(baseUrl, model, type, tools = []) {
         maxOutputTokens: adjustedMaxTokens
       }
     };
+
+    // 添加系统指令（如果支持的话）
+    if (processedSystemPrompt.trim()) {
+      requestBody.systemInstruction = {
+        parts: [{
+          text: processedSystemPrompt
+        }]
+      };
+    }
 
     // 正确处理对话历史，包括图像
     if (geminiDialogueHistory.length > 0) {
