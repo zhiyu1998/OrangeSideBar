@@ -1,62 +1,66 @@
 {
-    "manifest_version": 3,
-    "name": "OrangeSideBar - 网页总结助手",
-    "version": "1.4.1",
-    "description": "✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 OpenAI、Gemini 规范的 API，支持自动摘要、网页及视频翻译、多轮对话等功能✨",
-    "icons": {
+  "manifest_version": 3,
+  "name": "OrangeSideBar - 网页总结助手",
+  "version": "1.4.2",
+  "description": "✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 OpenAI、Gemini 规范的 API，支持自动摘要、网页及视频翻译、多轮对话等功能✨",
+  "icons": {
+    "16": "images/logo_16.png",
+    "32": "images/logo_32.png",
+    "48": "images/logo_48.png",
+    "128": "images/logo_128.png"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "",
+    "default_title": "OrangeSideBar",
+    "default_icon": {
       "16": "images/logo_16.png",
       "32": "images/logo_32.png",
       "48": "images/logo_48.png",
       "128": "images/logo_128.png"
-    },
-    "host_permissions": [
-      "<all_urls>"
-    ],
-    "action": {
-        "default_popup": "",
-        "default_title": "OrangeSideBar",
-        "default_icon": {
-          "16": "images/logo_16.png",
-          "32": "images/logo_32.png",
-          "48": "images/logo_48.png",
-          "128": "images/logo_128.png"
-        }
-    },
-    "background": {
-      "service_worker": "./background.js"
-    },
-    "permissions": [
-        "storage",
-        "sidePanel",
-        "tabs",
-        "activeTab",
-        "contextMenus",
-        "clipboardWrite"
-    ],
-    "minimum_chrome_version":"114",
-    "content_scripts": [
-      {
-        "matches": ["<all_urls>"],
-        "js": [
-          "scripts/third/Readability.js",
-          "scripts/third/marked.min.js",
-          "scripts/third/pdf.worker.min.js",
-          "scripts/third/pdf.min.js",
-          "scripts/third/mermaid.min.js",
-          "scripts/constants.js",
-          "scripts/utils.js",
-          "scripts/llm.js",
-          "scripts/content.js"
-        ]
-      }
-    ],
-    "web_accessible_resources": [
-      {
-        "resources": [
+    }
+  },
+  "background": {
+    "service_worker": "./background.js"
+  },
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "tabs",
+    "activeTab",
+    "contextMenus",
+    "clipboardWrite"
+  ],
+  "minimum_chrome_version": "114",
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "scripts/third/Readability.js",
+        "scripts/third/marked.min.js",
+        "scripts/third/pdf.worker.min.js",
+        "scripts/third/pdf.min.js",
+        "scripts/third/mermaid.min.js",
+        "scripts/constants.js",
+        "scripts/utils.js",
+        "scripts/llm.js",
+        "scripts/content.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
         "images/logo_48.png",
         "scripts/third/pdf.worker.min.js"
       ],
-        "matches": ["<all_urls>"]
-      }
-    ]
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

@@ -84,7 +84,7 @@ function storeParams(tabName, param1, param2, saveMessage, models = null) {
     }
 
     // 新增：存储免费过滤选项
-    const freeOnlyFilter = document.getElementById('free-only-filter')?.checked;
+    const freeOnlyFilter = document.getElementById('openrouter-free-only-filter')?.checked;
     if (freeOnlyFilter !== undefined) {
       localStorage.setItem('openrouter-free-only', freeOnlyFilter);
     }
@@ -160,10 +160,34 @@ function openTab(evt, tabName) {
       // 设置模型列表
       if (modelInfo.models && modelInfo.models.length > 0) {
         console.log('Found stored models:', modelInfo.models);
-        updateModelSelect(modelInfo.models, tabName);
+
+        // OpenRouter特殊处理：应用免费模型过滤
+        if (tabName === PROVIDERS.OPENROUTER) {
+          const freeOnly = localStorage.getItem('openrouter-free-only') === 'true';
+          const filteredModels = modelInfo.models.filter(model => {
+            if (freeOnly) {
+              return model.id.includes(':free');
+            }
+            return true;
+          });
+          updateModelSelect(filteredModels, tabName);
+        } else {
+          updateModelSelect(modelInfo.models, tabName);
+        }
+      } else if (tabName === PROVIDERS.GLM) {
+        // 智谱清言使用固定模型列表
+        const freeOnly = localStorage.getItem('glm-free-only') === 'true';
+        const fixedModels = getGLMFixedModels(freeOnly);
+        updateModelSelect(fixedModels, tabName);
       }
     } else {
       console.log('No stored data found for tab:', tabName);
+      // 如果是智谱清言且没有存储数据，直接显示固定模型列表
+      if (tabName === PROVIDERS.GLM) {
+        const freeOnly = localStorage.getItem('glm-free-only') === 'true';
+        const fixedModels = getGLMFixedModels(freeOnly);
+        updateModelSelect(fixedModels, tabName);
+      }
     }
   });
 }
@@ -224,6 +248,19 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
       headers: headers
     }
   };
+}
+
+/**
+ * 获取智谱清言固定模型列表
+ * @param {boolean} freeOnly - 是否只返回免费模型
+ */
+function getGLMFixedModels(freeOnly = false) {
+  let modelsToUse = freeOnly ? GLM_FREE_MODELS : GLM_MODELS;
+  return modelsToUse.map(modelId => ({
+    id: modelId,
+    object: 'model',
+    owned_by: 'zhipu'
+  }));
 }
 
 /**
@@ -552,6 +589,49 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
   }
 
   try {
+    // 智谱清言特殊处理：使用固定模型列表，只测试连通性
+    if (model === PROVIDERS.GLM) {
+      // 构建简单的连通性测试请求
+      const apiUrl = `${baseUrl}${GLM_CHAT_API_PATH}`;
+      const testParams = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: GLM_DEFAULT_MODEL,
+          messages: [{ role: 'user', content: 'test' }],
+          max_tokens: 1
+        })
+      };
+
+      // 发起连通性测试
+      const response = await fetch(apiUrl, testParams);
+
+      // 智谱清言API可能返回401等错误，但只要不是网络错误就说明连通性正常
+      if (response.status === 401) {
+        throw new Error('API Key 无效，请检查您的 API Key');
+      } else if (response.status >= 500) {
+        throw new Error('服务器错误，请稍后重试');
+      }
+
+      // 显示成功消息
+      resultElement.textContent = '检查通过';
+      resultElement.className = 'checkapi-message success';
+      resultElement.style.display = "block";
+
+      // 使用固定模型列表
+      const freeOnly = localStorage.getItem('glm-free-only') === 'true';
+      const fixedModels = getGLMFixedModels(freeOnly);
+      const tabId = tabContent.id;
+      const saveMessage = tabContent.querySelector('.save-message');
+      storeParams(tabId, baseUrl, apiKey, saveMessage, fixedModels);
+
+      return;
+    }
+
+    // 其他模型的原有逻辑
     // 构建API请求参数
     let apiUrl, params;
     if (model.includes(TOOL_KEY)) {
@@ -743,8 +823,16 @@ document.addEventListener('DOMContentLoaded', function () {
       // 获取当前的模型列表
       const modelList = tabContent.querySelector('#model-list');
       let currentModels = [];
-      if (modelList) {
-        // 从存储中获取当前的模型列表
+
+      // 智谱清言特殊处理：使用固定模型列表
+      if (tabId === PROVIDERS.GLM) {
+        const freeOnly = localStorage.getItem('glm-free-only') === 'true';
+        currentModels = getGLMFixedModels(freeOnly);
+        console.log('Saving GLM values with fixed models:', { tabId, baseUrl, apiKey, models: currentModels });
+        var saveMessage = tabContent.querySelector('.save-message');
+        storeParams(tabId, baseUrl, apiKey, saveMessage, currentModels);
+      } else if (modelList) {
+        // 其他供应商从存储中获取当前的模型列表
         chrome.storage.local.get(tabId, function (result) {
           currentModels = result[tabId]?.models || [];
           console.log('Saving values:', { tabId, baseUrl, apiKey, models: currentModels });
@@ -931,4 +1019,68 @@ function getActiveTabName() {
   const activeTab = document.querySelector('.tab-link.active');
   return activeTab ? activeTab.getAttribute('data-tab') : null;
 }
+
+// 智谱清言免费模型过滤功能
+function initGLMFreeFilter() {
+  const glmFreeFilter = document.getElementById('glm-free-only-filter');
+  if (glmFreeFilter) {
+    // 加载保存的过滤设置
+    const savedFilter = localStorage.getItem('glm-free-only') === 'true';
+    glmFreeFilter.checked = savedFilter;
+
+    // 添加事件监听器
+    glmFreeFilter.addEventListener('change', function () {
+      const freeOnly = this.checked;
+      localStorage.setItem('glm-free-only', freeOnly);
+
+      // 更新模型列表
+      const fixedModels = getGLMFixedModels(freeOnly);
+      updateModelSelect(fixedModels, PROVIDERS.GLM);
+
+      console.log('GLM free filter changed:', freeOnly);
+    });
+  }
+}
+
+// OpenRouter免费模型过滤功能
+function initOpenRouterFreeFilter() {
+  const openrouterFreeFilter = document.getElementById('openrouter-free-only-filter');
+  if (openrouterFreeFilter) {
+    // 加载保存的过滤设置
+    const savedFilter = localStorage.getItem('openrouter-free-only') === 'true';
+    openrouterFreeFilter.checked = savedFilter;
+
+    // 添加事件监听器
+    openrouterFreeFilter.addEventListener('change', function () {
+      const freeOnly = this.checked;
+      localStorage.setItem('openrouter-free-only', freeOnly);
+
+      // 重新获取并过滤模型列表
+      chrome.storage.local.get(PROVIDERS.OPENROUTER, function (result) {
+        const modelInfo = result[PROVIDERS.OPENROUTER];
+        if (modelInfo && modelInfo.models) {
+          // 重新过滤模型列表
+          const filteredModels = modelInfo.models.filter(model => {
+            if (freeOnly) {
+              return model.id.includes(':free');
+            }
+            return true;
+          });
+          updateModelSelect(filteredModels, PROVIDERS.OPENROUTER);
+        }
+      });
+
+      console.log('OpenRouter free filter changed:', freeOnly);
+    });
+  }
+}
+
+// 在页面加载完成后初始化免费模型过滤功能
+document.addEventListener('DOMContentLoaded', function () {
+  // 延迟初始化，确保页面元素已加载
+  setTimeout(() => {
+    initGLMFreeFilter();
+    initOpenRouterFreeFilter();
+  }, 100);
+});
 

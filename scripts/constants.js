@@ -146,7 +146,7 @@ const MODEL_MAPPINGS = [
 
   // GLM Models
   {
-    prefix: ['GLM-'],
+    prefix: ['GLM-', 'glm-'],
     provider: PROVIDERS.GLM
   },
 
@@ -230,8 +230,35 @@ const MODELSCOPE_DEFAULT_MODEL = "modelscope-qwen/Qwen2.5-7B-Instruct";
 const ANY_FILE_SUPPORT_MODELS = ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp'];
 const DEFAULT_FILE_LOGO_PATH = "/images/file.png";
 
-// 智谱清言模型
-const GLM_MODELS = ["GLM-4", "GLM-4-Plus", "GLM-4-Air", "GLM-4-AirX", "GLM-4-Flash", "GLM 4V", "GLM-4V-Plus", "GLM-4-AllTools"];
+// 智谱清言模型 - 固定模型列表
+const GLM_MODELS = [
+  "glm-4.5",
+  "glm-4.5-air",
+  "glm-4.5-x",
+  "glm-4.5-airx",
+  "glm-4.5-flash",
+  "glm-4-plus",
+  "glm-4-air-250414",
+  "glm-4-airx",
+  "glm-4-flashx",
+  "glm-4-flashx-250414",
+  "glm-z1-air",
+  "glm-z1-airx",
+  "glm-z1-flash",
+  "glm-z1-flashx",
+  "glm-4v-plus-0111",
+  "glm-4v-flash",
+  "glm-4.1v-thinking-flashx",
+  "glm-4.1v-thinking-flash"
+];
+
+// 智谱清言免费模型列表（只包含主列表中存在的模型）
+const GLM_FREE_MODELS = [
+  "glm-4.5-flash",
+  "glm-4.1v-thinking-flash",
+  "glm-4v-flash",
+  "glm-z1-flash"
+];
 
 // 各模型默认的baseurl
 const DEFAULT_LLM_URLS = [
