@@ -70,6 +70,9 @@ const GROK_CHAT_API_PATH = "/v1/chat/completions"
 const MODELSCOPE_BASE_URL = "https://api-inference.modelscope.cn";
 const MODELSCOPE_CHAT_API_PATH = "/v1/chat/completions";
 
+const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com";
+const NVIDIA_CHAT_API_PATH = "/v1/chat/completions";
+
 // 获取模型列表的API路径
 const OPENAI_MODELS_API_PATH = "/v1/models";
 const AZURE_MODELS_API_PATH = "/openai/models?api-version=2024-04-01-preview";
@@ -82,6 +85,7 @@ const GITHUB_MODELS_API_PATH = "/models";
 const QWEN_MODELS_API_PATH = "/v1/models";
 const OPENROUTER_MODELS_API_PATH = "/v1/models";
 const MODELSCOPE_MODELS_API_PATH = "/v1/models";
+const NVIDIA_MODELS_API_PATH = "/v1/models";
 
 // 添加供应商相关常量
 const PROVIDERS = {
@@ -100,7 +104,8 @@ const PROVIDERS = {
   GROK: 'grok',
   MISTRAL: 'open-mistral',
   OLLAMA: 'ollama',
-  MODELSCOPE: 'modelscope'
+  MODELSCOPE: 'modelscope',
+  NVIDIA: 'nvidia'
 };
 
 // 供应商显示名称映射
@@ -120,7 +125,8 @@ const PROVIDER_DISPLAY_NAMES = {
   [PROVIDERS.GROK]: 'Grok',
   [PROVIDERS.MISTRAL]: 'Mistral',
   [PROVIDERS.OLLAMA]: 'Ollama',
-  [PROVIDERS.MODELSCOPE]: 'ModelScope 魔搭'
+  [PROVIDERS.MODELSCOPE]: 'ModelScope 魔搭',
+  [PROVIDERS.NVIDIA]: '英伟达'
 };
 
 // 修改现有的 MODEL_MAPPINGS 使用 PROVIDERS 常量
@@ -208,6 +214,12 @@ const MODEL_MAPPINGS = [
   {
     prefix: ['modelscope-'],
     provider: PROVIDERS.MODELSCOPE
+  },
+  
+  // NVIDIA Models
+  {
+    prefix: ['nvidia-'],
+    provider: PROVIDERS.NVIDIA
   }
 ];
 
@@ -225,6 +237,7 @@ const DEEPSEEK_DEFAULT_MODEL = "deepseek-chat";
 const GITHUB_DEFAULT_MODEL = "Mistral-Nemo";
 const QWEN_DEFAULT_MODEL = "Qwen2.5-Turbo";
 const MODELSCOPE_DEFAULT_MODEL = "modelscope-qwen/Qwen2.5-7B-Instruct";
+const NVIDIA_DEFAULT_MODEL = "meta/llama-3.2-1b-instruct";
 
 // 支持任意文件类型的模型
 const ANY_FILE_SUPPORT_MODELS = ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp'];
@@ -278,6 +291,7 @@ const DEFAULT_LLM_URLS = [
   { key: PROVIDERS.MISTRAL, baseUrl: MISTRAL_BASE_URL, apiPath: MISTRAL_CHAT_API_PATH, defaultModel: MISTRA_DEFAULTL_MODEL },
   { key: PROVIDERS.OPENROUTER, baseUrl: OPENROUTER_BASE_URL, apiPath: OPENROUTER_CHAT_API_PATH },
   { key: PROVIDERS.MODELSCOPE, baseUrl: MODELSCOPE_BASE_URL, apiPath: MODELSCOPE_CHAT_API_PATH, defaultModel: MODELSCOPE_DEFAULT_MODEL },
+  { key: PROVIDERS.NVIDIA, baseUrl: NVIDIA_BASE_URL, apiPath: NVIDIA_CHAT_API_PATH, defaultModel: NVIDIA_DEFAULT_MODEL },
 ];
 
 

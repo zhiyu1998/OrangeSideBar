@@ -232,6 +232,9 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
   } else if (model.includes(PROVIDERS.MODELSCOPE)) {
     apiUrl = `${baseUrl}${MODELSCOPE_MODELS_API_PATH}`;
     headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(PROVIDERS.NVIDIA)) {
+    apiUrl = `${baseUrl}${NVIDIA_MODELS_API_PATH}`;
+    headers['Authorization'] = `Bearer ${apiKey}`;
   } else {
     // 其他模型使用标准的模型列表API路径
     const modelsPath = getModelsApiPath(model);
@@ -277,6 +280,7 @@ function getModelsApiPath(model) {
   if (model.includes(PROVIDERS.GITHUB)) return GITHUB_MODELS_API_PATH;
   if (model.includes(PROVIDERS.QWEN)) return QWEN_MODELS_API_PATH;
   if (model.includes(PROVIDERS.MODELSCOPE)) return MODELSCOPE_MODELS_API_PATH;
+  if (model.includes(PROVIDERS.NVIDIA)) return NVIDIA_MODELS_API_PATH;
   return OPENAI_MODELS_API_PATH; // 默认返回OpenAI的路径
 }
 
@@ -347,6 +351,9 @@ async function getModelList(baseUrl, model, apiKey) {
     headers['Authorization'] = `Bearer ${apiKey}`;
   } else if (model.includes(PROVIDERS.OLLAMA)) {
     apiUrl += OLLAMA_LIST_MODEL_PATH;
+  } else if (model.includes(PROVIDERS.NVIDIA)) {
+    apiUrl += NVIDIA_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
   } else {
     apiUrl += OPENAI_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
@@ -458,6 +465,13 @@ async function getModelList(baseUrl, model, apiKey) {
         id: `modelscope-${model.id}`,
         object: model.object || 'model',
         owned_by: model.owned_by || 'unknown'
+      }));
+    } else if (model.includes(PROVIDERS.NVIDIA)) {
+      // NVIDIA 格式处理 - 添加 nvidia- 前缀
+      return data.data.map(model => ({
+        id: `nvidia-${model.id}`,
+        object: model.object || 'model',
+        owned_by: model.owned_by || 'nvidia'
       }));
     } else {
       // 其他供应商的格式处理
@@ -709,6 +723,13 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
         id: `modelscope-${model.id}`,
         object: model.object || 'model',
         owned_by: model.owned_by || 'unknown'
+      }));
+    } else if (model.includes(PROVIDERS.NVIDIA)) {
+      // NVIDIA 格式处理
+      formattedModels = data.data.map(model => ({
+        id: `nvidia-${model.id}`,
+        object: model.object || 'model',
+        owned_by: model.owned_by || 'nvidia'
       }));
     } else {
       formattedModels = data.data || data.models || [];

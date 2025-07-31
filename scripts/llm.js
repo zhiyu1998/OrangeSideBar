@@ -262,26 +262,29 @@ async function chatWithLLM(model, inputText, base64Images, type) {
     }
   }
 
-  // Use different chat implementations based on provider
+  // 使用不同的chat实现基于供应商
   try {
     let result;
 
-    // Replace {current_time} placeholder with actual time
+    // 替换{current_time}占位符为实际时间
     const promptWithTime = promptToUse.replace('{current_time}', getCurrentTime());
 
-    // Provider-specific chat implementation
+    // 供应商特定的chat实现
     if (provider === PROVIDERS.GEMINI) {
       result = await chatWithGemini(baseUrl, model, type, tools);
     } else if (provider === PROVIDERS.OLLAMA) {
-      // Ollama implementation
+      // Ollama 实现
     } else if (provider === PROVIDERS.GROQ) {
-      // Groq uses OpenAI format
+      // Groq 使用 OpenAI 格式
       result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
     } else if (provider === PROVIDERS.GROK) {
-      // Grok also uses OpenAI format
+      // Grok 也使用 OpenAI 格式
+      result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
+    } else if (provider === PROVIDERS.NVIDIA) {
+      // NVIDIA 使用 OpenAI 格式
       result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
     } else {
-      // Default OpenAI-compatible implementation
+      // 默认 OpenAI-compatible 实现
       result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
     }
 
@@ -433,6 +436,8 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type, tools = []
     realModelName = realModelName.replace("openai-", '');
   } else if (modelName.startsWith('modelscope-')) {
     realModelName = realModelName.replace('modelscope-', '');
+  } else if (modelName.startsWith('nvidia-')) {
+    realModelName = realModelName.replace('nvidia-', '');
   }
 
   // 获取 modelParams 参数

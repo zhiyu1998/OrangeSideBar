@@ -1412,6 +1412,9 @@ async function chatWithLLM(model, inputText, base64Images, type, tools = [], cus
   if (model.includes(PROVIDERS.GEMINI) && !model.startsWith("openai-")) {
     baseUrl = baseUrl.replace('{MODEL_NAME}', model).replace('{API_KEY}', apiKey);
     result = await chatWithGemini(baseUrl, model, type, tools, systemPromptToUse);
+  } else if (model.includes(PROVIDERS.NVIDIA)) {
+    // NVIDIA 使用 OpenAI 格式
+    result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, systemPromptToUse);
   } else {
     result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, systemPromptToUse);
   }
