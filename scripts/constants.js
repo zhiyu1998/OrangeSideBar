@@ -239,6 +239,13 @@ const QWEN_DEFAULT_MODEL = "Qwen2.5-Turbo";
 const MODELSCOPE_DEFAULT_MODEL = "modelscope-qwen/Qwen2.5-7B-Instruct";
 const NVIDIA_DEFAULT_MODEL = "meta/llama-3.2-1b-instruct";
 
+// 英伟达推荐模型列表
+const NVIDIA_RECOMMENDED_MODELS = [
+    "nvidia-deepseek-ai/deepseek-r1-0528",
+    "nvidia-moonshotai/kimi-k2-instruct",
+    "nvidia-qwen/qwen3-235b-a22b"
+];
+
 // 支持任意文件类型的模型
 const ANY_FILE_SUPPORT_MODELS = ['gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp'];
 const DEFAULT_FILE_LOGO_PATH = "/images/file.png";

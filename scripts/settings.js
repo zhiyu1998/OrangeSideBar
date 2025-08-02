@@ -21,6 +21,41 @@ function initThemeToggle() {
   });
 }
 
+function updateGlobalModels(provider, models) {
+  chrome.storage.local.get('globalModels', function (result) {
+    let globalModels = result.globalModels || {};
+    console.log('Current global models:', globalModels); // 添加日志
+
+    // 根据不同供应商处理模型数据
+    if (provider === PROVIDERS.GPT) {
+      // OpenAI 模型处理
+      globalModels[provider] = models
+        .filter(model => model.id && !model.id.includes('deprecated'))
+        .map(model => ({
+          value: model.id,
+          label: model.id,
+          provider: provider
+        }));
+    } else {
+      // 其他供应商的模型处理
+      globalModels[provider] = models.map(model => ({
+        value: model.id,
+        label: model.id,
+        provider: provider
+      }));
+    }
+
+    console.log('Updated global models:', globalModels); // 添加日志
+    chrome.storage.local.set({ globalModels }, () => {
+      console.log('Saved global models successfully'); // 添加日志
+      // 检查存储的数据
+      chrome.storage.local.get('globalModels', (result) => {
+        console.log('Verified stored global models:', result.globalModels);
+      });
+    });
+  });
+}
+
 function storeParams(tabName, param1, param2, saveMessage, models = null) {
   console.log('Storing params for tab:', tabName, {
     baseUrl: param1,
@@ -47,39 +82,7 @@ function storeParams(tabName, param1, param2, saveMessage, models = null) {
 
       // 如果是支持的模型供应商，更新全局模型列表
       if (models && isSupportedProvider(tabName)) {
-        // 保存到全局模型列表
-        chrome.storage.local.get('globalModels', function (result) {
-          let globalModels = result.globalModels || {};
-          console.log('Current global models:', globalModels); // 添加日志
-
-          // 根据不同供应商处理模型数据
-          if (tabName === PROVIDERS.GPT) {
-            // OpenAI 模型处理
-            globalModels[tabName] = models
-              .filter(model => model.id && !model.id.includes('deprecated'))
-              .map(model => ({
-                value: model.id,
-                label: model.id,
-                provider: tabName
-              }));
-          } else {
-            // 其他供应商的模型处理
-            globalModels[tabName] = models.map(model => ({
-              value: model.id,
-              label: model.id,
-              provider: tabName
-            }));
-          }
-
-          console.log('Updated global models:', globalModels); // 添加日志
-          chrome.storage.local.set({ globalModels }, () => {
-            console.log('Saved global models successfully'); // 添加日志
-            // 检查存储的数据
-            chrome.storage.local.get('globalModels', (result) => {
-              console.log('Verified stored global models:', result.globalModels);
-            });
-          });
-        });
+        updateGlobalModels(tabName, models);
       }
     }
 
@@ -161,15 +164,11 @@ function openTab(evt, tabName) {
       if (modelInfo.models && modelInfo.models.length > 0) {
         console.log('Found stored models:', modelInfo.models);
 
-        // OpenRouter特殊处理：应用免费模型过滤
-        if (tabName === PROVIDERS.OPENROUTER) {
-          const freeOnly = localStorage.getItem('openrouter-free-only') === 'true';
-          const filteredModels = modelInfo.models.filter(model => {
-            if (freeOnly) {
-              return model.id.includes(':free');
-            }
-            return true;
-          });
+        const filterConfig = window.filterConfigurations.find(c => c.provider === tabName);
+
+        if (filterConfig) {
+          const isChecked = localStorage.getItem(filterConfig.storageKey) === 'true';
+          const filteredModels = modelInfo.models.filter(model => filterConfig.filter(model, isChecked));
           updateModelSelect(filteredModels, tabName);
         } else {
           updateModelSelect(modelInfo.models, tabName);
@@ -508,51 +507,43 @@ function updateModelSelect(models, tabName) {
 
   // 使用 requestAnimationFrame 确保动画流畅
   requestAnimationFrame(() => {
-    // 更新存储中的模型列表
-    chrome.storage.local.get(tabName, function (result) {
-      const modelInfo = result[tabName] || {};
-      modelInfo.models = models;
+    // 使用 setTimeout 创建过渡效果
+    setTimeout(() => {
+      // 清空列表
+      modelList.innerHTML = '';
 
-      chrome.storage.local.set({ [tabName]: modelInfo }, function () {
-        // 使用 setTimeout 创建过渡效果
-        setTimeout(() => {
-          // 清空列表
-          modelList.innerHTML = '';
-
-          // 创建所有模型项
-          filteredModels.forEach((model, index) => {
-            const li = document.createElement('li');
-            li.textContent = model.id;
-            if (index >= MODELS_PER_PAGE) {
-              li.classList.add('hidden');
-            }
-            modelList.appendChild(li);
-          });
-
-          // 更新加载更多按钮
-          if (loadMoreBtn) {
-            if (filteredModels.length > MODELS_PER_PAGE) {
-              loadMoreBtn.style.display = 'block';
-              const remainingCount = filteredModels.length - MODELS_PER_PAGE;
-              const countSpan = loadMoreBtn.querySelector('.remaining-count');
-              if (countSpan) {
-                countSpan.textContent = `(还有 ${remainingCount} 个)`;
-              }
-            } else {
-              loadMoreBtn.style.display = 'none';
-            }
-          }
-
-          // 延迟移除加载状态
-          setTimeout(() => {
-            if (loadingElement) {
-              loadingElement.style.display = 'none';
-            }
-            modelList.classList.remove('loading');
-          }, 150);
-        }, 150);
+      // 创建所有模型项
+      filteredModels.forEach((model, index) => {
+        const li = document.createElement('li');
+        li.textContent = model.id;
+        if (index >= MODELS_PER_PAGE) {
+          li.classList.add('hidden');
+        }
+        modelList.appendChild(li);
       });
-    });
+
+      // 更新加载更多按钮
+      if (loadMoreBtn) {
+        if (filteredModels.length > MODELS_PER_PAGE) {
+          loadMoreBtn.style.display = 'block';
+          const remainingCount = filteredModels.length - MODELS_PER_PAGE;
+          const countSpan = loadMoreBtn.querySelector('.remaining-count');
+          if (countSpan) {
+            countSpan.textContent = `(还有 ${remainingCount} 个)`;
+          }
+        } else {
+          loadMoreBtn.style.display = 'none';
+        }
+      }
+
+      // 延迟移除加载状态
+      setTimeout(() => {
+        if (loadingElement) {
+          loadingElement.style.display = 'none';
+        }
+        modelList.classList.remove('loading');
+      }, 150);
+    }, 150);
   });
 }
 
@@ -1041,57 +1032,35 @@ function getActiveTabName() {
   return activeTab ? activeTab.getAttribute('data-tab') : null;
 }
 
-// 智谱清言免费模型过滤功能
-function initGLMFreeFilter() {
-  const glmFreeFilter = document.getElementById('glm-free-only-filter');
-  if (glmFreeFilter) {
+// 通用的模型过滤功能
+function initProviderFilter(provider, checkboxId, storageKey, filterCallback) {
+  const filterCheckbox = document.getElementById(checkboxId);
+  if (filterCheckbox) {
     // 加载保存的过滤设置
-    const savedFilter = localStorage.getItem('glm-free-only') === 'true';
-    glmFreeFilter.checked = savedFilter;
+    const savedFilter = localStorage.getItem(storageKey) === 'true';
+    filterCheckbox.checked = savedFilter;
 
     // 添加事件监听器
-    glmFreeFilter.addEventListener('change', function () {
-      const freeOnly = this.checked;
-      localStorage.setItem('glm-free-only', freeOnly);
-
-      // 更新模型列表
-      const fixedModels = getGLMFixedModels(freeOnly);
-      updateModelSelect(fixedModels, PROVIDERS.GLM);
-
-      console.log('GLM free filter changed:', freeOnly);
-    });
-  }
-}
-
-// OpenRouter免费模型过滤功能
-function initOpenRouterFreeFilter() {
-  const openrouterFreeFilter = document.getElementById('openrouter-free-only-filter');
-  if (openrouterFreeFilter) {
-    // 加载保存的过滤设置
-    const savedFilter = localStorage.getItem('openrouter-free-only') === 'true';
-    openrouterFreeFilter.checked = savedFilter;
-
-    // 添加事件监听器
-    openrouterFreeFilter.addEventListener('change', function () {
-      const freeOnly = this.checked;
-      localStorage.setItem('openrouter-free-only', freeOnly);
+    filterCheckbox.addEventListener('change', function () {
+      const isChecked = this.checked;
+      localStorage.setItem(storageKey, isChecked);
 
       // 重新获取并过滤模型列表
-      chrome.storage.local.get(PROVIDERS.OPENROUTER, function (result) {
-        const modelInfo = result[PROVIDERS.OPENROUTER];
+      chrome.storage.local.get(provider, function (result) {
+        const modelInfo = result[provider];
         if (modelInfo && modelInfo.models) {
-          // 重新过滤模型列表
-          const filteredModels = modelInfo.models.filter(model => {
-            if (freeOnly) {
-              return model.id.includes(':free');
-            }
-            return true;
-          });
-          updateModelSelect(filteredModels, PROVIDERS.OPENROUTER);
+          const filteredModels = modelInfo.models.filter(model => filterCallback(model, isChecked));
+          updateModelSelect(filteredModels, provider);
+          updateGlobalModels(provider, filteredModels); // 更新全局模型
+        } else if (provider === PROVIDERS.GLM) {
+          // 对智谱清言进行特殊处理
+          const fixedModels = getGLMFixedModels(isChecked);
+          updateModelSelect(fixedModels, provider);
+          updateGlobalModels(provider, fixedModels); // 更新全局模型
         }
       });
 
-      console.log('OpenRouter free filter changed:', freeOnly);
+      console.log(`${provider} filter changed:`, isChecked);
     });
   }
 }
@@ -1100,8 +1069,18 @@ function initOpenRouterFreeFilter() {
 document.addEventListener('DOMContentLoaded', function () {
   // 延迟初始化，确保页面元素已加载
   setTimeout(() => {
-    initGLMFreeFilter();
-    initOpenRouterFreeFilter();
+    const filterConfigurations = [
+      { provider: PROVIDERS.GLM, checkboxId: 'glm-free-only-filter', storageKey: 'glm-free-only', filter: (model, isChecked) => !isChecked || GLM_FREE_MODELS.includes(model.id) },
+      { provider: PROVIDERS.OPENROUTER, checkboxId: 'openrouter-free-only-filter', storageKey: 'openrouter-free-only', filter: (model, isChecked) => !isChecked || model.id.includes(':free') },
+      { provider: PROVIDERS.NVIDIA, checkboxId: 'nvidia-recommended-only-filter', storageKey: 'nvidia-recommended-only', filter: (model, isChecked) => !isChecked || NVIDIA_RECOMMENDED_MODELS.includes(model.id) }
+    ];
+
+    filterConfigurations.forEach(config => {
+      initProviderFilter(config.provider, config.checkboxId, config.storageKey, config.filter);
+    });
+
+    // Make the configurations available to openTab
+    window.filterConfigurations = filterConfigurations;
   }, 100);
 });
 
