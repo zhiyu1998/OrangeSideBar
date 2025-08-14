@@ -265,8 +265,7 @@ function saveEditedMessage(messageDiv, newText) {
     }
 
     // Trigger new AI response
-    const modelSelection = document.getElementById('model-selection');
-    chatLLMAndUIUpdate(modelSelection.value, newText, []);
+    chatLLMAndUIUpdate(getSelectedModel(), newText, []);
 }
 
 function cancelEdit(messageDiv, originalText) {

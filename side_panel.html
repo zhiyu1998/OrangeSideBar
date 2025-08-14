@@ -125,9 +125,23 @@
         </div>
         <div class="navigation-bar">
             <div id="model-selection-div">
-                <select id="model-selection">
-                    <!-- 模型选项将通过 JavaScript 动态填充 -->
-                </select>
+                <div id="model-selection-wrapper" class="model-selection-wrapper">
+                    <input type="text" id="model-search" class="model-search" placeholder="搜索模型..." />
+                    <div id="model-dropdown" class="model-dropdown">
+                        <!-- 模型选项将通过 JavaScript 动态填充 -->
+                    </div>
+                    <div class="model-search-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="21 21l-4.35-4.35"></path>
+                        </svg>
+                    </div>
+                    <div class="model-dropdown-arrow">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                </div>
             </div>
 
             <div id="prompt-mode-div">

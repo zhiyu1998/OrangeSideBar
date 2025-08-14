@@ -371,13 +371,21 @@ function loadOllamaModels(callback) {
         })
         .then(data => {
           const models = data.models;
-          const selection = document.getElementById('model-selection');
+          // 将 Ollama 模型添加到全局数组
           models.forEach(model => {
-            const option = document.createElement('option');
-            option.value = model.model + OLLAMA_MODEL_POSTFIX;
-            option.textContent = model.name + OLLAMA_MODEL_POSTFIX;
-            selection.appendChild(option);
+            const displayName = `OLLAMA - ${model.name}${OLLAMA_MODEL_POSTFIX}`;
+            allModels.push({
+              value: model.model + OLLAMA_MODEL_POSTFIX,
+              name: displayName,
+              provider: 'ollama'
+            });
           });
+          
+          // 如果全局数组已有数据，刷新显示
+          if (allModels.length > 0) {
+            filterAndDisplayModels('');
+          }
+          
           if (callback) callback();
         })
         .catch(error => {
@@ -390,20 +398,184 @@ function loadOllamaModels(callback) {
 }
 
 
+// 全局变量存储模型数据
+let allModels = [];
+let selectedModel = '';
+
 // 模型选择变更逻辑
 function handleModelSelection() {
-  const modelSelection = document.getElementById('model-selection');
+  initModelSearchDropdown();
+  
   chrome.storage.local.get(['selectedModel'], function (result) {
     if (result.selectedModel) {
-      modelSelection.value = result.selectedModel;
+      selectedModel = result.selectedModel;
+      updateSelectedModel(result.selectedModel);
     }
-    toggleImageUpload(modelSelection.value);
+    toggleImageUpload(selectedModel);
+  });
+}
+
+// 初始化模型搜索下拉框
+function initModelSearchDropdown() {
+  const searchInput = document.getElementById('model-search');
+  const dropdown = document.getElementById('model-dropdown');
+  const wrapper = document.getElementById('model-selection-wrapper');
+  
+  // 搜索输入事件
+  searchInput.addEventListener('input', function() {
+    const query = this.value.toLowerCase();
+    filterAndDisplayModels(query);
+    showDropdown();
   });
 
-  modelSelection.addEventListener('change', function () {
-    toggleImageUpload(this.value);
-    chrome.storage.local.set({ 'selectedModel': this.value });
+  // 点击输入框显示下拉
+  searchInput.addEventListener('click', function() {
+    filterAndDisplayModels('');
+    showDropdown();
   });
+
+  // 点击外部隐藏下拉
+  document.addEventListener('click', function(e) {
+    if (!wrapper.contains(e.target)) {
+      hideDropdown();
+    }
+  });
+
+  // 键盘导航
+  searchInput.addEventListener('keydown', function(e) {
+    const items = dropdown.querySelectorAll('.model-option');
+    const activeItem = dropdown.querySelector('.model-option.active');
+    let activeIndex = activeItem ? Array.from(items).indexOf(activeItem) : -1;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % items.length;
+      setActiveItem(items, activeIndex);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIndex = activeIndex <= 0 ? items.length - 1 : activeIndex - 1;
+      setActiveItem(items, activeIndex);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeItem) {
+        const model = allModels.find(m => m.value === activeItem.dataset.value);
+        if (model) {
+          selectModel(activeItem.dataset.value, model.name);
+        }
+      }
+    } else if (e.key === 'Escape') {
+      hideDropdown();
+    }
+  });
+}
+
+// 过滤并显示模型（支持分组）
+function filterAndDisplayModels(query) {
+  const dropdown = document.getElementById('model-dropdown');
+  dropdown.innerHTML = '';
+  
+  // 按供应商分组过滤模型
+  const groupedModels = {};
+  const filteredModels = allModels.filter(model => 
+    model.name.toLowerCase().includes(query) || 
+    model.value.toLowerCase().includes(query)
+  );
+
+  // 将过滤后的模型按供应商重新分组
+  filteredModels.forEach(model => {
+    if (!groupedModels[model.provider]) {
+      groupedModels[model.provider] = [];
+    }
+    groupedModels[model.provider].push(model);
+  });
+
+  if (filteredModels.length === 0) {
+    dropdown.innerHTML = '<div class="model-no-results">未找到匹配的模型</div>';
+    return;
+  }
+
+  let activeIndex = 0;
+  let totalItems = 0;
+
+  // 使用 constants.js 中的供应商顺序和显示名称
+  const providerOrder = Object.values(PROVIDERS);
+  const providerDisplayName = PROVIDER_DISPLAY_NAMES;
+
+  providerOrder.forEach(provider => {
+    const models = groupedModels[provider];
+    if (models && models.length > 0) {
+      // 添加分组标题
+      const groupTitle = document.createElement('div');
+      groupTitle.className = 'model-group-title';
+      groupTitle.textContent = providerDisplayName[provider] || provider.toUpperCase();
+      dropdown.appendChild(groupTitle);
+
+      // 添加该分组的模型选项
+      models.forEach((model, index) => {
+        const item = document.createElement('div');
+        item.className = 'model-option';
+        if (totalItems === 0) item.classList.add('active');
+        item.dataset.value = model.value;
+        // 显示时去掉供应商前缀，因为已经有分组标题了
+        const displayName = model.name.replace(/^[A-Z]+ - /, '');
+        item.textContent = displayName;
+        
+        item.addEventListener('click', function() {
+          selectModel(model.value, model.name);
+        });
+        
+        dropdown.appendChild(item);
+        totalItems++;
+      });
+    }
+  });
+}
+
+// 设置激活项（跳过分组标题）
+function setActiveItem(items, index) {
+  items.forEach(item => item.classList.remove('active'));
+  if (items[index]) {
+    items[index].classList.add('active');
+    items[index].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+// 选择模型（改进显示名称处理）
+function selectModel(value, displayName) {
+  selectedModel = value;
+  const searchInput = document.getElementById('model-search');
+  // 使用完整的显示名称（包含供应商信息）
+  const fullDisplayName = allModels.find(m => m.value === value)?.name || displayName;
+  searchInput.value = fullDisplayName;
+  hideDropdown();
+  toggleImageUpload(value);
+  chrome.storage.local.set({ 'selectedModel': value });
+}
+
+// 更新选中的模型显示（改进）
+function updateSelectedModel(value) {
+  const model = allModels.find(m => m.value === value);
+  if (model) {
+    const searchInput = document.getElementById('model-search');
+    searchInput.value = model.name;
+  }
+}
+
+// 显示下拉
+function showDropdown() {
+  const dropdown = document.getElementById('model-dropdown');
+  dropdown.style.display = 'block';
+}
+
+// 隐藏下拉
+function hideDropdown() {
+  const dropdown = document.getElementById('model-dropdown');
+  dropdown.style.display = 'none';
+}
+
+// 获取当前选中的模型（用于替换原来的model-selection.value调用）
+function getSelectedModel() {
+  return selectedModel;
 }
 
 // 提示词模式选择逻辑
@@ -499,8 +671,8 @@ function getPageTitle() {
  * 更新模型选择列表
  */
 function updateModelSelection(globalModels) {
-  const modelSelection = document.getElementById('model-selection');
-  modelSelection.innerHTML = '';
+  // 清空全局模型数组
+  allModels = [];
 
   // 获取免费过滤设置
   const showFreeOnly = localStorage.getItem('openrouter-free-only') === 'true';
@@ -518,25 +690,28 @@ function updateModelSelection(globalModels) {
         filteredModels = models.filter(m => m.value.includes(':free'));
       }
 
-      // 创建分组
-      const group = document.createElement('optgroup');
-      group.label = providerDisplayName[provider] || provider.toUpperCase();
-
+      // 将模型添加到全局数组
       filteredModels.forEach(model => {
-        const option = document.createElement('option');
-        option.value = model.value;
-        option.textContent = model.value;
-        group.appendChild(option);
+        const displayName = `${providerDisplayName[provider] || provider.toUpperCase()} - ${model.value}`;
+        allModels.push({
+          value: model.value,
+          name: displayName,
+          provider: provider
+        });
       });
-
-      modelSelection.appendChild(group);
     }
   });
+
+  // 初始化搜索下拉框
+  if (allModels.length > 0) {
+    filterAndDisplayModels('');
+  }
 
   // 恢复之前选择的模型
   chrome.storage.local.get(['selectedModel'], function (result) {
     if (result.selectedModel) {
-      modelSelection.value = result.selectedModel;
+      selectedModel = result.selectedModel;
+      updateSelectedModel(result.selectedModel);
     }
   });
 }
@@ -725,8 +900,7 @@ function initResultPage() {
   // 摘要逻辑
   var summaryButton = document.querySelector('#my-extension-summary-btn');
   summaryButton.addEventListener('click', async function () {
-    const modelSelection = document.getElementById('model-selection');
-    const model = modelSelection.value;
+    const model = getSelectedModel();
     const apiKeyValid = await verifyApiKeyConfigured(model);
     if (!apiKeyValid) {
       return;
@@ -792,8 +966,7 @@ function initResultPage() {
   // 网页翻译
   var translateButton = document.querySelector('#my-extension-translate-btn');
   translateButton.addEventListener('click', async function () {
-    const modelSelection = document.getElementById('model-selection');
-    const model = modelSelection.value;
+    const model = getSelectedModel();
     const apiKeyValid = await verifyApiKeyConfigured(model);
     if (!apiKeyValid) {
       return;
@@ -859,8 +1032,7 @@ function initResultPage() {
     // 隐藏对话框
     pdfPathDialog.style.display = 'none';
 
-    const modelSelection = document.getElementById('model-selection');
-    const model = modelSelection.value;
+    const model = getSelectedModel();
     const apiKeyValid = await verifyApiKeyConfigured(model);
     if (!apiKeyValid) {
       return;
@@ -903,8 +1075,7 @@ function initResultPage() {
       return;
     }
 
-    const modelSelection = document.getElementById('model-selection');
-    const model = modelSelection.value;
+    const model = getSelectedModel();
     const apiKeyValid = await verifyApiKeyConfigured(model);
     if (!apiKeyValid) {
       return;
@@ -1098,8 +1269,7 @@ function initResultPage() {
   var submitButton = document.getElementById('my-extension-submit-btn');
   if (submitButton) {
     submitButton.addEventListener('click', async function () {
-      const modelSelection = document.getElementById('model-selection');
-      const model = modelSelection.value;
+      const model = getSelectedModel();
       const apiKeyValid = await verifyApiKeyConfigured(model);
       if (!apiKeyValid) {
         return;
@@ -1224,8 +1394,7 @@ function initResultPage() {
   var webSearchBtn = document.querySelector('#web-search-label');
   if (webSearchBtn) {
     webSearchBtn.addEventListener('click', async function () {
-      const modelSelection = document.getElementById('model-selection');
-      const model = modelSelection.value;
+      const model = getSelectedModel();
 
       // 检查是否支持联网搜索
       if (model.includes(PROVIDERS.GEMINI) && !GEMINI_SEARCH_MODELS.includes(model)) {

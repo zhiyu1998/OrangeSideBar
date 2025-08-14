@@ -30,6 +30,7 @@ body,
   --text-secondary: #374151;
   --border-color: #d1d5db;
   --accent-color: #3b82f6;
+  --accent-color-alpha: rgba(59, 130, 246, 0.2);
   --hover-color: #60a5fa;
   --scrollbar-track: #f3f4f6;
   --scrollbar-thumb: #d1d5db;
@@ -45,6 +46,7 @@ body,
   --text-secondary: #e5e7eb;
   --border-color: #4b5563;
   --accent-color: #F6B352;
+  --accent-color-alpha: rgba(246, 179, 82, 0.2);
   --hover-color: #f8c883;
   --scrollbar-track: #1f2937;
   --scrollbar-thumb: #374151;
@@ -432,11 +434,142 @@ body,
   border-top: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
   height: 42px;
+  overflow: visible;
 }
 
 .navigation-bar > div {
   margin-right: 12px;
   position: relative;
+  overflow: visible;
+}
+
+/* 模型搜索组件样式 */
+.model-selection-wrapper {
+  position: relative;
+  width: 170px;
+  z-index: 100000;
+}
+
+.model-search {
+  height: 30px;
+  padding: 0 40px 0 10px;
+  font-size: 13px;
+  width: 100%;
+  border-radius: 6px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  outline: none;
+  transition: all 0.2s ease;
+  cursor: text;
+  box-sizing: border-box;
+}
+
+.model-search:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-color-alpha);
+  transform: translateY(-1px);
+}
+
+.model-search::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.model-search-icon {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.model-dropdown-arrow {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.model-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 999999999;
+  display: none;
+  margin-bottom: 2px;
+}
+
+.model-group-title {
+  padding: 8px 12px 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-color);
+  background-color: var(--bg-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 999999998;
+}
+
+.model-option {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.15s ease;
+}
+
+.model-option:last-child {
+  border-bottom: none;
+}
+
+.model-option:hover,
+.model-option.active {
+  background-color: var(--bg-tertiary);
+  color: var(--accent-color);
+}
+
+.model-no-results {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* 滚动条样式 */
+.model-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.model-dropdown::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 3px;
+}
+
+.model-dropdown::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.model-dropdown::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
 #model-selection {
