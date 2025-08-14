@@ -611,5 +611,6 @@ const QWEN_MODEL_MAPPINGS = {
 // 支持思考过程展示的模型列表
 const THINKING_PROCESS_MODELS = [
   'DeepSeek-R1',
-  'deepseek-reasoner'
+  'deepseek-reasoner',
+  'glm-4.5'
 ];
