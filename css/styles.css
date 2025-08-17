@@ -333,10 +333,28 @@ body,
 }
 
 .my-extension-slogan {
-  font-size: 20px;
-  margin-top: 20px;
-  margin-left: 10px;
-  color: var(--accent-color)
+  font-size: 18px;
+  margin: 30px 10px 15px 10px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.3px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.my-extension-slogan b {
+  color: var(--accent-color);
+  font-size: 32px;
+  font-weight: 800;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  display: block;
+  margin-bottom: 2px;
+  background: linear-gradient(135deg, var(--accent-color), var(--hover-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .my-extension-note {
