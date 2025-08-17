@@ -234,6 +234,9 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
   } else if (model.includes(PROVIDERS.NVIDIA)) {
     apiUrl = `${baseUrl}${NVIDIA_MODELS_API_PATH}`;
     headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(PROVIDERS.POE)) {
+    apiUrl = `${baseUrl}${POE_MODELS_API_PATH}`;
+    headers['Authorization'] = `Bearer ${apiKey}`;
   } else {
     // 其他模型使用标准的模型列表API路径
     const modelsPath = getModelsApiPath(model);
@@ -280,6 +283,7 @@ function getModelsApiPath(model) {
   if (model.includes(PROVIDERS.QWEN)) return QWEN_MODELS_API_PATH;
   if (model.includes(PROVIDERS.MODELSCOPE)) return MODELSCOPE_MODELS_API_PATH;
   if (model.includes(PROVIDERS.NVIDIA)) return NVIDIA_MODELS_API_PATH;
+  if (model.includes(PROVIDERS.POE)) return POE_MODELS_API_PATH;
   return OPENAI_MODELS_API_PATH; // 默认返回OpenAI的路径
 }
 
@@ -352,6 +356,9 @@ async function getModelList(baseUrl, model, apiKey) {
     apiUrl += OLLAMA_LIST_MODEL_PATH;
   } else if (model.includes(PROVIDERS.NVIDIA)) {
     apiUrl += NVIDIA_MODELS_API_PATH;
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(PROVIDERS.POE)) {
+    apiUrl += POE_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
   } else {
     apiUrl += OPENAI_MODELS_API_PATH;
@@ -471,6 +478,13 @@ async function getModelList(baseUrl, model, apiKey) {
         id: `nvidia-${model.id}`,
         object: model.object || 'model',
         owned_by: model.owned_by || 'nvidia'
+      }));
+    } else if (model.includes(PROVIDERS.POE)) {
+      // Poe 格式处理 - 添加 poe- 前缀
+      return data.data.map(model => ({
+        id: `poe-${model.id}`,
+        object: model.object || 'model',
+        owned_by: model.owned_by || 'poe'
       }));
     } else {
       // 其他供应商的格式处理
@@ -721,6 +735,13 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
         id: `nvidia-${model.id}`,
         object: model.object || 'model',
         owned_by: model.owned_by || 'nvidia'
+      }));
+    } else if (model.includes(PROVIDERS.POE)) {
+      // Poe 格式处理
+      formattedModels = data.data.map(model => ({
+        id: `poe-${model.id}`,
+        object: model.object || 'model',
+        owned_by: model.owned_by || 'poe'
       }));
     } else {
       formattedModels = data.data || data.models || [];
@@ -1072,7 +1093,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterConfigurations = [
       { provider: PROVIDERS.GLM, checkboxId: 'glm-free-only-filter', storageKey: 'glm-free-only', filter: (model, isChecked) => !isChecked || GLM_FREE_MODELS.includes(model.id) },
       { provider: PROVIDERS.OPENROUTER, checkboxId: 'openrouter-free-only-filter', storageKey: 'openrouter-free-only', filter: (model, isChecked) => !isChecked || model.id.includes(':free') },
-      { provider: PROVIDERS.NVIDIA, checkboxId: 'nvidia-recommended-only-filter', storageKey: 'nvidia-recommended-only', filter: (model, isChecked) => !isChecked || NVIDIA_RECOMMENDED_MODELS.includes(model.id) }
+      { provider: PROVIDERS.NVIDIA, checkboxId: 'nvidia-recommended-only-filter', storageKey: 'nvidia-recommended-only', filter: (model, isChecked) => !isChecked || NVIDIA_RECOMMENDED_MODELS.includes(model.id) },
+      { provider: PROVIDERS.POE, checkboxId: 'poe-popular-only-filter', storageKey: 'poe-popular-only', filter: (model, isChecked) => !isChecked || POE_POPULAR_MODELS.includes(model.id) }
     ];
 
     filterConfigurations.forEach(config => {

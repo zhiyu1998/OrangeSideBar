@@ -283,6 +283,9 @@ async function chatWithLLM(model, inputText, base64Images, type) {
     } else if (provider === PROVIDERS.NVIDIA) {
       // NVIDIA 使用 OpenAI 格式
       result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
+    } else if (provider === PROVIDERS.POE) {
+      // Poe 使用 OpenAI 格式
+      result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
     } else {
       // 默认 OpenAI-compatible 实现
       result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
@@ -438,6 +441,8 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type, tools = []
     realModelName = realModelName.replace('modelscope-', '');
   } else if (modelName.startsWith('nvidia-')) {
     realModelName = realModelName.replace('nvidia-', '');
+  } else if (modelName.startsWith('poe-')) {
+    realModelName = realModelName.replace('poe-', '');
   }
 
   // 获取 modelParams 参数
