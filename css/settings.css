@@ -144,6 +144,8 @@ body {
 
 .tab-content {
   flex-grow: 1;
+  flex-basis: 0;
+  min-width: 0;
   padding: 20px;
   display: none;
   background-color: var(--bg-primary);
