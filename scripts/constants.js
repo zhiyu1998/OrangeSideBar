@@ -221,13 +221,13 @@ const MODEL_MAPPINGS = [
     prefix: ['modelscope-'],
     provider: PROVIDERS.MODELSCOPE
   },
-  
+
   // NVIDIA Models
   {
     prefix: ['nvidia-'],
     provider: PROVIDERS.NVIDIA
   },
-  
+
   // Poe Models
   {
     prefix: ['poe-'],
@@ -254,30 +254,30 @@ const POE_DEFAULT_MODEL = "gpt-3.5-turbo";
 
 // 英伟达推荐模型列表
 const NVIDIA_RECOMMENDED_MODELS = [
-    "nvidia-deepseek-ai/deepseek-r1-0528",
-    "nvidia-moonshotai/kimi-k2-instruct",
-    "nvidia-qwen/qwen3-235b-a22b"
+  "nvidia-deepseek-ai/deepseek-r1-0528",
+  "nvidia-moonshotai/kimi-k2-instruct",
+  "nvidia-qwen/qwen3-235b-a22b"
 ];
 
 // Poe热门模型列表
 const POE_POPULAR_MODELS = [
-    "poe-Claude-Opus-4.1",
-    "poe-Claude-Opus-4",
-    "poe-Claude-Sonnet-4",
-    "poe-Claude-Sonnet-3.7",
-    "poe-Claude-Sonnet-3.5",
-    "poe-Gemini-2.5-Pro",
-    "poe-Gemini-2.5-Flash",
-    "poe-Gemini-2.5-Flash-Lite-Preview",
-    "poe-GPT-5-Chat",
-    "poe-GPT-5",
-    "poe-GPT-5-mini",
-    "poe-GPT-5-nano",
-    "poe-Grok-4",
-    "poe-gpt-4o",
-    "poe-GPT-OSS-120B",
-    "poe-GPT-OSS-20B",
-    "poe-Grok-3"
+  "poe-Claude-Opus-4.1",
+  "poe-Claude-Opus-4",
+  "poe-Claude-Sonnet-4",
+  "poe-Claude-Sonnet-3.7",
+  "poe-Claude-Sonnet-3.5",
+  "poe-Gemini-2.5-Pro",
+  "poe-Gemini-2.5-Flash",
+  "poe-Gemini-2.5-Flash-Lite-Preview",
+  "poe-GPT-5-Chat",
+  "poe-GPT-5",
+  "poe-GPT-5-mini",
+  "poe-GPT-5-nano",
+  "poe-Grok-4",
+  "poe-gpt-4o",
+  "poe-GPT-OSS-120B",
+  "poe-GPT-OSS-20B",
+  "poe-Grok-3"
 ];
 
 // 支持任意文件类型的模型
@@ -648,5 +648,6 @@ const THINKING_PROCESS_MODELS = [
   'DeepSeek-R1',
   'deepseek-reasoner',
   'glm-4.5',
-  'gemini-2.5-pro'
+  'gemini-2.5-pro',
+  'gemini-2.5-flash'
 ];

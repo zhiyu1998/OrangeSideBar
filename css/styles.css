@@ -1119,12 +1119,12 @@ body,
 /* 优化思考消息框样式 */
 .ai-thinking-message {
   background-color: var(--bg-secondary);
-  border-radius: 12px;
-  margin: 16px auto;
+  border-radius: 8px;
+  margin: 10px 0;
   overflow: hidden;
   border: 1px solid var(--border-color);
-  max-width: 92%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
 }
 
@@ -1135,7 +1135,6 @@ body,
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-tertiary);
-  backdrop-filter: blur(8px);
 }
 
 .thinking-indicator {
@@ -1202,13 +1201,13 @@ body,
 }
 
 .thinking-content {
-  padding: 16px;
+  padding: 12px 16px;
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.6;
   max-height: 200px;
   overflow-y: auto;
-  background-color: var(--bg-primary);
+  background-color: var(--bg-secondary);
   font-family: 'Consolas', monospace;
   transition: all 0.3s ease;
 }
@@ -1327,26 +1326,25 @@ body,
     color: white;
 }
 
-/* Gemini 思考过程特殊样式 - 擦玻璃式动画 */
+/* Gemini 思考过程特殊样式 - 简化设计 */
 .ai-thinking-message.gemini-thinking {
-  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.2);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .ai-thinking-message.gemini-thinking .thinking-content {
   font-family: 'SF Pro Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  line-height: 1.7;
-  padding: 20px;
+  line-height: 1.6;
+  padding: 12px 16px;
   background: transparent;
 }
 
 /* Gemini 思考内容的结构化显示 */
 .gemini-thinking-section {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   border-left: 3px solid var(--accent-color);
-  padding-left: 16px;
+  padding-left: 12px;
   position: relative;
 }
 
@@ -1420,7 +1418,7 @@ body,
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.6;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 /* 减少动画的系统偏好支持 */
