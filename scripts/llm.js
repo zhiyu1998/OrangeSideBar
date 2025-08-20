@@ -580,7 +580,7 @@ async function chatWithGemini(baseUrl, model, type, tools = [], systemPrompt = S
     // 如果是 Gemini-2.5 系列，添加 thinkingConfig (如果未显式禁用)
     if (model.includes('gemini-2.5')) {
       requestBody.generationConfig.thinkingConfig = {
-        thinkingBudget: adjustedMaxTokens // 使用相同的 token 限制作为思考预算
+        includeThoughts: true
       };
     }
 
@@ -589,6 +589,60 @@ async function chatWithGemini(baseUrl, model, type, tools = [], systemPrompt = S
       requestBody.tools = [{
         googleSearch: {}
       }];
+    }
+
+    // 检查是否是思考模型，如果是则创建思考过程UI
+    let thinkingDiv = null;
+    const isThinkingModel = THINKING_PROCESS_MODELS.some(thinkingModel =>
+      model.toLowerCase().includes(thinkingModel.toLowerCase())
+    );
+
+    if (isThinkingModel) {
+      // 创建思考过程的对话框，放在最新的 AI 回答之前
+      const contentDiv = document.querySelector('.chat-content');
+      const lastDiv = contentDiv.lastElementChild;
+      thinkingDiv = document.createElement('div');
+      thinkingDiv.className = 'ai-thinking-message';
+      thinkingDiv.innerHTML = `
+        <div class="thinking-header">
+          <div class="thinking-indicator">
+            <div class="thinking-spinner"></div>
+            <span>AI 思考中...</span>
+            <span class="thinking-time"></span>
+          </div>
+          <button class="thinking-toggle expanded">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+        <div class="thinking-content" style="display: block;"></div>
+      `;
+      contentDiv.insertBefore(thinkingDiv, lastDiv);
+
+      // 初始化开始时间和启动定时器
+      thinkingDiv.dataset.startTime = Date.now();
+      const timerId = setInterval(() => {
+        if (thinkingDiv.dataset.startTime) {
+          const startTime = parseInt(thinkingDiv.dataset.startTime);
+          const elapsedTime = (Date.now() - startTime) / 1000;
+          const timeSpan = thinkingDiv.querySelector('.thinking-time');
+          if (timeSpan) {
+            timeSpan.textContent = ` (${elapsedTime.toFixed(1)}s)`;
+          }
+        } else {
+          clearInterval(timerId);
+        }
+      }, 100);
+
+      // 添加点击事件处理
+      const toggleBtn = thinkingDiv.querySelector('.thinking-toggle');
+      const thinkingContent = thinkingDiv.querySelector('.thinking-content');
+      toggleBtn.addEventListener('click', () => {
+        const isHidden = thinkingContent.style.display === 'none';
+        thinkingContent.style.display = isHidden ? 'block' : 'none';
+        toggleBtn.classList.toggle('expanded');
+      });
     }
 
     const response = await fetch(baseUrl, {
@@ -615,7 +669,7 @@ async function chatWithGemini(baseUrl, model, type, tools = [], systemPrompt = S
       buffer += decoder.decode(value, { stream: true });
 
       // 处理返回的数据
-      const result = await processGeminiResponse(buffer, model, hasWebSearch);
+      const result = await processGeminiResponse(buffer, model, hasWebSearch, thinkingDiv);
       completeText = result.text;
       buffer = result.remainingBuffer;
 
@@ -654,8 +708,9 @@ async function chatWithGemini(baseUrl, model, type, tools = [], systemPrompt = S
 /**
  * 处理Gemini响应数据
  */
-async function processGeminiResponse(buffer, model, hasWebSearch) {
+async function processGeminiResponse(buffer, model, hasWebSearch, thinkingDiv = null) {
   let text = '';
+  let thinkingText = '';
   let remainingBuffer = buffer;
 
   try {
@@ -669,7 +724,59 @@ async function processGeminiResponse(buffer, model, hasWebSearch) {
           // 提取文本内容
           const content = data.candidates?.[0]?.content;
           if (content?.parts) {
-            text += content.parts.map(part => part.text || '').join('');
+            content.parts.forEach(part => {
+              if (part.text) {
+                if (part.thought) {
+                  // 这是思考内容
+                  thinkingText += part.text;
+                  
+                  // 更新思考过程UI
+                  if (thinkingDiv) {
+                    const thinkingContent = thinkingDiv.querySelector('.thinking-content');
+                    if (thinkingContent) {
+                      thinkingContent.innerHTML = marked.parse(thinkingText);
+                      
+                      // 确保思考内容区域滚动到最新内容
+                      thinkingContent.scrollTop = thinkingContent.scrollHeight;
+                    }
+                  }
+                } else {
+                  // 这是正常回答内容
+                  text += part.text;
+                  
+                  // 如果开始输出正常内容，说明思考完成
+                  if (thinkingDiv && part.text && thinkingText) {
+                    // 更新思考状态图标
+                    const spinner = thinkingDiv.querySelector('.thinking-spinner');
+                    if (spinner) {
+                      spinner.classList.add('thinking-complete');
+                    }
+
+                    // 清除开始时间，停止计时器更新
+                    if (thinkingDiv.dataset.startTime) {
+                      const startTime = parseInt(thinkingDiv.dataset.startTime);
+                      const elapsedTime = (Date.now() - startTime) / 1000;
+                      
+                      // 更新状态文本
+                      const statusText = thinkingDiv.querySelector('.thinking-indicator span');
+                      if (statusText) {
+                        statusText.textContent = `思考完成 (${elapsedTime.toFixed(1)}s)`;
+                      }
+                      
+                      delete thinkingDiv.dataset.startTime;
+                    }
+
+                    // 收起思考内容
+                    const thinkingContent = thinkingDiv.querySelector('.thinking-content');
+                    const toggleBtn = thinkingDiv.querySelector('.thinking-toggle');
+                    if (thinkingContent && toggleBtn) {
+                      thinkingContent.style.display = 'none';
+                      toggleBtn.classList.remove('expanded');
+                    }
+                  }
+                }
+              }
+            });
           }
 
 

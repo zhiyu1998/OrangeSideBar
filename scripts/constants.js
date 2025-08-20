@@ -647,5 +647,6 @@ const QWEN_MODEL_MAPPINGS = {
 const THINKING_PROCESS_MODELS = [
   'DeepSeek-R1',
   'deepseek-reasoner',
-  'glm-4.5'
+  'glm-4.5',
+  'gemini-2.5-pro'
 ];
