@@ -15,7 +15,7 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 
 > 等待测试完成后会发布 Chrome 商店
 
-1. 从 `Release` 下载最新的插件
+1. 从 `Release` 下载最新的插件（从`1.4.6`开始可以直接下载`crx`文件）
 
 > https://github.com/zhiyu1998/OrangeSideBar/releases
 
