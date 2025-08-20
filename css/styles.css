@@ -1326,3 +1326,112 @@ body,
     background-color: #4CAF50;
     color: white;
 }
+
+/* Gemini 思考过程特殊样式 - 擦玻璃式动画 */
+.ai-thinking-message.gemini-thinking {
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+.ai-thinking-message.gemini-thinking .thinking-content {
+  font-family: 'SF Pro Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  line-height: 1.7;
+  padding: 20px;
+  background: transparent;
+}
+
+/* Gemini 思考内容的结构化显示 */
+.gemini-thinking-section {
+  margin-bottom: 24px;
+  border-left: 3px solid var(--accent-color);
+  padding-left: 16px;
+  position: relative;
+}
+
+.gemini-thinking-section:last-child {
+  margin-bottom: 0;
+}
+
+.gemini-thinking-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  position: relative;
+  display: inline-block;
+}
+
+/* 擦玻璃式文字高光效果 */
+.shimmer-text {
+  position: relative;
+  display: inline-block;
+  color: var(--text-primary);
+  font-weight: 600;
+  isolation: isolate;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 核心：一条竖向的亮带，从左至右扫过，使用 screen 混合只"提亮"文字 */
+.shimmer-text::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -50%;                       /* 从更远的左侧开始 */
+  width: 50%;                       /* 增加高光带宽度 */
+  pointer-events: none;
+  
+  /* 窄竖条 + 柔和边缘 */
+  background-image: linear-gradient(90deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0) 20%,
+    rgba(255,255,255,0.7) 50%,
+    rgba(255,255,255,0) 80%,
+    rgba(255,255,255,0) 100%);
+  filter: blur(0.5px);
+  
+  mix-blend-mode: screen;
+  will-change: transform;
+  animation: shimmer 3.5s linear infinite;
+}
+
+/* 通过停顿比例实现"划一下再停"的节奏（更像擦拭）*/
+@keyframes shimmer {
+  0%   { transform: translateX(0); }
+  /* 划过完成（用 65% 的时间做运动）*/
+  65%  { transform: translateX(250%); }
+  100% { transform: translateX(250%); }
+}
+
+/* 暗色主题下的特殊调整 */
+:root[data-theme="dark"] .shimmer-text::after {
+  background-image: linear-gradient(90deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0) 20%,
+    rgba(255,255,255,0.5) 50%,
+    rgba(255,255,255,0) 80%,
+    rgba(255,255,255,0) 100%);
+}
+
+.gemini-thinking-content {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+/* 减少动画的系统偏好支持 */
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-text::after { 
+    animation: none; 
+  }
+}
+
+/* Gemini 思考完成状态的特殊样式 */
+.ai-thinking-message.gemini-thinking .thinking-spinner.thinking-complete::before {
+  content: '🔮';
+  font-size: 16px;
+}

@@ -603,6 +603,12 @@ async function chatWithGemini(baseUrl, model, type, tools = [], systemPrompt = S
       const lastDiv = contentDiv.lastElementChild;
       thinkingDiv = document.createElement('div');
       thinkingDiv.className = 'ai-thinking-message';
+      
+      // 如果是 Gemini 模型，添加特殊样式类
+      if (model.includes('gemini-2.5')) {
+        thinkingDiv.classList.add('gemini-thinking');
+      }
+      
       thinkingDiv.innerHTML = `
         <div class="thinking-header">
           <div class="thinking-indicator">
@@ -706,6 +712,46 @@ async function chatWithGemini(baseUrl, model, type, tools = [], systemPrompt = S
 }
 
 /**
+ * 格式化 Gemini 的思考内容，实现结构化显示和 shimmer 效果
+ */
+function formatGeminiThinking(thinkingText) {
+  // 将思考内容按段落分割
+  const paragraphs = thinkingText.split('\n\n').filter(p => p.trim());
+  
+  let formattedHtml = '';
+  
+  paragraphs.forEach((paragraph, index) => {
+    const lines = paragraph.split('\n').map(line => line.trim()).filter(line => line);
+    
+    if (lines.length > 0) {
+      // 第一行作为标题，其余作为内容
+      const title = lines[0];
+      const content = lines.slice(1).join(' ');
+      
+      formattedHtml += `
+        <div class="gemini-thinking-section">
+          <div class="gemini-thinking-title">
+            <span class="shimmer-text">${escapeHtml(title)}</span>
+          </div>
+          ${content ? `<div class="gemini-thinking-content">${escapeHtml(content)}</div>` : ''}
+        </div>
+      `;
+    }
+  });
+  
+  return formattedHtml || `<div class="gemini-thinking-section"><div class="gemini-thinking-title"><span class="shimmer-text">${escapeHtml(thinkingText)}</span></div></div>`;
+}
+
+/**
+ * HTML 转义函数
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
  * 处理Gemini响应数据
  */
 async function processGeminiResponse(buffer, model, hasWebSearch, thinkingDiv = null) {
@@ -728,13 +774,27 @@ async function processGeminiResponse(buffer, model, hasWebSearch, thinkingDiv = 
               if (part.text) {
                 if (part.thought) {
                   // 这是思考内容
-                  thinkingText += part.text;
+                  // 检查是否为 Gemini 模型：Gemini 使用替换模式，其他模型使用追加模式
+                  const isGeminiModel = thinkingDiv && thinkingDiv.classList.contains('gemini-thinking');
+                  
+                  if (isGeminiModel) {
+                    // Gemini 模型：直接使用新内容替换
+                    thinkingText = part.text;
+                  } else {
+                    // 其他模型：追加模式
+                    thinkingText += part.text;
+                  }
                   
                   // 更新思考过程UI
                   if (thinkingDiv) {
                     const thinkingContent = thinkingDiv.querySelector('.thinking-content');
                     if (thinkingContent) {
-                      thinkingContent.innerHTML = marked.parse(thinkingText);
+                      // 检查是否为 Gemini 模型，使用特殊的格式化
+                      if (isGeminiModel) {
+                        thinkingContent.innerHTML = formatGeminiThinking(thinkingText);
+                      } else {
+                        thinkingContent.innerHTML = marked.parse(thinkingText);
+                      }
                       
                       // 确保思考内容区域滚动到最新内容
                       thinkingContent.scrollTop = thinkingContent.scrollHeight;
