@@ -13,14 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-
-      - name: Install dependencies
-        run: npm install
-
       - name: Pack extension directory
         id: packExtensionDir
         uses: cardinalby/webext-buildtools-pack-extension-dir-action@v1
