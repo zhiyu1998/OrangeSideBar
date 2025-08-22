@@ -1584,6 +1584,9 @@ async function chatWithLLM(model, inputText, base64Images, type, tools = [], cus
   } else if (model.includes(PROVIDERS.NVIDIA)) {
     // NVIDIA 使用 OpenAI 格式
     result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, systemPromptToUse);
+  } else if (model.includes(PROVIDERS.ANTHROPIC) || model.startsWith('claude-')) {
+    // Anthropic Claude 使用专门的消息格式
+    result = await chatWithAnthropic(baseUrl, apiKey, model, type, tools, systemPromptToUse);
   } else {
     result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, systemPromptToUse);
   }

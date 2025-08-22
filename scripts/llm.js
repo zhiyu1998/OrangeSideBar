@@ -1278,6 +1278,12 @@ async function parseAndUpdateChatContent(response, modelName, type) {
             });
           } else if (modelName.includes(PROVIDERS.OLLAMA)) {
             content = jsonData.message.content;
+          } else if (modelName.includes(PROVIDERS.ANTHROPIC) || modelName.startsWith('claude-')) {
+            // Anthropic Claude 响应格式处理
+            if (jsonData.type === 'content_block_delta' && jsonData.delta && jsonData.delta.text) {
+              content = jsonData.delta.text;
+            }
+            // 注意：Anthropic 的工具调用格式与 OpenAI 不同，可能需要单独处理
           } else {
             jsonData.choices.forEach(choice => {
               const delta = choice.delta;
@@ -1475,7 +1481,7 @@ async function chatWithAnthropic(baseUrl, apiKey, modelName, type, tools = [], s
     // 构建 Anthropic 消息格式
     const messages = [];
     
-    // 从对话历史中提取用户和助手消息（跳过系统消息）
+    // 从对话历史中提取用户和助手消息（跳过系统消息！）
     const userMessages = dialogueHistory.filter(msg => msg.role !== 'system');
     
     // 转换消息格式为 Anthropic 格式
@@ -1512,18 +1518,18 @@ async function chatWithAnthropic(baseUrl, apiKey, modelName, type, tools = [], s
         });
       } else if (msg.role === 'assistant') {
         messages.push({
-          role: "assistant",
-          content: msg.content
+          role: "assistant", 
+          content: [{ type: "text", text: msg.content }]
         });
       }
     }
 
-    // 构建请求体
+    // 构建请求体 - 注意 system 是顶级参数！
     const requestBody = {
       model: modelName,
       max_tokens: 4000,
-      messages: messages,
-      system: systemPrompt,
+      messages: messages,  // 只包含 user 和 assistant 消息
+      system: systemPrompt,  // 系统提示作为顶级参数
       stream: true
     };
 
@@ -1542,79 +1548,24 @@ async function chatWithAnthropic(baseUrl, apiKey, modelName, type, tools = [], s
       'anthropic-version': '2023-06-01'
     };
 
-    // 发起请求
-    const response = await fetch(baseUrl, {
+    const params = {
       method: 'POST',
       headers: headers,
       body: JSON.stringify(requestBody),
       signal: currentController.signal
-    });
+    };
 
+    // 发起请求并使用统一的响应处理函数
+    const response = await fetch(baseUrl, params);
+    
     if (!response.ok) {
       const errorData = await response.text();
       console.error('Anthropic API Error:', errorData);
       throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
     }
 
-    // 处理流式响应
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let completeText = '';
-    let buffer = '';
-
-    // 开始流式输出
-    startStreamUI();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          
-          if (data === '[DONE]') {
-            break;
-          }
-
-          try {
-            const parsed = JSON.parse(data);
-            
-            // Anthropic 返回格式：{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}
-            if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.text) {
-              const chunk = parsed.delta.text;
-              completeText += chunk;
-              await updateStreamOutput(chunk);
-            }
-          } catch (parseError) {
-            console.warn('Failed to parse SSE data:', data);
-          }
-        }
-      }
-    }
-
-    // 结束流式输出
-    endStreamUI();
-
-    // 添加助手回复到对话历史
-    const assistantReply = { role: "assistant", content: completeText };
-    dialogueHistory.push(assistantReply);
-    
-    // 对于 Gemini 格式的历史记录（如果需要兼容）
-    const geminiAssistantReply = {
-      role: "model",
-      parts: [{ text: completeText }]
-    };
-    geminiDialogueHistory.push(geminiAssistantReply);
-
-    return {
-      completeText: completeText,
-      tools: [] // Anthropic 的工具调用处理可能需要单独实现
-    };
+    // 使用统一的解析函数处理响应
+    return await parseAndUpdateChatContent(response, modelName, type);
 
   } catch (error) {
     console.error('Error in chatWithAnthropic:', error);
