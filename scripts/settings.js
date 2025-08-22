@@ -237,11 +237,15 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
   } else if (model.includes(PROVIDERS.POE)) {
     apiUrl = `${baseUrl}${POE_MODELS_API_PATH}`;
     headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(PROVIDERS.ANTHROPIC)) {
+    apiUrl = `${baseUrl}${ANTHROPIC_MODELS_API_PATH}`;
+    headers['x-api-key'] = apiKey;
+    headers['anthropic-version'] = '2023-06-01';
   } else {
     // 其他模型使用标准的模型列表API路径
     const modelsPath = getModelsApiPath(model);
     apiUrl = `${baseUrl}${modelsPath}`;
-    if (!model.includes(PROVIDERS.GEMINI)) {
+    if (!model.includes(PROVIDERS.GEMINI) && !model.includes(PROVIDERS.ANTHROPIC)) {
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
   }
@@ -284,6 +288,7 @@ function getModelsApiPath(model) {
   if (model.includes(PROVIDERS.MODELSCOPE)) return MODELSCOPE_MODELS_API_PATH;
   if (model.includes(PROVIDERS.NVIDIA)) return NVIDIA_MODELS_API_PATH;
   if (model.includes(PROVIDERS.POE)) return POE_MODELS_API_PATH;
+  if (model.includes(PROVIDERS.ANTHROPIC)) return ANTHROPIC_MODELS_API_PATH;
   return OPENAI_MODELS_API_PATH; // 默认返回OpenAI的路径
 }
 

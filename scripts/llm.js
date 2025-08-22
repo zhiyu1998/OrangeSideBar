@@ -194,6 +194,25 @@ function createRequestParams(additionalHeaders, body) {
 }
 
 /**
+ * 根据模型名称获取供应商
+ * @param {string} model - 模型名称
+ * @returns {string} - 供应商标识
+ */
+function getProviderFromModel(model) {
+  // 检查模型映射
+  const mapping = MODEL_MAPPINGS.find(m => 
+    m.prefix.some(p => model.startsWith(p))
+  );
+  
+  if (mapping) {
+    return mapping.provider;
+  }
+  
+  // 默认返回 GPT 供应商
+  return PROVIDERS.GPT;
+}
+
+/**
  * call llm
  * @param {string} model
  * @param {string} inputText
@@ -218,7 +237,7 @@ async function chatWithLLM(model, inputText, base64Images, type) {
   const promptToUse = systemPrompt || SYSTEM_PROMPT;
 
   // Get provider from model name
-  const provider = getProviderDisplayName(model);
+  const provider = getProviderFromModel(model);
 
   // Get base URL and API key
   const { baseUrl, apiKey } = await getBaseUrlAndApiKey(model);
@@ -286,6 +305,9 @@ async function chatWithLLM(model, inputText, base64Images, type) {
     } else if (provider === PROVIDERS.POE) {
       // Poe 使用 OpenAI 格式
       result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
+    } else if (provider === PROVIDERS.ANTHROPIC) {
+      // Anthropic Claude 使用专门的消息格式
+      result = await chatWithAnthropic(baseUrl, apiKey, model, type, tools, promptWithTime);
     } else {
       // 默认 OpenAI-compatible 实现
       result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
@@ -1436,4 +1458,173 @@ async function callSerpAPI(query) {
     answerBox: answerBox,
     organicResults: organicResults
   };
+}
+
+/**
+ * Anthropic Claude API 调用函数
+ * @param {string} baseUrl - API 基础 URL
+ * @param {string} apiKey - API 密钥
+ * @param {string} modelName - 模型名称
+ * @param {string} type - 请求类型
+ * @param {Array} tools - 工具列表
+ * @param {string} systemPrompt - 系统提示
+ * @returns {Promise} API 响应
+ */
+async function chatWithAnthropic(baseUrl, apiKey, modelName, type, tools = [], systemPrompt = SYSTEM_PROMPT) {
+  try {
+    // 构建 Anthropic 消息格式
+    const messages = [];
+    
+    // 从对话历史中提取用户和助手消息（跳过系统消息）
+    const userMessages = dialogueHistory.filter(msg => msg.role !== 'system');
+    
+    // 转换消息格式为 Anthropic 格式
+    for (const msg of userMessages) {
+      if (msg.role === 'user') {
+        const content = [];
+        
+        // 添加文本内容
+        if (msg.content && typeof msg.content === 'string') {
+          content.push({
+            type: "text",
+            text: msg.content
+          });
+        }
+        
+        // 添加图片内容（如果有）
+        if (msg.images && msg.images.length > 0) {
+          for (const image of msg.images) {
+            const { mimeType, data } = parseBase64Image(image);
+            content.push({
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mimeType,
+                data: data
+              }
+            });
+          }
+        }
+        
+        messages.push({
+          role: "user",
+          content: content
+        });
+      } else if (msg.role === 'assistant') {
+        messages.push({
+          role: "assistant",
+          content: msg.content
+        });
+      }
+    }
+
+    // 构建请求体
+    const requestBody = {
+      model: modelName,
+      max_tokens: 4000,
+      messages: messages,
+      system: systemPrompt,
+      stream: true
+    };
+
+    // 如果有工具，添加到请求中（Anthropic 的工具格式可能需要调整）
+    if (tools && tools.length > 0) {
+      // 注意：Anthropic 的工具格式与 OpenAI 不同，这里可能需要进一步调整
+      requestBody.tools = tools;
+    }
+
+    // 创建 AbortController 用于取消请求
+    currentController = new AbortController();
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    };
+
+    // 发起请求
+    const response = await fetch(baseUrl, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestBody),
+      signal: currentController.signal
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Anthropic API Error:', errorData);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
+    }
+
+    // 处理流式响应
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let completeText = '';
+    let buffer = '';
+
+    // 开始流式输出
+    startStreamUI();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          
+          if (data === '[DONE]') {
+            break;
+          }
+
+          try {
+            const parsed = JSON.parse(data);
+            
+            // Anthropic 返回格式：{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}
+            if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.text) {
+              const chunk = parsed.delta.text;
+              completeText += chunk;
+              await updateStreamOutput(chunk);
+            }
+          } catch (parseError) {
+            console.warn('Failed to parse SSE data:', data);
+          }
+        }
+      }
+    }
+
+    // 结束流式输出
+    endStreamUI();
+
+    // 添加助手回复到对话历史
+    const assistantReply = { role: "assistant", content: completeText };
+    dialogueHistory.push(assistantReply);
+    
+    // 对于 Gemini 格式的历史记录（如果需要兼容）
+    const geminiAssistantReply = {
+      role: "model",
+      parts: [{ text: completeText }]
+    };
+    geminiDialogueHistory.push(geminiAssistantReply);
+
+    return {
+      completeText: completeText,
+      tools: [] // Anthropic 的工具调用处理可能需要单独实现
+    };
+
+  } catch (error) {
+    console.error('Error in chatWithAnthropic:', error);
+    
+    if (error.name === 'AbortError') {
+      throw new Error('请求已取消');
+    }
+    
+    throw error;
+  } finally {
+    currentController = null;
+  }
 }

@@ -76,6 +76,9 @@ const NVIDIA_CHAT_API_PATH = "/v1/chat/completions";
 const POE_BASE_URL = "https://api.poe.com";
 const POE_CHAT_API_PATH = "/v1/chat/completions";
 
+const ANTHROPIC_BASE_URL = "https://api.anthropic.com";
+const ANTHROPIC_CHAT_API_PATH = "/v1/messages";
+
 // 获取模型列表的API路径
 const OPENAI_MODELS_API_PATH = "/v1/models";
 const AZURE_MODELS_API_PATH = "/openai/models?api-version=2024-04-01-preview";
@@ -90,6 +93,7 @@ const OPENROUTER_MODELS_API_PATH = "/v1/models";
 const MODELSCOPE_MODELS_API_PATH = "/v1/models";
 const NVIDIA_MODELS_API_PATH = "/v1/models";
 const POE_MODELS_API_PATH = "/v1/models";
+const ANTHROPIC_MODELS_API_PATH = "/v1/models";
 
 // 添加供应商相关常量
 const PROVIDERS = {
@@ -232,6 +236,12 @@ const MODEL_MAPPINGS = [
   {
     prefix: ['poe-'],
     provider: PROVIDERS.POE
+  },
+
+  // Anthropic Claude Models
+  {
+    prefix: ['claude-'],
+    provider: PROVIDERS.ANTHROPIC
   }
 ];
 
@@ -251,6 +261,7 @@ const QWEN_DEFAULT_MODEL = "Qwen2.5-Turbo";
 const MODELSCOPE_DEFAULT_MODEL = "modelscope-qwen/Qwen2.5-7B-Instruct";
 const NVIDIA_DEFAULT_MODEL = "meta/llama-3.2-1b-instruct";
 const POE_DEFAULT_MODEL = "gpt-3.5-turbo";
+const ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-4-20250514";
 
 // 英伟达推荐模型列表
 const NVIDIA_RECOMMENDED_MODELS = [
@@ -324,7 +335,7 @@ const DEFAULT_LLM_URLS = [
   { key: PROVIDERS.DEEPSEEK, baseUrl: DEEPSEEK_BASE_URL, apiPath: DEEPSEEK_CHAT_API_PATH, defaultModel: DEEPSEEK_DEFAULT_MODEL },
   { key: PROVIDERS.GITHUB, baseUrl: GITHUB_BASE_URL, apiPath: GITHUB_CHAT_API_PATH, defaultModel: GITHUB_DEFAULT_MODEL },
   { key: PROVIDERS.QWEN, baseUrl: QWEN_BASE_URL, apiPath: QWEN_CHAT_API_PATH, defaultModel: QWEN_DEFAULT_MODEL },
-  { key: PROVIDERS.CLAUDE, baseUrl: OPENAI_BASE_URL, apiPath: OPENAI_CHAT_API_PATH, defaultModel: 'claude-3-opus-20240229' },
+  { key: PROVIDERS.ANTHROPIC, baseUrl: ANTHROPIC_BASE_URL, apiPath: ANTHROPIC_CHAT_API_PATH, defaultModel: ANTHROPIC_DEFAULT_MODEL },
   { key: PROVIDERS.GEMINI, baseUrl: GEMINI_BASE_URL, apiPath: GEMINI_CHA_API_PATH, defaultModel: GEMINI_DEFAULT_MODEL },
   { key: PROVIDERS.GROQ, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL },
   { key: PROVIDERS.GROK, baseUrl: GROK_BASE_URL, apiPath: GROK_CHAT_API_PATH, defaultModel: GROK_DEFAULT_MODEL },
