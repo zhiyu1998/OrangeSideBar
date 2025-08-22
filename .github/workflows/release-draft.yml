@@ -33,24 +33,62 @@ jobs:
             let draftRelease = releases.data.find(r => r.draft);
 
             if (!draftRelease) {
+              // 获取最新的published release来生成changelog和contributors
+              const sortedReleases = releases.data.filter(r => !r.draft).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+              const previousTag = sortedReleases.length > 0 ? sortedReleases[0].tag_name : null;
+              
+              let changelogContent = '';
+              let contributorsContent = '';
+              
+              if (previousTag) {
+                // 生成Full Changelog链接
+                changelogContent = `\n\n**Full Changelog**: https://github.com/${owner}/${repo}/compare/${previousTag}...HEAD`;
+                
+                // 获取contributors
+                try {
+                  const comparison = await github.rest.repos.compareCommits({
+                    owner,
+                    repo,
+                    base: previousTag,
+                    head: 'main'
+                  });
+                  
+                  const contributors = new Set();
+                  comparison.data.commits.forEach(commit => {
+                    if (commit.author && commit.author.login) {
+                      contributors.add(commit.author.login);
+                    }
+                    if (commit.committer && commit.committer.login && commit.committer.login !== 'web-flow') {
+                      contributors.add(commit.committer.login);
+                    }
+                  });
+                  
+                  if (contributors.size > 0) {
+                    contributorsContent = '\n\n**Contributors:**\n' + Array.from(contributors).map(username => `@${username}`).join(', ');
+                  }
+                } catch (error) {
+                  console.log('Could not generate contributors list:', error.message);
+                }
+              }
+              
               // 如果没有 Draft Release，则创建一个新的
               const newRelease = await github.rest.repos.createRelease({
                 owner,
                 repo,
                 tag_name: 'next-release', // 可修改为更有意义的 tag 名称
                 name: 'Next Release',    // Release 的标题
-                body: '### Changes:\n',  // 初始化描述内容
+                body: `### Changes:\n- ${commitMessage}${changelogContent}${contributorsContent}`,
                 draft: true,
               });
               draftRelease = newRelease.data;
+            } else {
+              // 更新 Draft Release 的 body
+              await github.rest.repos.updateRelease({
+                owner,
+                repo,
+                release_id: draftRelease.id,
+                body: `${draftRelease.body}\n- ${commitMessage}`,
+              });
             }
-
-            // 更新 Draft Release 的 body
-            await github.rest.repos.updateRelease({
-              owner,
-              repo,
-              release_id: draftRelease.id,
-              body: `${draftRelease.body}\n- ${commitMessage}`,
-            });
 
             console.log('Draft Release updated successfully!');
