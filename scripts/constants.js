@@ -277,6 +277,7 @@ const POE_POPULAR_MODELS = [
   "poe-Claude-Sonnet-4",
   "poe-Claude-Sonnet-3.7",
   "poe-Claude-Sonnet-3.5",
+  "poe-Claude-Haiku-3.5",
   "poe-Gemini-2.5-Pro",
   "poe-Gemini-2.5-Flash",
   "poe-Gemini-2.5-Flash-Lite-Preview",
