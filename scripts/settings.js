@@ -381,7 +381,7 @@ async function getModelList(baseUrl, model, apiKey) {
     console.log('Received models data:', data);
 
     // 处理不同的返回格式
-    } else if (model === 'gpt') {
+    if (model === 'gpt') {
       // OpenAI 格式处理
       const filteredModels = data.data
         .filter(model => {
@@ -672,7 +672,7 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
     // 处理模型数据
     let formattedModels = [];
     // TODO 如果要加一些特殊模型的处理可以在这里
-    } else if (model === 'gpt') {
+    if (model === 'gpt') {
       // 处理 OpenAI 格式
       formattedModels = data.data.map(model => ({
         id: `openai-${model.id}`,
