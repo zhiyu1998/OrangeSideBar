@@ -45,8 +45,6 @@ const DEEPSEEK_CHAT_API_PATH = "/chat/completions";
 const GITHUB_BASE_URL = "https://models.inference.ai.azure.com";
 const GITHUB_CHAT_API_PATH = "/v1/chat/completions";
 
-const QWEN_BASE_URL = "https://chat.qwenlm.ai";
-const QWEN_CHAT_API_PATH = "/v1/chat/completions";
 
 const AZURE_OPENAI_BASE_URL = "https://{YOUR_RESOURCE_NAME}.openai.azure.com";
 const AZURE_OPENAI_CHAT_API_PATH = "/openai/deployments/{MODEL_NAME}/chat/completions?api-version=2024-04-01-preview";
@@ -88,7 +86,6 @@ const MISTRAL_MODELS_API_PATH = "/v1/models";
 const MOONSHOT_MODELS_API_PATH = "/v1/models";
 const DEEPSEEK_MODELS_API_PATH = "/v1/models";
 const GITHUB_MODELS_API_PATH = "/models";
-const QWEN_MODELS_API_PATH = "/v1/models";
 const OPENROUTER_MODELS_API_PATH = "/v1/models";
 const MODELSCOPE_MODELS_API_PATH = "/v1/models";
 const NVIDIA_MODELS_API_PATH = "/v1/models";
@@ -102,7 +99,6 @@ const PROVIDERS = {
   MOONSHOT: 'moonshot',
   DEEPSEEK: 'deepseek',
   GITHUB: 'github',
-  QWEN: 'qwen',
   AZURE: 'azure',
   GEMINI: 'gemini',
   ANTHROPIC: 'anthropic',
@@ -124,7 +120,6 @@ const PROVIDER_DISPLAY_NAMES = {
   [PROVIDERS.MOONSHOT]: '月之暗面',
   [PROVIDERS.DEEPSEEK]: '深度求索',
   [PROVIDERS.GITHUB]: 'GitHub Models',
-  [PROVIDERS.QWEN]: 'QwenLLM',
   [PROVIDERS.AZURE]: 'Azure OpenAI',
   [PROVIDERS.GEMINI]: 'Google Gemini',
   [PROVIDERS.ANTHROPIC]: 'Anthropic',
@@ -184,11 +179,6 @@ const MODEL_MAPPINGS = [
     provider: PROVIDERS.GITHUB
   },
 
-  // QwenLLM Models
-  {
-    prefix: ['Qwen-', 'qwen-'],
-    provider: PROVIDERS.QWEN
-  },
 
   // Azure OpenAI Models
   {
@@ -257,7 +247,6 @@ const MOONSHOT_DEFAULT_MODEL = "moonshot-v1-auto";
 const GLM_DEFAULT_MODEL = "GLM-4-Flash";
 const DEEPSEEK_DEFAULT_MODEL = "deepseek-chat";
 const GITHUB_DEFAULT_MODEL = "Mistral-Nemo";
-const QWEN_DEFAULT_MODEL = "Qwen2.5-Turbo";
 const MODELSCOPE_DEFAULT_MODEL = "modelscope-qwen/Qwen2.5-7B-Instruct";
 const NVIDIA_DEFAULT_MODEL = "meta/llama-3.2-1b-instruct";
 const POE_DEFAULT_MODEL = "gpt-3.5-turbo";
@@ -342,7 +331,6 @@ const DEFAULT_LLM_URLS = [
   { key: PROVIDERS.MOONSHOT, baseUrl: MOONSHOT_BASE_URL, apiPath: MOONSHOT_CHAT_API_PATH, defaultModel: MOONSHOT_DEFAULT_MODEL },
   { key: PROVIDERS.DEEPSEEK, baseUrl: DEEPSEEK_BASE_URL, apiPath: DEEPSEEK_CHAT_API_PATH, defaultModel: DEEPSEEK_DEFAULT_MODEL },
   { key: PROVIDERS.GITHUB, baseUrl: GITHUB_BASE_URL, apiPath: GITHUB_CHAT_API_PATH, defaultModel: GITHUB_DEFAULT_MODEL },
-  { key: PROVIDERS.QWEN, baseUrl: QWEN_BASE_URL, apiPath: QWEN_CHAT_API_PATH, defaultModel: QWEN_DEFAULT_MODEL },
   { key: PROVIDERS.ANTHROPIC, baseUrl: ANTHROPIC_BASE_URL, apiPath: ANTHROPIC_CHAT_API_PATH, defaultModel: ANTHROPIC_DEFAULT_MODEL },
   { key: PROVIDERS.GEMINI, baseUrl: GEMINI_BASE_URL, apiPath: GEMINI_CHA_API_PATH, defaultModel: GEMINI_DEFAULT_MODEL },
   { key: PROVIDERS.GROQ, baseUrl: GROQ_BASE_URL, apiPath: GROQ_CHAT_API_PATH, defaultModel: GROQ_DEFAULT_MODEL },
@@ -650,17 +638,6 @@ const FUNCTION_SERAPI = {
   }
 };
 
-// 在 constants.js 中添加 Qwen 模型映射
-const QWEN_MODEL_MAPPINGS = {
-  'Qwen-Qwen2.5-Plus': 'qwen-plus-latest',
-  'Qwen-QVQ-72B-Preview': 'qvq-72b-preview',
-  'Qwen-QwQ-32B-Preview': 'qwq-32b-preview',
-  'Qwen-Qwen2.5-Coder-32B-Instruct': 'qwen2.5-coder-32b-instruct',
-  'Qwen-Qwen2-VL-Max': 'qwen-vl-max-latest',
-  'Qwen-Qwen2.5-Turbo': 'qwen-turbo-latest',
-  'Qwen-Qwen2.5-72B-Instruct': 'qwen2.5-72b-instruct',
-  'Qwen-Qwen2.5-32B-Instruct': 'qwen2.5-32b-instruct'
-};
 
 // 支持思考过程展示的模型列表
 const THINKING_PROCESS_MODELS = [

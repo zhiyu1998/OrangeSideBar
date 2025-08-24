@@ -454,9 +454,6 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type, tools = []
     realModelName = realModelName.replace('openrouter-', '');
   } else if (modelName.startsWith('github-')) {
     realModelName = realModelName.replace('github-', '');
-  } else if (modelName.startsWith('Qwen-')) {
-    // 使用映射表获取正确的模型名称
-    realModelName = QWEN_MODEL_MAPPINGS[modelName] || modelName.replace('Qwen-', '').replace('2.5', '').toLowerCase() + '-latest';
   } else if (modelName.startsWith('openai-')) {
     realModelName = realModelName.replace("openai-", '');
   } else if (modelName.startsWith('modelscope-')) {
