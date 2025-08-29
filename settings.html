@@ -978,6 +978,13 @@
                 </li>
             </ul>
             <h2>模型列表</h2>
+            <div class="filter-options">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="github-popular-only-filter">
+                    <span class="checkmark"></span>
+                    只显示推荐模型
+                </label>
+            </div>
             <div class="model-list-container">
                 <ul class="model-list" id="model-list">
                     <!-- 模型列表将通过 JavaScript 动态填充 -->
@@ -997,7 +1004,7 @@
             </div>
             <h2>API 代理地址</h2>
             <div class="baseurl-wrapper">
-                <input type="input" class="baseurl-input" placeholder="https://models.inference.ai.azure.com">
+                <input type="input" class="baseurl-input" placeholder="https://models.github.ai">
             </div>
             <div class="button-group">
                 <button class="save-button">保存</button>

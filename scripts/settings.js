@@ -237,6 +237,10 @@ function getModelBaseParamForCheck(baseUrl, model, apiKey) {
   } else if (model.includes(PROVIDERS.POE)) {
     apiUrl = `${baseUrl}${POE_MODELS_API_PATH}`;
     headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (model.includes(PROVIDERS.GITHUB)) {
+    apiUrl = `${baseUrl}${GITHUB_MODELS_API_PATH}`;
+    headers['Authorization'] = `Bearer ${apiKey}`;
+    headers['x-api-key'] = apiKey;
   } else if (model.includes(PROVIDERS.ANTHROPIC)) {
     apiUrl = `${baseUrl}${ANTHROPIC_MODELS_API_PATH}`;
     headers['x-api-key'] = apiKey;
@@ -334,6 +338,7 @@ async function getModelList(baseUrl, model, apiKey) {
   } else if (model.includes(PROVIDERS.GITHUB)) {
     apiUrl += GITHUB_MODELS_API_PATH;
     headers['Authorization'] = `Bearer ${apiKey}`;
+    headers['x-api-key'] = apiKey;
   } else if (model.includes(PROVIDERS.AZURE)) {
     apiUrl += AZURE_MODELS_API_PATH;
     headers['api-key'] = apiKey;
@@ -454,10 +459,10 @@ async function getModelList(baseUrl, model, apiKey) {
           owned_by: model.name.split(':')[0] || 'unknown'
         }));
     } else if (model.includes(PROVIDERS.GITHUB)) {
-      // GitHub 格式处理
+      // GitHub 格式处理 - 根据实际API返回数据结构
       return data.map(model => ({
-        id: `github-${model.name}`, // 使用 name 而不是 id，因为原始id包含了完整路径
-        object: 'model',  // 添加标准的 object 字段
+        id: `github-${model.id}`, // 使用完整的id，如 "openai/gpt-4o"
+        object: 'model',
         owned_by: model.publisher || 'unknown' // 使用 publisher 作为 owned_by
       }));
     } else if (model.includes(PROVIDERS.MODELSCOPE)) {
@@ -710,6 +715,13 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
         id: `groq-${model.id}`,
         object: model.object,
         owned_by: model.owned_by
+      }));
+    } else if (model === 'github') {
+      // GitHub 格式处理
+      formattedModels = data.map(model => ({
+        id: `github-${model.id}`,
+        object: 'model',
+        owned_by: model.publisher || 'unknown'
       }));
     } else if (model.includes(PROVIDERS.MODELSCOPE)) {
       // ModelScope 格式处理
@@ -1082,6 +1094,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterConfigurations = [
       { provider: PROVIDERS.GLM, checkboxId: 'glm-free-only-filter', storageKey: 'glm-free-only', filter: (model, isChecked) => !isChecked || GLM_FREE_MODELS.includes(model.id) },
       { provider: PROVIDERS.OPENROUTER, checkboxId: 'openrouter-free-only-filter', storageKey: 'openrouter-free-only', filter: (model, isChecked) => !isChecked || model.id.includes(':free') },
+      { provider: PROVIDERS.GITHUB, checkboxId: 'github-popular-only-filter', storageKey: 'github-popular-only', filter: (model, isChecked) => !isChecked || GITHUB_POPULAR_MODELS.includes(model.id) },
       { provider: PROVIDERS.NVIDIA, checkboxId: 'nvidia-recommended-only-filter', storageKey: 'nvidia-recommended-only', filter: (model, isChecked) => !isChecked || NVIDIA_RECOMMENDED_MODELS.includes(model.id) },
       { provider: PROVIDERS.POE, checkboxId: 'poe-popular-only-filter', storageKey: 'poe-popular-only', filter: (model, isChecked) => !isChecked || POE_POPULAR_MODELS.includes(model.id) }
     ];

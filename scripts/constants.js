@@ -42,9 +42,8 @@ const MOONSHOT_CHAT_API_PATH = "/v1/chat/completions";
 const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 const DEEPSEEK_CHAT_API_PATH = "/chat/completions";
 
-const GITHUB_BASE_URL = "https://models.inference.ai.azure.com";
-const GITHUB_CHAT_API_PATH = "/v1/chat/completions";
-
+const GITHUB_BASE_URL = "https://models.github.ai";
+const GITHUB_CHAT_API_PATH = "/inference/chat/completions";
 
 const AZURE_OPENAI_BASE_URL = "https://{YOUR_RESOURCE_NAME}.openai.azure.com";
 const AZURE_OPENAI_CHAT_API_PATH = "/openai/deployments/{MODEL_NAME}/chat/completions?api-version=2024-04-01-preview";
@@ -85,7 +84,7 @@ const GROQ_MODELS_API_PATH = "/v1/models";
 const MISTRAL_MODELS_API_PATH = "/v1/models";
 const MOONSHOT_MODELS_API_PATH = "/v1/models";
 const DEEPSEEK_MODELS_API_PATH = "/v1/models";
-const GITHUB_MODELS_API_PATH = "/models";
+const GITHUB_MODELS_API_PATH = "/catalog/models";
 const OPENROUTER_MODELS_API_PATH = "/v1/models";
 const MODELSCOPE_MODELS_API_PATH = "/v1/models";
 const NVIDIA_MODELS_API_PATH = "/v1/models";
@@ -246,7 +245,7 @@ const SILICONFLOW_DEFAULT_MODEL = "Qwen/Qwen2.5-7B-Instruct";
 const MOONSHOT_DEFAULT_MODEL = "moonshot-v1-auto";
 const GLM_DEFAULT_MODEL = "GLM-4-Flash";
 const DEEPSEEK_DEFAULT_MODEL = "deepseek-chat";
-const GITHUB_DEFAULT_MODEL = "Mistral-Nemo";
+const GITHUB_DEFAULT_MODEL = "openai/gpt-4o-mini";
 const MODELSCOPE_DEFAULT_MODEL = "modelscope-qwen/Qwen2.5-7B-Instruct";
 const NVIDIA_DEFAULT_MODEL = "meta/llama-3.2-1b-instruct";
 const POE_DEFAULT_MODEL = "gpt-3.5-turbo";
@@ -286,6 +285,35 @@ const POE_POPULAR_MODELS = [
   "poe-GPT-OSS-120B",
   "poe-GPT-OSS-20B",
   "poe-Grok-3"
+];
+
+// GitHub Models热门模型列表 - 仅包含OpenAI、Cohere和Grok的模型
+const GITHUB_POPULAR_MODELS = [
+  // OpenAI模型
+  "github-openai/gpt-4.1",
+  "github-openai/gpt-4.1-mini",
+  "github-openai/gpt-4.1-nano",
+  "github-openai/gpt-4o",
+  "github-openai/gpt-4o-mini",
+  "github-openai/gpt-5",
+  "github-openai/gpt-5-chat",
+  "github-openai/gpt-5-mini",
+  "github-openai/gpt-5-nano",
+  "github-openai/o1",
+  "github-openai/o1-mini",
+  "github-openai/o1-preview",
+  "github-openai/o3",
+  "github-openai/o3-mini",
+  "github-openai/o4-mini",
+  
+  // Cohere模型
+  "github-cohere/cohere-command-a",
+  "github-cohere/cohere-command-r-08-2024",
+  "github-cohere/cohere-command-r-plus-08-2024",
+  
+  // Grok模型
+  "github-xai/grok-3",
+  "github-xai/grok-3-mini"
 ];
 
 // 支持任意文件类型的模型
