@@ -289,28 +289,28 @@ const POE_POPULAR_MODELS = [
 
 // GitHub Models热门模型列表 - 仅包含OpenAI、Cohere和Grok的模型
 const GITHUB_POPULAR_MODELS = [
-  // OpenAI模型
-  "github-openai/gpt-4.1",
-  "github-openai/gpt-4.1-mini",
-  "github-openai/gpt-4.1-nano",
-  "github-openai/gpt-4o",
-  "github-openai/gpt-4o-mini",
-  "github-openai/gpt-5",
-  "github-openai/gpt-5-chat",
-  "github-openai/gpt-5-mini",
-  "github-openai/gpt-5-nano",
-  "github-openai/o1",
-  "github-openai/o1-mini",
-  "github-openai/o1-preview",
-  "github-openai/o3",
-  "github-openai/o3-mini",
-  "github-openai/o4-mini",
-  
+  // OpenAI模型 - 使用"github-"前缀，在请求时会去掉"openai/"部分
+  "github-gpt-4.1",
+  "github-gpt-4.1-mini",
+  "github-gpt-4.1-nano",
+  "github-gpt-4o",
+  "github-gpt-4o-mini",
+  "github-gpt-5",
+  "github-gpt-5-chat",
+  "github-gpt-5-mini",
+  "github-gpt-5-nano",
+  "github-o1",
+  "github-o1-mini",
+  "github-o1-preview",
+  "github-o3",
+  "github-o3-mini",
+  "github-o4-mini",
+
   // Cohere模型
   "github-cohere/cohere-command-a",
   "github-cohere/cohere-command-r-08-2024",
   "github-cohere/cohere-command-r-plus-08-2024",
-  
+
   // Grok模型
   "github-xai/grok-3",
   "github-xai/grok-3-mini"
