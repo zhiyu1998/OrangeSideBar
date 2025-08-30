@@ -460,11 +460,20 @@ async function getModelList(baseUrl, model, apiKey) {
         }));
     } else if (model.includes(PROVIDERS.GITHUB)) {
       // GitHub 格式处理 - 根据实际API返回数据结构
-      return data.map(model => ({
-        id: `github-${model.id}`, // 使用完整的id，如 "openai/gpt-4o"
-        object: 'model',
-        owned_by: model.publisher || 'unknown' // 使用 publisher 作为 owned_by
-      }));
+      return data.map(model => {
+        // 对于OpenAI模型，去掉"openai/"前缀，其他模型保持原样
+        let modelId = model.id;
+        if (modelId.startsWith('openai/')) {
+          modelId = modelId.replace('openai/', '');
+        } else {
+          modelId = model.id;
+        }
+        return {
+          id: `github-${modelId}`,
+          object: 'model',
+          owned_by: model.publisher || 'unknown' // 使用 publisher 作为 owned_by
+        };
+      });
     } else if (model.includes(PROVIDERS.MODELSCOPE)) {
       // ModelScope 格式处理 - 添加 modelscope- 前缀
       return (data.data || data.models || []).map(model => ({
@@ -718,11 +727,20 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
       }));
     } else if (model === 'github') {
       // GitHub 格式处理
-      formattedModels = data.map(model => ({
-        id: `github-${model.id}`,
-        object: 'model',
-        owned_by: model.publisher || 'unknown'
-      }));
+      formattedModels = data.map(model => {
+        // 对于OpenAI模型，去掉"openai/"前缀，其他模型保持原样
+        let modelId = model.id;
+        if (modelId.startsWith('openai/')) {
+          modelId = modelId.replace('openai/', '');
+        } else {
+          modelId = model.id;
+        }
+        return {
+          id: `github-${modelId}`,
+          object: 'model',
+          owned_by: model.publisher || 'unknown'
+        };
+      });
     } else if (model.includes(PROVIDERS.MODELSCOPE)) {
       // ModelScope 格式处理
       formattedModels = (data.data || data.models || []).map(model => ({
