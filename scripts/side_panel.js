@@ -937,6 +937,11 @@ function initResultPage() {
         promptToUse = result.paperReadingPrompt || PAPER_READING_PROMPT;
         systemPromptToUse = PAPER_SYSTEM_PROMPT;
         displayMessage = "对当前页面内容进行论文分析";
+      } else if (currentMode === 'learning') {
+        // 学习模式：使用学习模式提示词
+        promptToUse = result.learningModePrompt || LEARNING_MODE_PROMPT;
+        systemPromptToUse = result.learningModePrompt || LEARNING_MODE_PROMPT;
+        displayMessage = "使用学习模式进行交互式教学";
       } else {
         // 默认模式：使用摘要提示词和默认系统提示词
         promptToUse = result.summaryPrompt || SUMMARY_PROMPT;
@@ -1324,7 +1329,7 @@ function initResultPage() {
         let newInputText = '';
         if (inputText.startsWith(SHORTCUT_SUMMAY)) {
           // 获取当前提示词模式和相应的提示词
-          chrome.storage.local.get(['promptMode', 'summaryPrompt', 'paperReadingPrompt', 'systemPrompt'], function (result) {
+          chrome.storage.local.get(['promptMode', 'summaryPrompt', 'paperReadingPrompt', 'learningModePrompt', 'systemPrompt'], function (result) {
             const currentMode = result.promptMode || 'default';
             let promptToUse;
             let systemPromptToUse;
@@ -1333,6 +1338,10 @@ function initResultPage() {
               // 论文模式：使用论文阅读提示词和论文系统提示词
               promptToUse = result.paperReadingPrompt || PAPER_READING_PROMPT;
               systemPromptToUse = PAPER_SYSTEM_PROMPT;
+            } else if (currentMode === 'learning') {
+              // 学习模式：使用学习模式提示词
+              promptToUse = result.learningModePrompt || LEARNING_MODE_PROMPT;
+              systemPromptToUse = result.learningModePrompt || LEARNING_MODE_PROMPT;
             } else {
               // 默认模式：使用摘要提示词和默认系统提示词
               promptToUse = result.summaryPrompt || SUMMARY_PROMPT;
@@ -1556,6 +1565,12 @@ async function chatWithLLM(model, inputText, base64Images, type, tools = [], cus
 
     if (currentMode === 'paper') {
       systemPromptToUse = PAPER_SYSTEM_PROMPT;
+    } else if (currentMode === 'learning') {
+      // 获取用户自定义的学习模式提示词，如果没有则使用默认的
+      const learningModePromptResult = await new Promise(resolve => {
+        chrome.storage.local.get(['learningModePrompt'], resolve);
+      });
+      systemPromptToUse = learningModePromptResult.learningModePrompt || LEARNING_MODE_PROMPT;
     } else {
       // 获取用户自定义的系统提示词，如果没有则使用默认的
       const systemPromptResult = await new Promise(resolve => {

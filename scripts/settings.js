@@ -967,6 +967,9 @@ function initPromptSettings() {
   const paperReadingPromptTextarea = document.getElementById('paperReadingPrompt');
   const resetPaperReadingPromptBtn = document.getElementById('resetPaperReadingPrompt');
   const savePaperReadingPromptBtn = document.getElementById('savePaperReadingPrompt');
+  const learningModePromptTextarea = document.getElementById('learningModePrompt');
+  const resetLearningModePromptBtn = document.getElementById('resetLearningModePrompt');
+  const saveLearningModePromptBtn = document.getElementById('saveLearningModePrompt');
 
   if (!systemPromptTextarea || !resetSystemPromptBtn || !saveSystemPromptBtn) {
     return; // Elements not found, exit
@@ -1060,6 +1063,38 @@ function initPromptSettings() {
 
       chrome.storage.local.set({ 'paperReadingPrompt': customPrompt }, function () {
         const saveMessageElement = savePaperReadingPromptBtn.closest('.settings-section').querySelector('.save-message');
+        showMessage(saveMessageElement);
+      });
+    });
+  }
+
+  // Handle learning mode prompt settings if elements exist
+  if (learningModePromptTextarea && resetLearningModePromptBtn && saveLearningModePromptBtn) {
+    // Load saved learning mode prompt if exists
+    chrome.storage.local.get(['learningModePrompt'], function (result) {
+      if (result.learningModePrompt) {
+        learningModePromptTextarea.value = result.learningModePrompt;
+      } else {
+        // Load default learning mode prompt from constants.js
+        learningModePromptTextarea.value = LEARNING_MODE_PROMPT;
+      }
+    });
+
+    // Reset learning mode prompt to default
+    resetLearningModePromptBtn.addEventListener('click', function () {
+      learningModePromptTextarea.value = LEARNING_MODE_PROMPT;
+    });
+
+    // Save custom learning mode prompt
+    saveLearningModePromptBtn.addEventListener('click', function () {
+      const customPrompt = learningModePromptTextarea.value;
+      if (customPrompt.trim() === '') {
+        alert('提示词不能为空');
+        return;
+      }
+
+      chrome.storage.local.set({ 'learningModePrompt': customPrompt }, function () {
+        const saveMessageElement = saveLearningModePromptBtn.closest('.settings-section').querySelector('.save-message');
         showMessage(saveMessageElement);
       });
     });
