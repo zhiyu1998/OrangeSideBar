@@ -402,6 +402,15 @@ function loadOllamaModels(callback) {
 let allModels = [];
 let selectedModel = '';
 
+// 双栏模式相关全局变量
+let isDualColumnMode = false;
+let leftColumnModel = '';
+let rightColumnModel = '';
+let leftDialogueHistory = [];
+let rightDialogueHistory = [];
+let leftGeminiDialogueHistory = [];
+let rightGeminiDialogueHistory = [];
+
 // 模型选择变更逻辑
 function handleModelSelection() {
   initModelSearchDropdown();
@@ -573,9 +582,1372 @@ function hideDropdown() {
   dropdown.style.display = 'none';
 }
 
+/**
+ * 切换单栏/双栏模式
+ */
+function toggleLayoutMode() {
+  isDualColumnMode = !isDualColumnMode;
+  const singleLayout = document.getElementById('single-layout');
+  const dualLayout = document.getElementById('dual-layout');
+  const layoutToggleBtn = document.getElementById('layout-toggle-label');
+  
+  if (isDualColumnMode) {
+    // 切换到双栏模式
+    singleLayout.style.display = 'none';
+    dualLayout.style.display = 'block';
+    layoutToggleBtn.classList.add('active');
+    
+    // 初始化双栏模型选择器
+    initDualColumnModelSelectors();
+    
+    // 清空双栏的聊天内容
+    document.getElementById('left-chat-content').innerHTML = '';
+    document.getElementById('right-chat-content').innerHTML = '';
+    
+    // 重置对话历史
+    leftDialogueHistory = [];
+    rightDialogueHistory = [];
+    leftGeminiDialogueHistory = [];
+    rightGeminiDialogueHistory = [];
+    
+  } else {
+    // 切换到单栏模式
+    singleLayout.style.display = 'block';
+    dualLayout.style.display = 'none';
+    layoutToggleBtn.classList.remove('active');
+    
+    // 显示推荐内容
+    showRecommandContent();
+  }
+  
+  // 保存布局偏好
+  chrome.storage.local.set({ 'layoutMode': isDualColumnMode ? 'dual' : 'single' });
+}
+
+/**
+ * 初始化双栏模型选择器
+ */
+function initDualColumnModelSelectors() {
+  // 为左栏初始化模型选择器
+  initColumnModelSelector('left');
+  
+  // 为右栏初始化模型选择器
+  initColumnModelSelector('right');
+  
+  // 设置默认模型
+  if (allModels.length > 0) {
+    // 左栏使用当前选中的模型或第一个模型
+    leftColumnModel = selectedModel || allModels[0].value;
+    updateColumnModelDisplay('left', leftColumnModel);
+    
+    // 右栏使用第二个模型（如果存在）或与左栏相同
+    rightColumnModel = allModels.length > 1 ? allModels[1].value : leftColumnModel;
+    updateColumnModelDisplay('right', rightColumnModel);
+  }
+}
+
+/**
+ * 初始化指定栏的模型选择器
+ */
+function initColumnModelSelector(column) {
+  const searchInput = document.getElementById(`model-search-${column}`);
+  const dropdown = document.getElementById(`model-dropdown-${column}`);
+  const wrapper = document.getElementById(`model-selection-wrapper-${column}`);
+  
+  if (!searchInput || !dropdown || !wrapper) return;
+  
+  // 搜索输入事件
+  searchInput.addEventListener('input', function() {
+    const query = this.value.toLowerCase();
+    filterAndDisplayModelsForColumn(column, query);
+    showColumnDropdown(column);
+  });
+
+  // 点击输入框显示下拉
+  searchInput.addEventListener('click', function() {
+    filterAndDisplayModelsForColumn(column, '');
+    showColumnDropdown(column);
+  });
+
+  // 键盘导航
+  searchInput.addEventListener('keydown', function(e) {
+    const items = dropdown.querySelectorAll('.model-option');
+    const activeItem = dropdown.querySelector('.model-option.active');
+    let activeIndex = activeItem ? Array.from(items).indexOf(activeItem) : -1;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % items.length;
+      setActiveItem(items, activeIndex);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIndex = activeIndex <= 0 ? items.length - 1 : activeIndex - 1;
+      setActiveItem(items, activeIndex);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeItem) {
+        const model = allModels.find(m => m.value === activeItem.dataset.value);
+        if (model) {
+          selectColumnModel(column, activeItem.dataset.value, model.name);
+        }
+      }
+    } else if (e.key === 'Escape') {
+      hideColumnDropdown(column);
+    }
+  });
+  
+  // 点击外部隐藏下拉
+  document.addEventListener('click', function(e) {
+    if (!wrapper.contains(e.target)) {
+      hideColumnDropdown(column);
+    }
+  });
+  
+  // 窗口滚动和大小改变时重新定位下拉菜单
+  window.addEventListener('scroll', function() {
+    if (dropdown.style.display === 'block') {
+      showColumnDropdown(column);
+    }
+  });
+  
+  window.addEventListener('resize', function() {
+    if (dropdown.style.display === 'block') {
+      showColumnDropdown(column);
+    }
+  });
+}
+
+/**
+ * 为指定栏过滤并显示模型
+ */
+function filterAndDisplayModelsForColumn(column, query) {
+  const dropdown = document.getElementById(`model-dropdown-${column}`);
+  dropdown.innerHTML = '';
+  
+  // 按供应商分组过滤模型
+  const groupedModels = {};
+  const filteredModels = allModels.filter(model => 
+    model.name.toLowerCase().includes(query) || 
+    model.value.toLowerCase().includes(query)
+  );
+
+  // 将过滤后的模型按供应商重新分组
+  filteredModels.forEach(model => {
+    if (!groupedModels[model.provider]) {
+      groupedModels[model.provider] = [];
+    }
+    groupedModels[model.provider].push(model);
+  });
+
+  if (filteredModels.length === 0) {
+    dropdown.innerHTML = '<div class="model-no-results">未找到匹配的模型</div>';
+    return;
+  }
+
+  // 使用 constants.js 中的供应商顺序和显示名称
+  const providerOrder = Object.values(PROVIDERS);
+  const providerDisplayName = PROVIDER_DISPLAY_NAMES;
+
+  providerOrder.forEach(provider => {
+    const models = groupedModels[provider];
+    if (models && models.length > 0) {
+      // 添加分组标题
+      const groupTitle = document.createElement('div');
+      groupTitle.className = 'model-group-title';
+      groupTitle.textContent = providerDisplayName[provider] || provider.toUpperCase();
+      dropdown.appendChild(groupTitle);
+
+      // 添加该分组的模型选项
+      models.forEach((model, index) => {
+        const item = document.createElement('div');
+        item.className = 'model-option';
+        if (dropdown.children.length === 1) item.classList.add('active'); // 第一个选项激活
+        item.dataset.value = model.value;
+        // 显示时去掉供应商前缀，因为已经有分组标题了
+        const displayName = model.name.replace(/^[A-Z]+ - /, '');
+        item.textContent = displayName;
+        
+        item.addEventListener('click', function() {
+          selectColumnModel(column, model.value, model.name);
+        });
+        
+        dropdown.appendChild(item);
+      });
+    }
+  });
+}
+
+/**
+ * 选择指定栏的模型
+ */
+function selectColumnModel(column, value, displayName) {
+  const searchInput = document.getElementById(`model-search-${column}`);
+  const fullDisplayName = allModels.find(m => m.value === value)?.name || displayName;
+  
+  searchInput.value = fullDisplayName;
+  hideColumnDropdown(column);
+  
+  if (column === 'left') {
+    leftColumnModel = value;
+  } else {
+    rightColumnModel = value;
+  }
+  
+  // 保存双栏模型选择
+  chrome.storage.local.set({ 
+    'leftColumnModel': leftColumnModel,
+    'rightColumnModel': rightColumnModel
+  });
+}
+
+/**
+ * 更新指定栏的模型显示
+ */
+function updateColumnModelDisplay(column, value) {
+  const model = allModels.find(m => m.value === value);
+  if (model) {
+    const searchInput = document.getElementById(`model-search-${column}`);
+    if (searchInput) {
+      searchInput.value = model.name;
+    }
+  }
+}
+
+/**
+ * 显示指定栏的下拉菜单
+ */
+function showColumnDropdown(column) {
+  const dropdown = document.getElementById(`model-dropdown-${column}`);
+  const wrapper = document.getElementById(`model-selection-wrapper-${column}`);
+  if (dropdown && wrapper) {
+    // 获取wrapper的位置信息
+    const rect = wrapper.getBoundingClientRect();
+    
+    // 设置下拉菜单的位置
+    dropdown.style.display = 'block';
+    dropdown.style.position = 'fixed';
+    dropdown.style.top = (rect.bottom + 2) + 'px';
+    dropdown.style.left = rect.left + 'px';
+    dropdown.style.width = rect.width + 'px';
+    dropdown.style.zIndex = '999999999';
+  }
+}
+
+/**
+ * 隐藏指定栏的下拉菜单
+ */
+function hideColumnDropdown(column) {
+  const dropdown = document.getElementById(`model-dropdown-${column}`);
+  if (dropdown) {
+    dropdown.style.display = 'none';
+  }
+}
+
 // 获取当前选中的模型（用于替换原来的model-selection.value调用）
 function getSelectedModel() {
   return selectedModel;
+}
+
+/**
+ * 在双栏模式下同时调用两个模型并更新UI
+ */
+async function dualColumnChatLLMAndUIUpdate(inputText, base64Images, customSystemPrompt = null) {
+  if (!leftColumnModel || !rightColumnModel) {
+    displayErrorMessage('请为两个栏位选择模型');
+    return;
+  }
+
+  // 显示加载状态
+  displayLoading();
+  hideSubmitBtnAndShowGenBtn();
+
+  // 创建用户消息显示到两栏
+  const leftContentDiv = document.getElementById('left-chat-content');
+  const rightContentDiv = document.getElementById('right-chat-content');
+  
+  // 创建左栏用户消息
+  const leftUserDiv = createUserMessageDiv(inputText, base64Images);
+  leftContentDiv.appendChild(leftUserDiv);
+  
+  // 创建右栏用户消息
+  const rightUserDiv = createUserMessageDiv(inputText, base64Images);
+  rightContentDiv.appendChild(rightUserDiv);
+
+  // 创建AI回答容器
+  const leftAiMessageDiv = document.createElement('div');
+  leftAiMessageDiv.className = 'ai-message';
+  leftContentDiv.appendChild(leftAiMessageDiv);
+  
+  const rightAiMessageDiv = document.createElement('div');
+  rightAiMessageDiv.className = 'ai-message';
+  rightContentDiv.appendChild(rightAiMessageDiv);
+
+  try {
+    // 获取当前工具状态
+    const tools = [];
+    const webSearchBtn = document.querySelector('#web-search-label');
+    if (webSearchBtn && webSearchBtn.classList.contains('active')) {
+      tools.push(WEB_SEARCH_TOOL);
+    }
+
+    // 异步并行启动两个流式输出
+    const leftPromise = streamingChatForColumn('left', leftColumnModel, leftAiMessageDiv, inputText, base64Images, tools, customSystemPrompt);
+    const rightPromise = streamingChatForColumn('right', rightColumnModel, rightAiMessageDiv, inputText, base64Images, tools, customSystemPrompt);
+
+    // 等待两个流式输出都完成（独立进行，不会互相阻塞）
+    await Promise.allSettled([leftPromise, rightPromise]);
+
+    // 滚动到底部
+    leftContentDiv.scrollTop = leftContentDiv.scrollHeight;
+    rightContentDiv.scrollTop = rightContentDiv.scrollHeight;
+
+  } catch (error) {
+    hiddenLoadding(); // 确保在错误时也隐藏加载提示
+    console.error('双栏请求异常:', error);
+    leftAiMessageDiv.innerHTML = `<div class="error-message">${error.message}</div>`;
+    rightAiMessageDiv.innerHTML = `<div class="error-message">${error.message}</div>`;
+  } finally {
+    showSubmitBtnAndHideGenBtn();
+  }
+}
+
+/**
+ * 为指定栏进行流式输出聊天
+ */
+async function streamingChatForColumn(column, model, aiMessageDiv, inputText, base64Images, tools = [], customSystemPrompt = null) {
+  // 设置对应栏的对话历史
+  const originalDialogueHistory = dialogueHistory;
+  const originalGeminiDialogueHistory = geminiDialogueHistory;
+  
+  if (column === 'left') {
+    dialogueHistory = leftDialogueHistory;
+    geminiDialogueHistory = leftGeminiDialogueHistory;
+  } else {
+    dialogueHistory = rightDialogueHistory;
+    geminiDialogueHistory = rightGeminiDialogueHistory;
+  }
+
+  try {
+    var { baseUrl, apiKey } = await getBaseUrlAndApiKey(model);
+
+    if (!baseUrl) {
+      throw new Error('模型 ' + model + ' 的 API 代理地址为空，请检查！');
+    }
+
+    if (!apiKey) {
+      throw new Error('模型 ' + model + ' 的 API Key 为空，请检查！');
+    }
+
+    // 获取要使用的系统提示词
+    let systemPromptToUse = customSystemPrompt;
+    if (!systemPromptToUse) {
+      const promptModeResult = await new Promise(resolve => {
+        chrome.storage.local.get(['promptMode'], resolve);
+      });
+      const currentMode = promptModeResult.promptMode || 'default';
+
+      if (currentMode === 'paper') {
+        systemPromptToUse = PAPER_SYSTEM_PROMPT;
+      } else if (currentMode === 'learning') {
+        const learningModePromptResult = await new Promise(resolve => {
+          chrome.storage.local.get(['learningModePrompt'], resolve);
+        });
+        systemPromptToUse = learningModePromptResult.learningModePrompt || LEARNING_MODE_PROMPT;
+      } else {
+        const defaultSystemPromptResult = await new Promise(resolve => {
+          chrome.storage.local.get(['defaultSystemPrompt'], resolve);
+        });
+        systemPromptToUse = defaultSystemPromptResult.defaultSystemPrompt || SYSTEM_PROMPT;
+      }
+    }
+
+    // 检查是否是Gemini模型
+    if (model.includes(PROVIDERS.GEMINI)) {
+      await streamingChatWithGeminiForColumn(column, model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPromptToUse, tools);
+    } else if (model.includes(PROVIDERS.ANTHROPIC)) {
+      await streamingChatWithAnthropicForColumn(column, model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPromptToUse, tools);
+    } else {
+      // OpenAI格式的流式输出
+      await streamingChatWithOpenAIFormatForColumn(column, model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPromptToUse, tools);
+    }
+
+  } catch (error) {
+    aiMessageDiv.innerHTML = `<div class="error-message">${column === 'left' ? '左' : '右'}栏模型请求失败: ${error.message}</div>`;
+    throw error;
+  } finally {
+    // 恢复原始对话历史
+    dialogueHistory = originalDialogueHistory;
+    geminiDialogueHistory = originalGeminiDialogueHistory;
+  }
+}
+
+/**
+ * OpenAI格式的流式输出（双栏版本）
+ */
+async function streamingChatWithOpenAIFormatForColumn(column, model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPrompt, tools) {
+  // 构建消息历史
+  const messages = [];
+  
+  if (systemPrompt) {
+    messages.push({
+      role: 'system',
+      content: systemPrompt
+    });
+  }
+
+  // 添加历史对话
+  dialogueHistory.forEach(item => {
+    messages.push({
+      role: 'user',
+      content: item.user
+    });
+    messages.push({
+      role: 'assistant', 
+      content: item.assistant
+    });
+  });
+
+  // 添加当前用户输入
+  const userMessage = { role: 'user', content: inputText };
+  if (base64Images && base64Images.length > 0) {
+    userMessage.content = [
+      { type: 'text', text: inputText },
+      ...base64Images.map(base64 => ({
+        type: 'image_url',
+        image_url: { url: base64 }
+      }))
+    ];
+  }
+  messages.push(userMessage);
+
+  // 构建请求体
+  const requestBody = {
+    model: model,
+    messages: messages,
+    stream: true,
+    temperature: parseFloat(document.getElementById('temperature')?.value) || 0.7
+  };
+
+  if (tools && tools.length > 0) {
+    requestBody.tools = tools;
+  }
+
+  // 发送流式请求 - 修复：baseUrl已经包含完整路径，不需要再拼接
+  const response = await fetch(baseUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    throw new Error(`API请求失败: ${response.status}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let completeText = '';
+  let buffer = '';
+  let hasStartedOutput = false; // 跟踪是否已开始输出
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.trim() === '') continue;
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              // 第一次收到内容时隐藏加载提示
+              if (!hasStartedOutput) {
+                hasStartedOutput = true;
+                hiddenLoadding();
+              }
+              
+              completeText += delta;
+              // 实时更新UI
+              aiMessageDiv.innerHTML = marked.parse(completeText);
+              // 滚动到底部
+              aiMessageDiv.parentElement.scrollTop = aiMessageDiv.parentElement.scrollHeight;
+            }
+          } catch (e) {
+            console.log('解析响应失败:', e);
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  // 添加到对话历史
+  dialogueHistory.push({
+    user: inputText,
+    assistant: completeText
+  });
+
+  // 最终渲染和处理
+  aiMessageDiv.innerHTML = marked.parse(completeText);
+  createCopyButtonForColumn(completeText, aiMessageDiv);
+  renderKatexMath(aiMessageDiv);
+}
+
+/**
+ * Gemini模型的流式输出（双栏版本）
+ */
+async function streamingChatWithGeminiForColumn(column, model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPrompt, tools) {
+  // 构建Gemini消息格式
+  const messages = [];
+  
+  // 添加系统提示词到第一条消息
+  let firstUserContent = systemPrompt ? `${systemPrompt}\n\n${inputText}` : inputText;
+  
+  // 添加历史对话
+  geminiDialogueHistory.forEach(item => {
+    messages.push({
+      role: 'user',
+      parts: [{ text: item.user }]
+    });
+    messages.push({
+      role: 'model',
+      parts: [{ text: item.assistant }]
+    });
+  });
+
+  // 添加当前用户输入
+  const userParts = [{ text: firstUserContent }];
+  if (base64Images && base64Images.length > 0) {
+    base64Images.forEach(base64 => {
+      const mimeType = base64.split(';')[0].split(':')[1];
+      const base64Data = base64.split(',')[1];
+      userParts.push({
+        inline_data: {
+          mime_type: mimeType,
+          data: base64Data
+        }
+      });
+    });
+  }
+  
+  messages.push({
+    role: 'user',
+    parts: userParts
+  });
+
+  // 构建请求体
+  const requestBody = {
+    contents: messages,
+    generationConfig: {
+      temperature: parseFloat(document.getElementById('temperature')?.value) || 0.7
+    }
+  };
+
+  // 发送流式请求
+  const apiPath = GEMINI_CHA_API_PATH.replace('{MODEL_NAME}', model).replace('{API_KEY}', apiKey);
+  const response = await fetch(`${baseUrl}${apiPath}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    throw new Error(`API请求失败: ${response.status}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let completeText = '';
+  let buffer = '';
+  let hasStartedOutput = false; // 跟踪是否已开始输出
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.trim() === '' || !line.startsWith('data: ')) continue;
+        
+        const data = line.slice(6);
+        if (data === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (delta) {
+            // 第一次收到内容时隐藏加载提示
+            if (!hasStartedOutput) {
+              hasStartedOutput = true;
+              hiddenLoadding();
+            }
+            
+            completeText += delta;
+            // 实时更新UI
+            aiMessageDiv.innerHTML = marked.parse(completeText);
+            // 滚动到底部
+            aiMessageDiv.parentElement.scrollTop = aiMessageDiv.parentElement.scrollHeight;
+          }
+        } catch (e) {
+          console.log('解析Gemini响应失败:', e);
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  // 添加到对话历史
+  geminiDialogueHistory.push({
+    user: inputText,
+    assistant: completeText
+  });
+
+  // 最终渲染和处理
+  aiMessageDiv.innerHTML = marked.parse(completeText);
+  createCopyButtonForColumn(completeText, aiMessageDiv);
+  renderKatexMath(aiMessageDiv);
+}
+
+/**
+ * Anthropic模型的流式输出（双栏版本）
+ */
+async function streamingChatWithAnthropicForColumn(column, model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPrompt, tools) {
+  // 构建Anthropic消息格式
+  const messages = [];
+  
+  // 添加历史对话
+  dialogueHistory.forEach(item => {
+    messages.push({
+      role: 'user',
+      content: item.user
+    });
+    messages.push({
+      role: 'assistant',
+      content: item.assistant
+    });
+  });
+
+  // 添加当前用户输入
+  const userMessage = { role: 'user', content: inputText };
+  if (base64Images && base64Images.length > 0) {
+    userMessage.content = [
+      { type: 'text', text: inputText },
+      ...base64Images.map(base64 => {
+        const mimeType = base64.split(';')[0].split(':')[1];
+        const base64Data = base64.split(',')[1];
+        return {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mimeType,
+            data: base64Data
+          }
+        };
+      })
+    ];
+  }
+  messages.push(userMessage);
+
+  // 构建请求体
+  const requestBody = {
+    model: model,
+    messages: messages,
+    stream: true,
+    max_tokens: parseInt(document.getElementById('max_tokens')?.value) || 1024,
+    temperature: parseFloat(document.getElementById('temperature')?.value) || 0.7
+  };
+
+  if (systemPrompt) {
+    requestBody.system = systemPrompt;
+  }
+
+  // 发送流式请求 - 修复：baseUrl已经包含完整路径
+  const response = await fetch(baseUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    throw new Error(`API请求失败: ${response.status}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let completeText = '';
+  let buffer = '';
+  let hasStartedOutput = false; // 跟踪是否已开始输出
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.trim() === '' || !line.startsWith('data: ')) continue;
+        
+        const data = line.slice(6);
+        if (data === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+            // 第一次收到内容时隐藏加载提示
+            if (!hasStartedOutput) {
+              hasStartedOutput = true;
+              hiddenLoadding();
+            }
+            
+            completeText += parsed.delta.text;
+            // 实时更新UI
+            aiMessageDiv.innerHTML = marked.parse(completeText);
+            // 滚动到底部
+            aiMessageDiv.parentElement.scrollTop = aiMessageDiv.parentElement.scrollHeight;
+          }
+        } catch (e) {
+          console.log('解析Anthropic响应失败:', e);
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  // 添加到对话历史
+  dialogueHistory.push({
+    user: inputText,
+    assistant: completeText
+  });
+
+  // 最终渲染和处理
+  aiMessageDiv.innerHTML = marked.parse(completeText);
+  createCopyButtonForColumn(completeText, aiMessageDiv);
+  renderKatexMath(aiMessageDiv);
+}
+async function chatWithLLMForColumn(column, model, inputText, base64Images, tools = [], customSystemPrompt = null) {
+  // 使用对应栏的对话历史
+  const originalDialogueHistory = dialogueHistory;
+  const originalGeminiDialogueHistory = geminiDialogueHistory;
+  
+  if (column === 'left') {
+    dialogueHistory = leftDialogueHistory;
+    geminiDialogueHistory = leftGeminiDialogueHistory;
+  } else {
+    dialogueHistory = rightDialogueHistory;
+    geminiDialogueHistory = rightGeminiDialogueHistory;
+  }
+
+  try {
+    var { baseUrl, apiKey } = await getBaseUrlAndApiKey(model);
+
+    if (!baseUrl) {
+      throw new Error('模型 ' + model + ' 的 API 代理地址为空，请检查！');
+    }
+
+    if (!apiKey) {
+      throw new Error('模型 ' + model + ' 的 API Key 为空，请检查！');
+    }
+
+    // 获取要使用的系统提示词
+    let systemPromptToUse = customSystemPrompt;
+    if (!systemPromptToUse) {
+      const promptModeResult = await new Promise(resolve => {
+        chrome.storage.local.get(['promptMode'], resolve);
+      });
+      const currentMode = promptModeResult.promptMode || 'default';
+
+      if (currentMode === 'paper') {
+        systemPromptToUse = PAPER_SYSTEM_PROMPT;
+      } else if (currentMode === 'learning') {
+        const learningModePromptResult = await new Promise(resolve => {
+          chrome.storage.local.get(['learningModePrompt'], resolve);
+        });
+        systemPromptToUse = learningModePromptResult.learningModePrompt || LEARNING_MODE_PROMPT;
+      } else {
+        const systemPromptResult = await new Promise(resolve => {
+          chrome.storage.local.get(['systemPrompt'], resolve);
+        });
+        systemPromptToUse = systemPromptResult.systemPrompt || SYSTEM_PROMPT;
+      }
+    }
+
+    const openaiDialogueEntry = createDialogueEntry('user', 'content', inputText, base64Images, model);
+    const geminiDialogueEntry = createDialogueEntry('user', 'parts', inputText, base64Images, model);
+
+    // 将用户提问更新到对话历史
+    dialogueHistory.push(openaiDialogueEntry);
+    geminiDialogueHistory.push(geminiDialogueEntry);
+
+    // 取最近的 X 条对话记录
+    if (dialogueHistory.length > MAX_DIALOG_LEN) {
+      dialogueHistory = dialogueHistory.slice(-MAX_DIALOG_LEN);
+    }
+
+    // 直接调用API而不通过llm.js的UI更新函数
+    let completeText = '';
+    if (model.includes(PROVIDERS.GEMINI) && !model.startsWith("openai-")) {
+      baseUrl = baseUrl.replace('{MODEL_NAME}', model).replace('{API_KEY}', apiKey);
+      completeText = await callGeminiAPIDirectly(baseUrl, model, tools, systemPromptToUse);
+    } else if (model.includes(PROVIDERS.NVIDIA)) {
+      completeText = await callOpenAIAPIDirectly(baseUrl, apiKey, model, tools, systemPromptToUse);
+    } else if (model.includes(PROVIDERS.ANTHROPIC) || model.startsWith('claude-')) {
+      completeText = await callAnthropicAPIDirectly(baseUrl, apiKey, model, tools, systemPromptToUse);
+    } else {
+      completeText = await callOpenAIAPIDirectly(baseUrl, apiKey, model, tools, systemPromptToUse);
+    }
+    
+    // 更新对应栏的对话历史
+    if (column === 'left') {
+      leftDialogueHistory = [...dialogueHistory];
+      leftGeminiDialogueHistory = [...geminiDialogueHistory];
+    } else {
+      rightDialogueHistory = [...dialogueHistory];
+      rightGeminiDialogueHistory = [...geminiDialogueHistory];
+    }
+    
+    return completeText;
+  } finally {
+    // 恢复原始对话历史
+    dialogueHistory = originalDialogueHistory;
+    geminiDialogueHistory = originalGeminiDialogueHistory;
+  }
+}
+
+/**
+ * 直接调用OpenAI兼容API（不更新UI）
+ */
+async function callOpenAIAPIDirectly(baseUrl, apiKey, model, tools, systemPrompt) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${apiKey}`,
+  };
+
+  const body = {
+    model: model,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      ...dialogueHistory
+    ],
+    stream: false, // 不使用流式输出，简化处理
+    tools: tools.length > 0 ? tools : undefined,
+    tool_choice: tools.length > 0 ? 'auto' : undefined,
+  };
+
+  // 添加模型参数
+  const modelParams = await new Promise(resolve => {
+    chrome.storage.local.get(['temperature', 'top_p', 'max_tokens', 'frequency_penalty', 'presence_penalty'], resolve);
+  });
+
+  if (modelParams.temperature) body.temperature = parseFloat(modelParams.temperature);
+  if (modelParams.top_p) body.top_p = parseFloat(modelParams.top_p);
+  if (modelParams.max_tokens) body.max_tokens = parseInt(modelParams.max_tokens);
+  if (modelParams.frequency_penalty) body.frequency_penalty = parseFloat(modelParams.frequency_penalty);
+  if (modelParams.presence_penalty) body.presence_penalty = parseFloat(modelParams.presence_penalty);
+
+  const response = await fetch(baseUrl, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  
+  if (data.choices && data.choices[0] && data.choices[0].message) {
+    const content = data.choices[0].message.content;
+    
+    // 将AI回答添加到对话历史
+    dialogueHistory.push({
+      role: 'assistant',
+      content: content
+    });
+    
+    return content;
+  } else {
+    throw new Error('Invalid API response format');
+  }
+}
+
+/**
+ * 直接调用Gemini API（不更新UI）
+ */
+async function callGeminiAPIDirectly(baseUrl, model, tools, systemPrompt) {
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+
+  const body = {
+    contents: [
+      ...geminiDialogueHistory
+    ],
+    systemInstruction: {
+      parts: [{ text: systemPrompt }]
+    },
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 8192,
+    }
+  };
+
+  const response = await fetch(baseUrl, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Gemini API request failed: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  
+  if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+    const content = data.candidates[0].content.parts[0].text;
+    
+    // 将AI回答添加到对话历史
+    geminiDialogueHistory.push({
+      role: 'model',
+      parts: [{ text: content }]
+    });
+    
+    return content;
+  } else {
+    throw new Error('Invalid Gemini API response format');
+  }
+}
+
+/**
+ * 直接调用Anthropic API（不更新UI）
+ */
+async function callAnthropicAPIDirectly(baseUrl, apiKey, model, tools, systemPrompt) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${apiKey}`,
+    'anthropic-version': '2023-06-01'
+  };
+
+  // 转换对话格式为Anthropic格式
+  const messages = dialogueHistory.map(msg => ({
+    role: msg.role === 'assistant' ? 'assistant' : 'user',
+    content: msg.content || msg.parts?.[0]?.text || ''
+  }));
+
+  const body = {
+    model: model,
+    system: systemPrompt,
+    messages: messages,
+    max_tokens: 4000,
+  };
+
+  const response = await fetch(baseUrl, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Anthropic API request failed: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  
+  if (data.content && data.content[0] && data.content[0].text) {
+    const content = data.content[0].text;
+    
+    // 将AI回答添加到对话历史
+    dialogueHistory.push({
+      role: 'assistant',
+      content: content
+    });
+    
+    return content;
+  } else {
+    throw new Error('Invalid Anthropic API response format');
+  }
+}
+
+/**
+ * 创建用户消息div
+ */
+function createUserMessageDiv(inputText, base64Images) {
+  const userQuestionDiv = document.createElement('div');
+  userQuestionDiv.className = 'user-message';
+  let userMessage = '';
+  
+  if (base64Images && base64Images.length > 0) {
+    base64Images.forEach(url => {
+      if (!url.includes('image')) {
+        url = DEFAULT_FILE_LOGO_PATH;
+      }
+      userMessage += `<img src='${url}' />`;
+    });
+  }
+  
+  // 如果是双栏模式，显示简化的标题
+  if (isDualColumnMode) {
+    let shortTitle = '';
+    
+    // 根据内容类型生成简短标题
+    if (inputText.includes('摘要') || inputText.includes('任务目标')) {
+      shortTitle = '智能摘要';
+    } else if (inputText.includes('翻译') || inputText.includes('translate')) {
+      shortTitle = '网页翻译';
+    } else if (inputText.includes('PDF') || inputText.includes('分析')) {
+      shortTitle = 'PDF分析';
+    } else if (inputText.length > 50) {
+      shortTitle = inputText.substring(0, 50) + '...';
+    } else {
+      shortTitle = inputText;
+    }
+    
+    userMessage += shortTitle;
+    userQuestionDiv.setAttribute('title', inputText); // 悬停时显示完整内容
+  } else {
+    userMessage += inputText;
+  }
+  
+  userQuestionDiv.innerHTML = userMessage;
+  
+  return userQuestionDiv;
+}
+
+/**
+ * 为指定栏创建复制按钮
+ */
+function createCopyButtonForColumn(completeText, targetElement) {
+  const copySvg = document.querySelector('.icon-copy').cloneNode(true);
+  copySvg.style.display = 'block';
+
+  copySvg.addEventListener('click', function () {
+    navigator.clipboard.writeText(completeText).then(() => {
+      const originalSvg = copySvg.innerHTML;
+      copySvg.innerHTML = rightSvgString;
+      setTimeout(() => {
+        copySvg.innerHTML = originalSvg;
+      }, 2000);
+    }).catch(err => {
+      console.error('复制失败:', err);
+    });
+  });
+
+  targetElement.appendChild(copySvg);
+}
+
+/**
+ * 初始化布局模式
+ */
+function initLayoutMode() {
+  // 加载保存的布局模式
+  chrome.storage.local.get(['layoutMode', 'leftColumnModel', 'rightColumnModel'], function (result) {
+    if (result.layoutMode === 'dual') {
+      isDualColumnMode = true;
+      toggleLayoutMode();
+    }
+    
+    // 恢复双栏模型选择
+    if (result.leftColumnModel) {
+      leftColumnModel = result.leftColumnModel;
+      // 更新UI显示
+      setTimeout(() => {
+        updateColumnModelDisplay('left', leftColumnModel);
+      }, 100);
+    }
+    if (result.rightColumnModel) {
+      rightColumnModel = result.rightColumnModel;
+      // 更新UI显示
+      setTimeout(() => {
+        updateColumnModelDisplay('right', rightColumnModel);
+      }, 100);
+    }
+  });
+
+  // 添加布局切换按钮事件监听器
+  const layoutToggleBtn = document.getElementById('layout-toggle-label');
+  if (layoutToggleBtn) {
+    layoutToggleBtn.addEventListener('click', function() {
+      toggleLayoutMode();
+    });
+  }
+
+  // 初始化双栏快速功能按钮
+  initDualColumnActionButtons();
+}
+
+/**
+ * 初始化抽屉切换功能
+ */
+function initDrawerToggle() {
+  const drawerToggleBtn = document.getElementById('drawer-toggle-btn');
+  const drawerHeader = document.querySelector('.drawer-header');
+  const drawer = document.querySelector('.dual-column-drawer');
+  
+  // 从localStorage加载抽屉状态
+  chrome.storage.local.get(['drawerCollapsed'], function(result) {
+    if (result.drawerCollapsed) {
+      drawer.classList.add('collapsed');
+      drawerHeader.classList.add('collapsed');
+    }
+  });
+  
+  // 添加点击事件
+  const toggleDrawer = () => {
+    const isCollapsed = drawer.classList.toggle('collapsed');
+    drawerHeader.classList.toggle('collapsed');
+    
+    // 保存状态
+    chrome.storage.local.set({ 'drawerCollapsed': isCollapsed });
+  };
+  
+  if (drawerToggleBtn) {
+    drawerToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleDrawer();
+    });
+  }
+  
+  if (drawerHeader) {
+    drawerHeader.addEventListener('click', toggleDrawer);
+  }
+}
+
+/**
+ * 初始化双栏快速功能按钮
+ */
+function initDualColumnActionButtons() {
+  // 初始化抽屉切换功能
+  initDrawerToggle();
+  
+  // 双栏摘要按钮
+  const dualSummaryBtn = document.getElementById('dual-summary-btn');
+  if (dualSummaryBtn) {
+    dualSummaryBtn.addEventListener('click', async function() {
+      await handleDualColumnSummary();
+    });
+  }
+
+  // 双栏翻译按钮
+  const dualTranslateBtn = document.getElementById('dual-translate-btn');
+  if (dualTranslateBtn) {
+    dualTranslateBtn.addEventListener('click', async function() {
+      await handleDualColumnTranslate();
+    });
+  }
+
+  // 双栏本地PDF按钮
+  const dualLocalPdfBtn = document.getElementById('dual-local-pdf-btn');
+  if (dualLocalPdfBtn) {
+    dualLocalPdfBtn.addEventListener('click', async function() {
+      await handleDualColumnLocalPDF();
+    });
+  }
+}
+
+/**
+ * 处理双栏模式摘要
+ */
+async function handleDualColumnSummary() {
+  if (!leftColumnModel || !rightColumnModel) {
+    showToast('请先为两个栏位选择模型', 'error');
+    return;
+  }
+
+  const leftApiKeyValid = await verifyApiKeyConfigured(leftColumnModel);
+  const rightApiKeyValid = await verifyApiKeyConfigured(rightColumnModel);
+  
+  if (!leftApiKeyValid || !rightApiKeyValid) {
+    return;
+  }
+
+  let inputText = '';
+  const currentURL = await getCurrentURL();
+
+  try {
+    if (isPDFUrl(currentURL)) {
+      displayLoading('正在提取PDF内容...');
+      inputText = await extractPDFText(currentURL);
+    } else {
+      displayLoading('正在提取网页内容...');
+      inputText = await fetchPageContent(FORMAT_TEXT);
+    }
+  } catch (error) {
+    hiddenLoadding();
+    console.error('智能摘要失败', error);
+    showToast(`智能摘要失败: ${error.message}`, 'error');
+    return;
+  }
+
+  // 获取当前提示词模式和相应的提示词
+  chrome.storage.local.get(['promptMode', 'summaryPrompt', 'paperReadingPrompt', 'systemPrompt'], async function (result) {
+    const currentMode = result.promptMode || 'default';
+    let promptToUse;
+    let systemPromptToUse;
+
+    if (currentMode === 'paper') {
+      promptToUse = result.paperReadingPrompt || PAPER_READING_PROMPT;
+      systemPromptToUse = PAPER_SYSTEM_PROMPT;
+    } else if (currentMode === 'learning') {
+      promptToUse = result.learningModePrompt || LEARNING_MODE_PROMPT;
+      systemPromptToUse = result.learningModePrompt || LEARNING_MODE_PROMPT;
+    } else {
+      promptToUse = result.summaryPrompt || SUMMARY_PROMPT;
+      systemPromptToUse = result.systemPrompt || SYSTEM_PROMPT;
+    }
+
+    const fullPrompt = promptToUse + inputText;
+
+    // 清空聊天内容并开始双栏摘要
+    document.getElementById('left-chat-content').innerHTML = '';
+    document.getElementById('right-chat-content').innerHTML = '';
+    
+    await dualColumnChatLLMAndUIUpdate(fullPrompt, [], systemPromptToUse);
+  });
+}
+
+/**
+ * 处理双栏模式翻译
+ */
+async function handleDualColumnTranslate() {
+  if (!leftColumnModel || !rightColumnModel) {
+    showToast('请先为两个栏位选择模型', 'error');
+    return;
+  }
+
+  const leftApiKeyValid = await verifyApiKeyConfigured(leftColumnModel);
+  const rightApiKeyValid = await verifyApiKeyConfigured(rightColumnModel);
+  
+  if (!leftApiKeyValid || !rightApiKeyValid) {
+    return;
+  }
+
+  let inputText = '';
+  const currentURL = await getCurrentURL();
+
+  try {
+    if (isPDFUrl(currentURL)) {
+      displayLoading('正在提取PDF内容...');
+      inputText = await extractPDFText(currentURL);
+    } else {
+      displayLoading('正在提取网页内容...');
+      inputText = await fetchPageContent();
+    }
+  } catch (error) {
+    hiddenLoadding();
+    console.error('网页翻译失败', error);
+    showToast(`网页翻译失败: ${error.message}`, 'error');
+    return;
+  }
+
+  // 清空聊天内容并开始双栏翻译
+  document.getElementById('left-chat-content').innerHTML = '';
+  document.getElementById('right-chat-content').innerHTML = '';
+  
+  await dualColumnChatLLMAndUIUpdate(TRANSLATE2CHN_PROMPT + inputText, []);
+}
+
+/**
+ * 处理双栏模式本地PDF
+ */
+async function handleDualColumnLocalPDF() {
+  if (!leftColumnModel || !rightColumnModel) {
+    showToast('请先为两个栏位选择模型', 'error');
+    return;
+  }
+
+  // 显示选择对话框
+  const useFilePath = confirm('是否直接输入本地PDF文件路径？\n\n点击"确定"输入文件路径\n点击"取消"上传PDF文件');
+  
+  if (useFilePath) {
+    // 显示文件路径输入对话框
+    const pdfPathDialog = document.getElementById('pdf-path-dialog');
+    pdfPathDialog.style.display = 'flex';
+    
+    // 处理确认按钮（如果还没有为双栏模式添加事件监听器）
+    const pdfPathConfirm = document.getElementById('pdf-path-confirm');
+    const pdfPathInput = document.getElementById('pdf-path-input');
+    
+    // 移除之前的事件监听器，添加新的
+    const newConfirmBtn = pdfPathConfirm.cloneNode(true);
+    pdfPathConfirm.parentNode.replaceChild(newConfirmBtn, pdfPathConfirm);
+    
+    newConfirmBtn.addEventListener('click', async function() {
+      const filePath = pdfPathInput.value.trim();
+      if (!filePath) {
+        alert('请输入有效的PDF文件路径');
+        return;
+      }
+
+      pdfPathDialog.style.display = 'none';
+
+      const leftApiKeyValid = await verifyApiKeyConfigured(leftColumnModel);
+      const rightApiKeyValid = await verifyApiKeyConfigured(rightColumnModel);
+      
+      if (!leftApiKeyValid || !rightApiKeyValid) {
+        return;
+      }
+
+      try {
+        displayLoading('正在读取本地PDF文件...');
+        const pdfText = await extractPDFFromFilePath(filePath);
+
+        if (!pdfText || pdfText.trim().length === 0) {
+          hiddenLoadding();
+          showToast('无法从PDF中提取文本内容', 'error');
+          return;
+        }
+
+        const fileName = filePath.split('/').pop().split('\\').pop();
+        
+        // 清空聊天内容并开始双栏PDF分析
+        document.getElementById('left-chat-content').innerHTML = '';
+        document.getElementById('right-chat-content').innerHTML = '';
+        
+        await dualColumnChatLLMAndUIUpdate(
+          `以下是PDF文件"${fileName}"的内容，请提供一个详细的摘要:\n\n${pdfText}`,
+          []
+        );
+      } catch (error) {
+        hiddenLoadding();
+        console.error('读取本地PDF失败:', error);
+        showToast(`读取本地PDF失败: ${error.message}`, 'error');
+      } finally {
+        pdfPathInput.value = '';
+      }
+    });
+  } else {
+    // 使用文件上传
+    const pdfInput = document.getElementById('pdf-file-input');
+    pdfInput.click();
+  }
 }
 
 // 提示词模式选择逻辑
@@ -595,7 +1967,8 @@ function initPromptModeSelection() {
     chrome.storage.local.set({ 'promptMode': selectedMode });
 
     // 显示提示信息
-    showToast(selectedMode === 'paper' ? '已切换到论文模式' : '已切换到默认模式', 'info');
+    showToast(selectedMode === 'paper' ? '已切换到论文模式' : 
+              selectedMode === 'learning' ? '已切换到学习模式' : '已切换到默认模式', 'info');
   });
 }
 
@@ -745,6 +2118,9 @@ function initResultPage() {
   // 初始化按钮状态
   updateSubmitButton();
 
+  // 初始化布局模式
+  initLayoutMode();
+
   // 检测输入框内容变化以更新提交按钮状态
   var userInput = document.getElementById('my-extension-user-input');
   userInput.addEventListener('input', updateSubmitButton);
@@ -878,16 +2254,33 @@ function initResultPage() {
   // 清空历史记录逻辑
   var label = document.getElementById('newchat-label');
   label.addEventListener('click', function () {
-    // 清空聊天记录
-    const contentDiv = document.querySelector('.chat-content');
-    contentDiv.innerHTML = '';
+    if (isDualColumnMode) {
+      // 双栏模式：清空两栏的聊天记录
+      const leftContentDiv = document.getElementById('left-chat-content');
+      const rightContentDiv = document.getElementById('right-chat-content');
+      leftContentDiv.innerHTML = '';
+      rightContentDiv.innerHTML = '';
+      
+      // 清空双栏的对话历史
+      leftDialogueHistory = [];
+      rightDialogueHistory = [];
+      leftGeminiDialogueHistory = [];
+      rightGeminiDialogueHistory = [];
+    } else {
+      // 单栏模式：清空聊天记录
+      const contentDiv = document.querySelector('.chat-content');
+      contentDiv.innerHTML = '';
+      
+      // 展示推荐内容
+      showRecommandContent();
+    }
+    
     // 清空上传图片预览界面
     const previewArea = document.querySelector('.image-preview-area');
     previewArea.innerHTML = '';
+    
     // 清空历史记录
     initChatHistory();
-    // 展示推荐内容
-    showRecommandContent();
     // 重置所有弹出菜单状态
     [modelParamsPopupDiv, toolStorePopupDiv, shortcutMenu].forEach(menu => {
       menu.classList.remove('show');
@@ -1274,6 +2667,49 @@ function initResultPage() {
   var submitButton = document.getElementById('my-extension-submit-btn');
   if (submitButton) {
     submitButton.addEventListener('click', async function () {
+      // 检查是否处于双栏模式
+      if (isDualColumnMode) {
+        // 双栏模式下的处理逻辑
+        if (!leftColumnModel || !rightColumnModel) {
+          showToast('请为两个栏位选择模型', 'error');
+          return;
+        }
+        
+        // 验证两个模型的API Key
+        const leftApiKeyValid = await verifyApiKeyConfigured(leftColumnModel);
+        const rightApiKeyValid = await verifyApiKeyConfigured(rightColumnModel);
+        
+        if (!leftApiKeyValid || !rightApiKeyValid) {
+          return;
+        }
+        
+        if (userInput.value.trim() !== '') {
+          const inputText = userInput.value;
+          
+          // 获取图像url
+          var images = document.querySelectorAll('.uploaded-image-preview');
+          var base64Images = [];
+          images.forEach(img => {
+            var imageBase64 = img.getAttribute('data-base64');
+            if (imageBase64) {
+              base64Images.push(imageBase64);
+            }
+          });
+          
+          // 清空输入框内容
+          userInput.value = "";
+          
+          // 清空上传图片预览界面
+          const previewArea = document.querySelector('.image-preview-area');
+          previewArea.innerHTML = '';
+          
+          // 双栏模式下的聊天
+          await dualColumnChatLLMAndUIUpdate(inputText, base64Images);
+        }
+        return;
+      }
+      
+      // 原有的单栏模式逻辑
       const model = getSelectedModel();
       const apiKeyValid = await verifyApiKeyConfigured(model);
       if (!apiKeyValid) {
