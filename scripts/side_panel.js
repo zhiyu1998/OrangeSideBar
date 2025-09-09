@@ -402,7 +402,92 @@ function loadOllamaModels(callback) {
 let allModels = [];
 let selectedModel = '';
 
-// 双栏模式相关全局变量
+// 双栏模式状态管理对象
+const DualColumnState = {
+  isActive: false,
+  leftModel: '',
+  rightModel: '',
+  leftHistory: [],
+  rightHistory: [],
+  leftGeminiHistory: [],
+  rightGeminiHistory: [],
+
+  // 初始化双栏状态
+  init() {
+    this.isActive = false;
+    this.leftModel = '';
+    this.rightModel = '';
+    this.leftHistory = [];
+    this.rightHistory = [];
+    this.leftGeminiHistory = [];
+    this.rightGeminiHistory = [];
+  },
+
+  // 激活双栏模式
+  activate() {
+    this.isActive = true;
+  },
+
+  // 关闭双栏模式
+  deactivate() {
+    this.isActive = false;
+  },
+
+  // 设置栏位模型
+  setModel(column, model) {
+    if (column === 'left') {
+      this.leftModel = model;
+    } else if (column === 'right') {
+      this.rightModel = model;
+    }
+  },
+
+  // 获取栏位模型
+  getModel(column) {
+    return column === 'left' ? this.leftModel : this.rightModel;
+  },
+
+  // 获取栏位对话历史
+  getHistory(column) {
+    return column === 'left' ? this.leftHistory : this.rightHistory;
+  },
+
+  // 获取栏位Gemini对话历史
+  getGeminiHistory(column) {
+    return column === 'left' ? this.leftGeminiHistory : this.rightGeminiHistory;
+  },
+
+  // 清空所有历史
+  clearAllHistory() {
+    this.leftHistory = [];
+    this.rightHistory = [];
+    this.leftGeminiHistory = [];
+    this.rightGeminiHistory = [];
+  },
+
+  // 保存状态到存储
+  async saveToStorage() {
+    const stateData = {
+      layoutMode: this.isActive ? 'dual' : 'single',
+      leftColumnModel: this.leftModel,
+      rightColumnModel: this.rightModel
+    };
+    return chrome.storage.local.set(stateData);
+  },
+
+  // 从存储加载状态
+  async loadFromStorage() {
+    const result = await chrome.storage.local.get(['layoutMode', 'leftColumnModel', 'rightColumnModel']);
+    
+    this.isActive = result.layoutMode === 'dual';
+    this.leftModel = result.leftColumnModel || '';
+    this.rightModel = result.rightColumnModel || '';
+    
+    return result;
+  }
+};
+
+// 保持向后兼容的全局变量（将逐步移除）
 let isDualColumnMode = false;
 let leftColumnModel = '';
 let rightColumnModel = '';
@@ -583,28 +668,50 @@ function hideDropdown() {
 }
 
 /**
- * 切换单栏/双栏模式
+ * 切换单栏/双栏模式（修复版本 - 移除状态覆盖问题）
  */
 function toggleLayoutMode() {
-  isDualColumnMode = !isDualColumnMode;
+  // 切换状态
+  if (DualColumnState.isActive) {
+    DualColumnState.deactivate();
+  } else {
+    DualColumnState.activate();
+  }
+  
+  isDualColumnMode = DualColumnState.isActive; // 保持向后兼容
+  
   const singleLayout = document.getElementById('single-layout');
   const dualLayout = document.getElementById('dual-layout');
   const layoutToggleBtn = document.getElementById('layout-toggle-label');
   
-  if (isDualColumnMode) {
+  if (DualColumnState.isActive) {
     // 切换到双栏模式
-    singleLayout.style.display = 'none';
-    dualLayout.style.display = 'block';
-    layoutToggleBtn.classList.add('active');
+    if (singleLayout) singleLayout.style.display = 'none';
+    if (dualLayout) dualLayout.style.display = 'block';
+    if (layoutToggleBtn) layoutToggleBtn.classList.add('active');
     
-    // 初始化双栏模型选择器
-    initDualColumnModelSelectors();
+    // 直接初始化双栏模型选择器（使用DualColumnState中已有的选择）
+    if (allModels.length > 0) {
+      initDualColumnModelSelectors();
+    } else {
+      // 如果模型还没加载，等待一下
+      setTimeout(() => {
+        if (allModels.length > 0) {
+          initDualColumnModelSelectors();
+        }
+      }, 500);
+    }
     
     // 清空双栏的聊天内容
-    document.getElementById('left-chat-content').innerHTML = '';
-    document.getElementById('right-chat-content').innerHTML = '';
+    const leftContent = document.getElementById('left-chat-content');
+    const rightContent = document.getElementById('right-chat-content');
+    if (leftContent) leftContent.innerHTML = '';
+    if (rightContent) rightContent.innerHTML = '';
     
-    // 重置对话历史
+    // 清空聊天历史
+    DualColumnState.clearAllHistory();
+    
+    // 保持向后兼容
     leftDialogueHistory = [];
     rightDialogueHistory = [];
     leftGeminiDialogueHistory = [];
@@ -612,20 +719,20 @@ function toggleLayoutMode() {
     
   } else {
     // 切换到单栏模式
-    singleLayout.style.display = 'block';
-    dualLayout.style.display = 'none';
-    layoutToggleBtn.classList.remove('active');
+    if (singleLayout) singleLayout.style.display = 'block';
+    if (dualLayout) dualLayout.style.display = 'none';
+    if (layoutToggleBtn) layoutToggleBtn.classList.remove('active');
     
     // 显示推荐内容
     showRecommandContent();
   }
   
   // 保存布局偏好
-  chrome.storage.local.set({ 'layoutMode': isDualColumnMode ? 'dual' : 'single' });
+  DualColumnState.saveToStorage();
 }
 
 /**
- * 初始化双栏模型选择器
+ * 初始化双栏模型选择器（修复版本 - 优先使用保存的选择）
  */
 function initDualColumnModelSelectors() {
   // 为左栏初始化模型选择器
@@ -634,15 +741,28 @@ function initDualColumnModelSelectors() {
   // 为右栏初始化模型选择器
   initColumnModelSelector('right');
   
-  // 设置默认模型
+  // 设置模型选择 - 优先使用保存的选择
   if (allModels.length > 0) {
-    // 左栏使用当前选中的模型或第一个模型
-    leftColumnModel = selectedModel || allModels[0].value;
+    // 左栏模型：优先使用 DualColumnState 中保存的，然后是全局变量，最后是默认值
+    if (DualColumnState.leftModel) {
+      leftColumnModel = DualColumnState.leftModel;
+    } else if (!leftColumnModel) {
+      leftColumnModel = selectedModel || allModels[0].value;
+      DualColumnState.setModel('left', leftColumnModel);
+    }
     updateColumnModelDisplay('left', leftColumnModel);
     
-    // 右栏使用第二个模型（如果存在）或与左栏相同
-    rightColumnModel = allModels.length > 1 ? allModels[1].value : leftColumnModel;
+    // 右栏模型：优先使用 DualColumnState 中保存的，然后是全局变量，最后是默认值
+    if (DualColumnState.rightModel) {
+      rightColumnModel = DualColumnState.rightModel;
+    } else if (!rightColumnModel) {
+      rightColumnModel = allModels.length > 1 ? allModels[1].value : leftColumnModel;
+      DualColumnState.setModel('right', rightColumnModel);
+    }
     updateColumnModelDisplay('right', rightColumnModel);
+    
+    // 保存当前状态
+    DualColumnState.saveToStorage();
   }
 }
 
@@ -778,7 +898,7 @@ function filterAndDisplayModelsForColumn(column, query) {
 }
 
 /**
- * 选择指定栏的模型
+ * 选择指定栏的模型（使用新状态管理）
  */
 function selectColumnModel(column, value, displayName) {
   const searchInput = document.getElementById(`model-search-${column}`);
@@ -787,17 +907,18 @@ function selectColumnModel(column, value, displayName) {
   searchInput.value = fullDisplayName;
   hideColumnDropdown(column);
   
+  // 更新状态管理对象
+  DualColumnState.setModel(column, value);
+  
+  // 保持向后兼容
   if (column === 'left') {
     leftColumnModel = value;
   } else {
     rightColumnModel = value;
   }
   
-  // 保存双栏模型选择
-  chrome.storage.local.set({ 
-    'leftColumnModel': leftColumnModel,
-    'rightColumnModel': rightColumnModel
-  });
+  // 保存状态
+  DualColumnState.saveToStorage();
 }
 
 /**
@@ -912,7 +1033,7 @@ async function dualColumnChatLLMAndUIUpdate(inputText, base64Images, customSyste
 }
 
 /**
- * 为指定栏进行流式输出聊天
+ * 为指定栏进行流式输出聊天（重构版本 - 使用通用处理器）
  */
 async function streamingChatForColumn(column, model, aiMessageDiv, inputText, base64Images, tools = [], customSystemPrompt = null) {
   // 设置对应栏的对话历史
@@ -961,14 +1082,25 @@ async function streamingChatForColumn(column, model, aiMessageDiv, inputText, ba
       }
     }
 
-    // 检查是否是Gemini模型
+    // 使用通用的流式输出处理器，根据模型类型路由
+    const config = {
+      column,
+      model,
+      baseUrl,
+      apiKey,
+      aiMessageDiv,
+      inputText,
+      base64Images,
+      systemPrompt: systemPromptToUse,
+      tools
+    };
+
     if (model.includes(PROVIDERS.GEMINI)) {
-      await streamingChatWithGeminiForColumn(column, model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPromptToUse, tools);
+      await universalStreamingChat(config, 'gemini');
     } else if (model.includes(PROVIDERS.ANTHROPIC)) {
-      await streamingChatWithAnthropicForColumn(column, model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPromptToUse, tools);
+      await universalStreamingChat(config, 'anthropic');
     } else {
-      // OpenAI格式的流式输出
-      await streamingChatWithOpenAIFormatForColumn(column, model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPromptToUse, tools);
+      await universalStreamingChat(config, 'openai');
     }
 
   } catch (error) {
@@ -982,10 +1114,30 @@ async function streamingChatForColumn(column, model, aiMessageDiv, inputText, ba
 }
 
 /**
- * OpenAI格式的流式输出（双栏版本）
+ * 通用流式输出处理器
+ * @param {Object} config 配置对象，包含所有必需的参数
+ * @param {string} provider 提供商类型：'openai'、'gemini'、'anthropic'
  */
-async function streamingChatWithOpenAIFormatForColumn(column, model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPrompt, tools) {
-  // 构建消息历史
+async function universalStreamingChat(config, provider) {
+  const { column, model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPrompt, tools } = config;
+
+  // 根据提供商类型选择对应的处理器
+  switch (provider) {
+    case 'openai':
+      return await handleOpenAIStream(config);
+    case 'gemini':
+      return await handleGeminiStream(config);
+    case 'anthropic':
+      return await handleAnthropicStream(config);
+    default:
+      throw new Error(`Unsupported provider: ${provider}`);
+  }
+}
+
+/**
+ * 处理OpenAI格式的流式输出
+ */
+async function handleOpenAIStream({ model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPrompt, tools }) {
   const messages = [];
   
   if (systemPrompt) {
@@ -995,7 +1147,6 @@ async function streamingChatWithOpenAIFormatForColumn(column, model, baseUrl, ap
     });
   }
 
-  // 添加历史对话
   dialogueHistory.forEach(item => {
     messages.push({
       role: 'user',
@@ -1007,7 +1158,6 @@ async function streamingChatWithOpenAIFormatForColumn(column, model, baseUrl, ap
     });
   });
 
-  // 添加当前用户输入
   const userMessage = { role: 'user', content: inputText };
   if (base64Images && base64Images.length > 0) {
     userMessage.content = [
@@ -1020,7 +1170,6 @@ async function streamingChatWithOpenAIFormatForColumn(column, model, baseUrl, ap
   }
   messages.push(userMessage);
 
-  // 构建请求体
   const requestBody = {
     model: model,
     messages: messages,
@@ -1032,7 +1181,6 @@ async function streamingChatWithOpenAIFormatForColumn(column, model, baseUrl, ap
     requestBody.tools = tools;
   }
 
-  // 发送流式请求 - 修复：baseUrl已经包含完整路径，不需要再拼接
   const response = await fetch(baseUrl, {
     method: 'POST',
     headers: {
@@ -1050,7 +1198,7 @@ async function streamingChatWithOpenAIFormatForColumn(column, model, baseUrl, ap
   const decoder = new TextDecoder();
   let completeText = '';
   let buffer = '';
-  let hasStartedOutput = false; // 跟踪是否已开始输出
+  let hasStartedOutput = false;
 
   try {
     while (true) {
@@ -1071,16 +1219,13 @@ async function streamingChatWithOpenAIFormatForColumn(column, model, baseUrl, ap
             const parsed = JSON.parse(data);
             const delta = parsed.choices?.[0]?.delta?.content;
             if (delta) {
-              // 第一次收到内容时隐藏加载提示
               if (!hasStartedOutput) {
                 hasStartedOutput = true;
                 hiddenLoadding();
               }
               
               completeText += delta;
-              // 实时更新UI
               aiMessageDiv.innerHTML = marked.parse(completeText);
-              // 滚动到底部
               aiMessageDiv.parentElement.scrollTop = aiMessageDiv.parentElement.scrollHeight;
             }
           } catch (e) {
@@ -1093,17 +1238,243 @@ async function streamingChatWithOpenAIFormatForColumn(column, model, baseUrl, ap
     reader.releaseLock();
   }
 
-  // 添加到对话历史
   dialogueHistory.push({
     user: inputText,
     assistant: completeText
   });
 
-  // 最终渲染和处理
   aiMessageDiv.innerHTML = marked.parse(completeText);
   createCopyButtonForColumn(completeText, aiMessageDiv);
   renderKatexMath(aiMessageDiv);
 }
+
+/**
+ * 处理Gemini格式的流式输出
+ */
+async function handleGeminiStream({ model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPrompt, tools }) {
+  const messages = [];
+  
+  let firstUserContent = systemPrompt ? `${systemPrompt}\n\n${inputText}` : inputText;
+  
+  geminiDialogueHistory.forEach(item => {
+    messages.push({
+      role: 'user',
+      parts: [{ text: item.user }]
+    });
+    messages.push({
+      role: 'model',
+      parts: [{ text: item.assistant }]
+    });
+  });
+
+  const userParts = [{ text: firstUserContent }];
+  if (base64Images && base64Images.length > 0) {
+    base64Images.forEach(base64 => {
+      const mimeType = base64.split(';')[0].split(':')[1];
+      const base64Data = base64.split(',')[1];
+      userParts.push({
+        inline_data: {
+          mime_type: mimeType,
+          data: base64Data
+        }
+      });
+    });
+  }
+  
+  messages.push({
+    role: 'user',
+    parts: userParts
+  });
+
+  const requestBody = {
+    contents: messages,
+    generationConfig: {
+      temperature: parseFloat(document.getElementById('temperature')?.value) || 0.7
+    }
+  };
+
+  const apiPath = GEMINI_CHA_API_PATH.replace('{MODEL_NAME}', model).replace('{API_KEY}', apiKey);
+  const response = await fetch(`${baseUrl}${apiPath}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    throw new Error(`API请求失败: ${response.status}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let completeText = '';
+  let buffer = '';
+  let hasStartedOutput = false;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.trim() === '' || !line.startsWith('data: ')) continue;
+        
+        const data = line.slice(6);
+        if (data === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (delta) {
+            if (!hasStartedOutput) {
+              hasStartedOutput = true;
+              hiddenLoadding();
+            }
+            
+            completeText += delta;
+            aiMessageDiv.innerHTML = marked.parse(completeText);
+            aiMessageDiv.parentElement.scrollTop = aiMessageDiv.parentElement.scrollHeight;
+          }
+        } catch (e) {
+          console.log('解析Gemini响应失败:', e);
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  geminiDialogueHistory.push({
+    user: inputText,
+    assistant: completeText
+  });
+
+  aiMessageDiv.innerHTML = marked.parse(completeText);
+  createCopyButtonForColumn(completeText, aiMessageDiv);
+  renderKatexMath(aiMessageDiv);
+}
+
+/**
+ * 处理Anthropic格式的流式输出
+ */
+async function handleAnthropicStream({ model, baseUrl, apiKey, aiMessageDiv, inputText, base64Images, systemPrompt, tools }) {
+  const messages = [];
+  
+  dialogueHistory.forEach(item => {
+    messages.push({
+      role: 'user',
+      content: item.user
+    });
+    messages.push({
+      role: 'assistant',
+      content: item.assistant
+    });
+  });
+
+  const userMessage = { role: 'user', content: inputText };
+  if (base64Images && base64Images.length > 0) {
+    userMessage.content = [
+      { type: 'text', text: inputText },
+      ...base64Images.map(base64 => ({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: base64.split(';')[0].split(':')[1],
+          data: base64.split(',')[1]
+        }
+      }))
+    ];
+  }
+  messages.push(userMessage);
+
+  const requestBody = {
+    model: model,
+    messages: messages,
+    stream: true,
+    max_tokens: 4096,
+    temperature: parseFloat(document.getElementById('temperature')?.value) || 0.7
+  };
+
+  if (systemPrompt) {
+    requestBody.system = systemPrompt;
+  }
+
+  if (tools && tools.length > 0) {
+    requestBody.tools = tools;
+  }
+
+  const response = await fetch(baseUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    throw new Error(`API请求失败: ${response.status}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let completeText = '';
+  let buffer = '';
+  let hasStartedOutput = false;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.trim() === '') continue;
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+              if (!hasStartedOutput) {
+                hasStartedOutput = true;
+                hiddenLoadding();
+              }
+              
+              completeText += parsed.delta.text;
+              aiMessageDiv.innerHTML = marked.parse(completeText);
+              aiMessageDiv.parentElement.scrollTop = aiMessageDiv.parentElement.scrollHeight;
+            }
+          } catch (e) {
+            console.log('解析Anthropic响应失败:', e);
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  dialogueHistory.push({
+    user: inputText,
+    assistant: completeText
+  });
+
+  aiMessageDiv.innerHTML = marked.parse(completeText);
+  createCopyButtonForColumn(completeText, aiMessageDiv);
+  renderKatexMath(aiMessageDiv);
+}
+
 
 /**
  * Gemini模型的流式输出（双栏版本）
@@ -1664,30 +2035,79 @@ function createCopyButtonForColumn(completeText, targetElement) {
 }
 
 /**
- * 初始化布局模式
+ * 初始化布局模式（修复版本 - 避免状态混乱）
  */
 function initLayoutMode() {
-  // 加载保存的布局模式
-  chrome.storage.local.get(['layoutMode', 'leftColumnModel', 'rightColumnModel'], function (result) {
+  // 使用新的状态管理对象加载保存的布局模式
+  DualColumnState.loadFromStorage().then(result => {
     if (result.layoutMode === 'dual') {
+      // 直接设置UI到双栏模式，而不调用toggle
+      const singleLayout = document.getElementById('single-layout');
+      const dualLayout = document.getElementById('dual-layout');
+      const layoutToggleBtn = document.getElementById('layout-toggle-label');
+      
+      // 设置状态
+      DualColumnState.activate();
       isDualColumnMode = true;
-      toggleLayoutMode();
-    }
-    
-    // 恢复双栏模型选择
-    if (result.leftColumnModel) {
-      leftColumnModel = result.leftColumnModel;
-      // 更新UI显示
+      
+      // 直接设置UI
+      if (singleLayout) singleLayout.style.display = 'none';
+      if (dualLayout) dualLayout.style.display = 'block';
+      if (layoutToggleBtn) layoutToggleBtn.classList.add('active');
+      
+      // 等待UI设置完成后再初始化模型选择器
       setTimeout(() => {
-        updateColumnModelDisplay('left', leftColumnModel);
-      }, 100);
-    }
-    if (result.rightColumnModel) {
-      rightColumnModel = result.rightColumnModel;
-      // 更新UI显示
-      setTimeout(() => {
-        updateColumnModelDisplay('right', rightColumnModel);
-      }, 100);
+        // 确保模型列表已加载完成
+        if (allModels.length > 0) {
+          initDualColumnModelSelectors();
+          
+          // 恢复模型选择
+          if (result.leftColumnModel) {
+            leftColumnModel = result.leftColumnModel;
+            DualColumnState.setModel('left', result.leftColumnModel);
+            updateColumnModelDisplay('left', result.leftColumnModel);
+          }
+          if (result.rightColumnModel) {
+            rightColumnModel = result.rightColumnModel;
+            DualColumnState.setModel('right', result.rightColumnModel);
+            updateColumnModelDisplay('right', result.rightColumnModel);
+          }
+        } else {
+          // 如果模型列表还没加载完，等待一段时间后重试
+          const retryInitModels = () => {
+            if (allModels.length > 0) {
+              initDualColumnModelSelectors();
+              
+              if (result.leftColumnModel) {
+                leftColumnModel = result.leftColumnModel;
+                DualColumnState.setModel('left', result.leftColumnModel);
+                updateColumnModelDisplay('left', result.leftColumnModel);
+              }
+              if (result.rightColumnModel) {
+                rightColumnModel = result.rightColumnModel;
+                DualColumnState.setModel('right', result.rightColumnModel);
+                updateColumnModelDisplay('right', result.rightColumnModel);
+              }
+            } else {
+              // 继续等待
+              setTimeout(retryInitModels, 500);
+            }
+          };
+          setTimeout(retryInitModels, 500);
+        }
+      }, 200);
+    } else {
+      // 确保是单栏模式
+      const singleLayout = document.getElementById('single-layout');
+      const dualLayout = document.getElementById('dual-layout');
+      const layoutToggleBtn = document.getElementById('layout-toggle-label');
+      
+      DualColumnState.deactivate();
+      isDualColumnMode = false;
+      
+      if (singleLayout) singleLayout.style.display = 'block';
+      if (dualLayout) dualLayout.style.display = 'none';
+      if (layoutToggleBtn) layoutToggleBtn.classList.remove('active');
     }
   });
 
@@ -2087,6 +2507,22 @@ function updateModelSelection(globalModels) {
       updateSelectedModel(result.selectedModel);
     }
   });
+
+  // 模型加载完成后，检查是否需要初始化双栏模式
+  if (allModels.length > 0 && DualColumnState.isActive) {
+    // 延迟初始化确保DOM已准备好
+    setTimeout(() => {
+      initDualColumnModelSelectors();
+      
+      // 恢复保存的模型选择
+      if (DualColumnState.leftModel) {
+        updateColumnModelDisplay('left', DualColumnState.leftModel);
+      }
+      if (DualColumnState.rightModel) {
+        updateColumnModelDisplay('right', DualColumnState.rightModel);
+      }
+    }, 100);
+  }
 }
 
 /**
