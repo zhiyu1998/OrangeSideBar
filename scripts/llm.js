@@ -465,6 +465,8 @@ async function chatWithOpenAIFormat(baseUrl, apiKey, modelName, type, tools = []
     realModelName = realModelName.replace('nvidia-', '');
   } else if (modelName.startsWith('poe-')) {
     realModelName = realModelName.replace('poe-', '');
+  } else if (modelName.startsWith('volcengine-')) {
+    realModelName = realModelName.replace('volcengine-', '');
   }
 
   // 获取 modelParams 参数

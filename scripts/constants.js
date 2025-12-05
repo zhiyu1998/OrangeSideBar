@@ -262,7 +262,7 @@ const MODELSCOPE_DEFAULT_MODEL = "modelscope-qwen/Qwen2.5-7B-Instruct";
 const NVIDIA_DEFAULT_MODEL = "meta/llama-3.2-1b-instruct";
 const POE_DEFAULT_MODEL = "gpt-3.5-turbo";
 const ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-4-20250514";
-const VOLCENGINE_DEFAULT_MODEL = "doubao-1-5-pro-32k-250115";
+const VOLCENGINE_DEFAULT_MODEL = "doubao-seed-1-6-250615";
 
 // 英伟达推荐模型列表
 const NVIDIA_RECOMMENDED_MODELS = [
