@@ -209,6 +209,10 @@
                         style="margin-right: 6.4px;">
                     <span>Poe</span>
                 </button>
+                <button class="tab-link" data-tab="volcengine">
+                    <svg t="1764942122884" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="1643" width="24" height="24"><path d="M865.956367 472.574425l-137.898207 539.176869a9.386635 9.386635 0 0 0 0 4.479985 10.026633 10.026633 0 0 0 9.983967 7.679975h275.625748a9.983967 9.983967 0 0 0 10.026633-12.15996l-138.495539-539.176869a10.154633 10.154633 0 0 0-19.327935 0M107.13223 594.771351L0.252586 1011.708628c-1.450662 6.399979 3.541322 12.373292 10.111966 12.159959h212.777958a10.239966 10.239966 0 0 0 8.106639-3.583988 9.727968 9.727968 0 0 0 1.877327-4.05332 9.386635 9.386635 0 0 0 0-4.479985l-106.879643-417.065276a9.813301 9.813301 0 0 0-3.583988-5.119983 10.239966 10.239966 0 0 0-11.946627 0 9.813301 9.813301 0 0 0-3.583988 5.119983v0.085333z" fill="#00E5E5" p-id="1644"></path><path d="M295.376936 249.471168l-194.559352 762.365459c-0.682664 2.901324 0.042667 5.973313 1.919994 8.319972 1.877327 2.346659 4.693318 3.797321 7.679974 3.839988h389.246703a10.111966 10.111966 0 0 0 10.069299-12.117293L314.662205 249.428502a9.813301 9.813301 0 0 0-3.669322-5.119983 10.239966 10.239966 0 0 0-11.946626 0 9.813301 9.813301 0 0 0-3.669321 5.119983" fill="#006EFF" p-id="1645"></path><path d="M631.07715 7.039977a9.813301 9.813301 0 0 0-3.583988-5.119983 10.239966 10.239966 0 0 0-11.946627 0 9.813301 9.813301 0 0 0-3.669321 5.119983l-265.983114 1004.79665a9.983967 9.983967 0 0 0 10.026634 12.03196H887.502962a10.197299 10.197299 0 0 0 10.026633-7.637308 10.197299 10.197299 0 0 0 0-4.479985L631.07715 7.039977z" fill="#006EFF" p-id="1646"></path><path d="M435.664468 360.318799L266.96103 1011.751294a9.983967 9.983967 0 0 0 10.026634 12.245293h336.638877a10.239966 10.239966 0 0 0 8.10664-3.711988 10.111966 10.111966 0 0 0 2.005327-8.533305l-168.831438-651.517828a10.239966 10.239966 0 0 0-9.599968-6.99731 10.239966 10.239966 0 0 0-9.599968 7.039976" fill="#00E5E5" p-id="1647"></path></svg>
+                    <span>火山引擎</span>
+                </button>
             </div>
             <button class="tab-link collapsible" data-tab="tool-box">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -622,6 +626,64 @@
             <h2>API 代理地址</h2>
             <div class="baseurl-wrapper">
                 <input type="input" class="baseurl-input" placeholder="https://api.poe.com">
+            </div>
+            <div class="button-group">
+                <button class="save-button">保存</button>
+                <button class="checkapi-button">连通性测试</button>
+            </div>
+            <div class="checkapi-message" style="display:none;">检查通过</div>
+            <div class="save-message" style="display:none;">保存成功！</div>
+        </div>
+
+        <div class="tab-content" id="volcengine">
+            <h2>申请 API Key 官方地址</h2>
+            <ul>
+                <li>
+                    <a href="https://console.volcengine.com/ark">https://console.volcengine.com/ark</a>
+                </li>
+            </ul>
+            <h2>模型列表</h2>
+            <div class="model-list-container">
+                <ul class="model-list" id="model-list">
+                    <!-- 模型列表将通过 JavaScript 动态填充 -->
+                </ul>
+                <div class="model-list-loading">
+                    <div class="loading-spinner"></div>
+                    <span>正在获取模型列表...</span>
+                </div>
+                <div class="model-list-pagination" style="display: none;">
+                    <button class="pagination-btn" id="prev-page">上一页</button>
+                    <span class="pagination-info">
+                        <span id="current-page">1</span> / <span id="total-pages">1</span>
+                    </span>
+                    <button class="pagination-btn" id="next-page">下一页</button>
+                </div>
+            </div>
+            <h2>API Key</h2>
+            <div class="password-wrapper">
+                <input type="password" class="api-key-input" placeholder="Enter your API Key">
+                <button class="toggle-password">
+                    <!-- 眼睛开，表示密码可见 -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" class="bi bi-eye" style="display: none;" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <!-- 眼睛关，表示密码隐藏 -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" class="bi bi-eye-slash" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" class="feather feather-eye-off">
+                        <path
+                            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+                        </path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                </button>
+            </div>
+            <h2>API 代理地址</h2>
+            <div class="baseurl-wrapper">
+                <input type="input" class="baseurl-input" placeholder="https://ark.cn-beijing.volces.com">
             </div>
             <div class="button-group">
                 <button class="save-button">保存</button>

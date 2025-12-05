@@ -76,6 +76,9 @@ const POE_CHAT_API_PATH = "/v1/chat/completions";
 const ANTHROPIC_BASE_URL = "https://api.anthropic.com";
 const ANTHROPIC_CHAT_API_PATH = "/v1/messages";
 
+const VOLCENGINE_BASE_URL = "https://ark.cn-beijing.volces.com";
+const VOLCENGINE_CHAT_API_PATH = "/api/v3/chat/completions";
+
 // 获取模型列表的API路径
 const OPENAI_MODELS_API_PATH = "/v1/models";
 const AZURE_MODELS_API_PATH = "/openai/models?api-version=2024-04-01-preview";
@@ -90,6 +93,7 @@ const MODELSCOPE_MODELS_API_PATH = "/v1/models";
 const NVIDIA_MODELS_API_PATH = "/v1/models";
 const POE_MODELS_API_PATH = "/v1/models";
 const ANTHROPIC_MODELS_API_PATH = "/v1/models";
+const VOLCENGINE_MODELS_API_PATH = "/api/v3/models";
 
 // 添加供应商相关常量
 const PROVIDERS = {
@@ -109,7 +113,8 @@ const PROVIDERS = {
   OLLAMA: 'ollama',
   MODELSCOPE: 'modelscope',
   NVIDIA: 'nvidia',
-  POE: 'poe'
+  POE: 'poe',
+  VOLCENGINE: 'volcengine'
 };
 
 // 供应商显示名称映射
@@ -130,7 +135,8 @@ const PROVIDER_DISPLAY_NAMES = {
   [PROVIDERS.OLLAMA]: 'Ollama',
   [PROVIDERS.MODELSCOPE]: 'ModelScope 魔搭',
   [PROVIDERS.NVIDIA]: '英伟达',
-  [PROVIDERS.POE]: 'Poe'
+  [PROVIDERS.POE]: 'Poe',
+  [PROVIDERS.VOLCENGINE]: '火山引擎'
 };
 
 // 修改现有的 MODEL_MAPPINGS 使用 PROVIDERS 常量
@@ -231,6 +237,12 @@ const MODEL_MAPPINGS = [
   {
     prefix: ['claude-'],
     provider: PROVIDERS.ANTHROPIC
+  },
+
+  // Volcengine Doubao Models
+  {
+    prefix: ['doubao-', 'volcengine-'],
+    provider: PROVIDERS.VOLCENGINE
   }
 ];
 
@@ -250,6 +262,7 @@ const MODELSCOPE_DEFAULT_MODEL = "modelscope-qwen/Qwen2.5-7B-Instruct";
 const NVIDIA_DEFAULT_MODEL = "meta/llama-3.2-1b-instruct";
 const POE_DEFAULT_MODEL = "gpt-3.5-turbo";
 const ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-4-20250514";
+const VOLCENGINE_DEFAULT_MODEL = "doubao-1-5-pro-32k-250115";
 
 // 英伟达推荐模型列表
 const NVIDIA_RECOMMENDED_MODELS = [
@@ -369,6 +382,7 @@ const DEFAULT_LLM_URLS = [
   { key: PROVIDERS.MODELSCOPE, baseUrl: MODELSCOPE_BASE_URL, apiPath: MODELSCOPE_CHAT_API_PATH, defaultModel: MODELSCOPE_DEFAULT_MODEL },
   { key: PROVIDERS.NVIDIA, baseUrl: NVIDIA_BASE_URL, apiPath: NVIDIA_CHAT_API_PATH, defaultModel: NVIDIA_DEFAULT_MODEL },
   { key: PROVIDERS.POE, baseUrl: POE_BASE_URL, apiPath: POE_CHAT_API_PATH, defaultModel: POE_DEFAULT_MODEL },
+  { key: PROVIDERS.VOLCENGINE, baseUrl: VOLCENGINE_BASE_URL, apiPath: VOLCENGINE_CHAT_API_PATH, defaultModel: VOLCENGINE_DEFAULT_MODEL },
 ];
 
 
@@ -777,5 +791,8 @@ const THINKING_PROCESS_MODELS = [
   'deepseek-reasoner',
   'glm-4.5',
   'gemini-2.5-pro',
-  'gemini-2.5-flash'
+  'gemini-2.5-flash',
+  'kimi-k2-thinking',
+  'MiniMax-M2',
+  'GLM-4.6'
 ];

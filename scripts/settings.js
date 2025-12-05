@@ -762,6 +762,13 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
         object: model.object || 'model',
         owned_by: model.owned_by || 'poe'
       }));
+    } else if (model.includes(PROVIDERS.VOLCENGINE)) {
+      // 火山引擎格式处理
+      formattedModels = data.data.map(model => ({
+        id: `volcengine-${model.id}`,
+        object: model.object || 'model',
+        owned_by: model.owned_by || 'volcengine'
+      }));
     } else {
       formattedModels = data.data || data.models || [];
     }

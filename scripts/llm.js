@@ -308,6 +308,9 @@ async function chatWithLLM(model, inputText, base64Images, type) {
     } else if (provider === PROVIDERS.ANTHROPIC) {
       // Anthropic Claude 使用专门的消息格式
       result = await chatWithAnthropic(baseUrl, apiKey, model, type, tools, promptWithTime);
+    } else if (provider === PROVIDERS.VOLCENGINE) {
+      // 火山引擎使用 OpenAI 兼容格式
+      result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
     } else {
       // 默认 OpenAI-compatible 实现
       result = await chatWithOpenAIFormat(baseUrl, apiKey, model, type, tools, promptWithTime);
