@@ -300,6 +300,15 @@ const POE_POPULAR_MODELS = [
   "poe-Grok-3"
 ];
 
+// 火山引擎固定模型列表
+const VOLCENGINE_MODELS = [
+  "doubao-seed-1-6-250615",
+  "doubao-seed-1-6-thinking-250715",
+  "doubao-seed-1-6-flash-250715",
+  "doubao-seed-code-preview-251028",
+  "doubao-seed-code-preview-latest"
+];
+
 // GitHub Models热门模型列表 - 仅包含OpenAI、Cohere和Grok的模型
 const GITHUB_POPULAR_MODELS = [
   // OpenAI模型 - 使用"github-"前缀，在请求时会去掉"openai/"部分
@@ -362,6 +371,15 @@ const GLM_FREE_MODELS = [
   "glm-4v-flash",
   "glm-z1-flash"
 ];
+
+// 获取火山引擎固定模型列表
+function getVolcengineFixedModels() {
+  return VOLCENGINE_MODELS.map(model => ({
+    id: `volcengine-${model}`,
+    object: 'model',
+    owned_by: 'volcengine'
+  }));
+}
 
 // 各模型默认的baseurl
 const DEFAULT_LLM_URLS = [

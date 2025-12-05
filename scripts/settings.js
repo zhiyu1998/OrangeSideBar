@@ -178,6 +178,10 @@ function openTab(evt, tabName) {
         const freeOnly = localStorage.getItem('glm-free-only') === 'true';
         const fixedModels = getGLMFixedModels(freeOnly);
         updateModelSelect(fixedModels, tabName);
+      } else if (tabName === PROVIDERS.VOLCENGINE) {
+        // 火山引擎使用固定模型列表
+        const fixedModels = getVolcengineFixedModels();
+        updateModelSelect(fixedModels, tabName);
       }
     } else {
       console.log('No stored data found for tab:', tabName);
@@ -185,6 +189,10 @@ function openTab(evt, tabName) {
       if (tabName === PROVIDERS.GLM) {
         const freeOnly = localStorage.getItem('glm-free-only') === 'true';
         const fixedModels = getGLMFixedModels(freeOnly);
+        updateModelSelect(fixedModels, tabName);
+      } else if (tabName === PROVIDERS.VOLCENGINE) {
+        // 如果是火山引擎且没有存储数据，直接显示固定模型列表
+        const fixedModels = getVolcengineFixedModels();
         updateModelSelect(fixedModels, tabName);
       }
     }
@@ -659,6 +667,47 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
       return;
     }
 
+    // 火山引擎特殊处理：使用固定模型列表，只测试连通性
+    if (model === PROVIDERS.VOLCENGINE) {
+      // 构建简单的连通性测试请求
+      const apiUrl = `${baseUrl}${VOLCENGINE_CHAT_API_PATH}`;
+      const testParams = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: VOLCENGINE_DEFAULT_MODEL,
+          messages: [{ role: 'user', content: 'test' }],
+          max_tokens: 1
+        })
+      };
+
+      // 发起连通性测试
+      const response = await fetch(apiUrl, testParams);
+
+      // 火山引擎API可能返回401等错误，但只要不是网络错误就说明连通性正常
+      if (response.status === 401) {
+        throw new Error('API Key 无效，请检查您的 API Key');
+      } else if (response.status >= 500) {
+        throw new Error('服务器错误，请稍后重试');
+      }
+
+      // 显示成功消息
+      resultElement.textContent = '检查通过';
+      resultElement.className = 'checkapi-message success';
+      resultElement.style.display = "block";
+
+      // 使用固定模型列表
+      const fixedModels = getVolcengineFixedModels();
+      const tabId = tabContent.id;
+      const saveMessage = tabContent.querySelector('.save-message');
+      storeParams(tabId, baseUrl, apiKey, saveMessage, fixedModels);
+
+      return;
+    }
+
     // 其他模型的原有逻辑
     // 构建API请求参数
     let apiUrl, params;
@@ -888,6 +937,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const freeOnly = localStorage.getItem('glm-free-only') === 'true';
         currentModels = getGLMFixedModels(freeOnly);
         console.log('Saving GLM values with fixed models:', { tabId, baseUrl, apiKey, models: currentModels });
+        var saveMessage = tabContent.querySelector('.save-message');
+        storeParams(tabId, baseUrl, apiKey, saveMessage, currentModels);
+      } else if (tabId === PROVIDERS.VOLCENGINE) {
+        // 火山引擎特殊处理：使用固定模型列表
+        currentModels = getVolcengineFixedModels();
+        console.log('Saving Volcengine values with fixed models:', { tabId, baseUrl, apiKey, models: currentModels });
         var saveMessage = tabContent.querySelector('.save-message');
         storeParams(tabId, baseUrl, apiKey, saveMessage, currentModels);
       } else if (modelList) {
@@ -1137,6 +1192,11 @@ function initProviderFilter(provider, checkboxId, storageKey, filterCallback) {
         } else if (provider === PROVIDERS.GLM) {
           // 对智谱清言进行特殊处理
           const fixedModels = getGLMFixedModels(isChecked);
+          updateModelSelect(fixedModels, provider);
+          updateGlobalModels(provider, fixedModels); // 更新全局模型
+        } else if (provider === PROVIDERS.VOLCENGINE) {
+          // 对火山引擎进行特殊处理
+          const fixedModels = getVolcengineFixedModels();
           updateModelSelect(fixedModels, provider);
           updateGlobalModels(provider, fixedModels); // 更新全局模型
         }
