@@ -2942,6 +2942,101 @@ function initResultPage() {
     }
   });
 
+  // 视频字幕总结逻辑
+  var subtitleSummaryButton = document.querySelector('#my-extension-subtitle-summary-btn');
+  if (subtitleSummaryButton) {
+    subtitleSummaryButton.addEventListener('click', async function () {
+      const model = getSelectedModel();
+      const apiKeyValid = await verifyApiKeyConfigured(model);
+      if (!apiKeyValid) {
+        return;
+      }
+
+      // 获取当前页面URL
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        if (chrome.runtime.lastError || !tabs || !tabs[0]) {
+          showToast('无法获取当前标签页信息', 'error');
+          return;
+        }
+
+        chrome.tabs.sendMessage(tabs[0].id, { action: ACTION_GET_PAGE_URL }, async function(response) {
+          // 检查Chrome runtime错误
+          if (chrome.runtime.lastError) {
+            console.error('Chrome runtime error:', chrome.runtime.lastError);
+            showToast('消息传递失败：' + chrome.runtime.lastError.message, 'error');
+            return;
+          }
+
+          // 检查response是否存在
+          if (!response || !response.url) {
+            showToast('无法获取当前页面URL，请确保在视频页面上使用此功能', 'error');
+            return;
+          }
+          const currentURL = response.url;
+
+          if (!currentURL.includes('bilibili.com') && !currentURL.includes('youtube.com')) {
+            showToast('当前页面不是支持的视频页面（仅支持B站和YouTube）', 'error');
+            return;
+          }
+
+          try {
+            displayLoading('正在提取视频字幕...');
+
+            // 提取字幕
+            const subtitles = await extractSubtitles(currentURL, FORMAT_TEXT);
+
+            hiddenLoadding();
+
+            if (!subtitles || subtitles.trim().length === 0) {
+              showToast('该视频没有找到字幕内容', 'error');
+              return;
+            }
+
+            // 构造提示词
+            const fullPrompt = BILIBILI_SUBTITLE_SUMMARY_PROMPT + subtitles;
+
+            // 隐藏初始推荐内容
+            hideRecommandContent();
+
+            // 创建并显示用户消息
+            const userInput = document.getElementById('my-extension-user-input');
+            const userQuestionText = `对当前视频字幕进行总结分析`;
+
+            const userQuestionDiv = document.createElement('div');
+          userQuestionDiv.className = 'user-message';
+          userQuestionDiv.innerHTML = userQuestionText;
+
+          // 添加编辑按钮
+          const editButton = document.createElement('button');
+          editButton.className = 'edit-message-btn';
+          editButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          `;
+          editButton.onclick = () => editUserMessage(userQuestionDiv, userQuestionText);
+          userQuestionDiv.appendChild(editButton);
+
+          const contentDiv = document.querySelector('.chat-content');
+          contentDiv.appendChild(userQuestionDiv);
+
+          // 滚动到底部
+          contentDiv.scrollTop = contentDiv.scrollHeight;
+
+          // 调用AI进行总结
+          chatLLMAndUIUpdate(model, fullPrompt, [], SYSTEM_PROMPT);
+
+        } catch (error) {
+          hiddenLoadding();
+          console.error('提取字幕失败:', error);
+          showToast(`提取字幕失败: ${error.message}`, 'error');
+        }
+        });
+      });
+    });
+  }
+
   // 停止生成逻辑
   var cancelBtn = document.querySelector('#my-extension-generate-btn');
   cancelBtn.addEventListener('click', function () {
@@ -3239,47 +3334,6 @@ function initResultPage() {
           newInputText = CODE_EXPLAIN_PROMTP + inputText.replace(SHORTCUT_CODE_EXPLAIN, '');
         } else if (inputText.startsWith(SHORTCUT_IMAGE2TEXT)) {
           newInputText = IMAGE2TEXT_PROMPT + inputText.replace(SHORTCUT_IMAGE2TEXT, '');
-        } else if (inputText.startsWith(SHORTCUT_BILIBILI_SUBTITLE_SUMMARY)) {
-          // 显示加载状态
-          displayLoading('正在提取哔哩哔哩字幕...');
-
-          // 获取当前页面URL
-          chrome.runtime.sendMessage({ action: "getPageURL" }, function(response) {
-            const currentURL = response.url;
-
-            if (!currentURL.includes('bilibili.com')) {
-              hiddenLoadding();
-              showToast('当前页面不是哔哩哔哩视频页面', 'error');
-              return;
-            }
-
-            // 提取字幕
-            extractSubtitles(currentURL, FORMAT_TEXT)
-              .then(subtitles => {
-                hiddenLoadding();
-                if (!subtitles || subtitles.trim().length === 0) {
-                  showToast('该视频没有找到字幕内容', 'error');
-                  return;
-                }
-
-                // 构造提示词
-                newInputText = BILIBILI_SUBTITLE_SUMMARY_PROMPT + subtitles;
-
-                // 继续处理，发送请求
-                contentDiv.scrollTop = contentDiv.scrollHeight;
-                userInput.value = "";
-                const previewArea = document.querySelector('.image-preview-area');
-                previewArea.innerHTML = '';
-                chatLLMAndUIUpdate(model, newInputText, base64Images, SYSTEM_PROMPT);
-              })
-              .catch(error => {
-                hiddenLoadding();
-                console.error('提取字幕失败:', error);
-                showToast(`提取字幕失败: ${error.message}`, 'error');
-              });
-          });
-
-          return; // 异步处理，提前返回
         } else {
           newInputText = inputText;
         }

@@ -9,6 +9,7 @@ ACTION_FETCH_TEXT_CONTENT = 'fetchTextContent';
 ACTION_COPY_PAGE_CONTENT = 'copyPageContent';
 ACTION_COPY_PURE_PAGE_CONTENT = 'copyPurePageContent';
 ACTION_GET_PAGE_URL = 'getPageURL';
+ACTION_FETCH_VIDEO_SUBTITLE_INFO = 'fetchVideoSubtitleInfo';
 
 // default tips
 DEFAULT_TIPS = "<p>请先去设置 <b>Model</b> 和 <b>API KEY</b>.</p>" +
@@ -21,7 +22,6 @@ SHORTCUT_TRANSLATION = "翻译：";
 SHORTCUT_POLISH = "润色：";
 SHORTCUT_CODE_EXPLAIN = "代码解释：";
 SHORTCUT_IMAGE2TEXT = "图像转文本：";
-SHORTCUT_BILIBILI_SUBTITLE_SUMMARY = "哔哩哔哩字幕总结：";
 
 
 // 各个大模型 api

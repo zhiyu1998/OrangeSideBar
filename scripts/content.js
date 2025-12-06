@@ -14,6 +14,7 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
     }).catch(err => {
       sendResponse({ success: false, error: err });
     });
+    return true; // 表示异步响应
   } else if (request.action === ACTION_COPY_PURE_PAGE_CONTENT) {
     // 网页文本到剪切板
     const content = extractContent(FORMAT_TEXT);
@@ -22,9 +23,31 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
     }).catch(err => {
       sendResponse({ success: false, error: err });
     });
+    return true; // 表示异步响应
   } else if (request.action === ACTION_GET_PAGE_URL) {
     // 获取当前网页地址
     sendResponse({ url: window.location.href });
+  } else if (request.action === ACTION_FETCH_VIDEO_SUBTITLE_INFO) {
+    // 获取视频字幕信息
+    const url = window.location.href;
+    const isBilibili = url.includes('bilibili.com');
+    const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+
+    if (isBilibili || isYouTube) {
+      // 返回视频信息
+      sendResponse({
+        url: url,
+        isBilibili: isBilibili,
+        isYouTube: isYouTube
+      });
+    } else {
+      sendResponse({
+        url: url,
+        isBilibili: false,
+        isYouTube: false,
+        error: '不支持的网站，仅支持Bilibili和YouTube'
+      });
+    }
   }
 });
 
