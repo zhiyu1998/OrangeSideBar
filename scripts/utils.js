@@ -162,12 +162,29 @@ function createAIMessageDiv() {
 }
 
 // 展示 loading
-function displayLoading(message = 'AI 思考中...') {
+function displayLoading(message = null) {
     const loadingDiv = document.querySelector('.my-extension-loading');
     if (loadingDiv) {
-        // 支持 HTML 内容
-        loadingDiv.innerHTML = message;
+        // 如果没有提供自定义消息，使用橘子跑动的GIF
+        if (message === null) {
+            loadingDiv.innerHTML = `
+                <img src="images/orange_run.gif" alt="Loading..." style="
+                    width: 32px;
+                    height: 32px;
+                    margin-right: 12px;
+                    display: inline-block;
+                    vertical-align: middle;
+                ">
+                <span style="vertical-align: middle;">处理中...</span>
+            `;
+        } else {
+            // 支持 HTML 内容
+            loadingDiv.innerHTML = message;
+        }
         loadingDiv.style.display = 'flex';
+        // 添加居中对齐样式
+        loadingDiv.style.alignItems = 'center';
+        loadingDiv.style.justifyContent = 'center';
     }
 }
 
@@ -176,7 +193,17 @@ function hiddenLoadding() {
     const loadingDiv = document.querySelector('.my-extension-loading');
     if (loadingDiv) {
         loadingDiv.style.display = 'none';
-        loadingDiv.innerHTML = 'AI 思考中...'; // 恢复默认文本
+        // 重置为默认的橘子跑动GIF状态
+        loadingDiv.innerHTML = `
+            <img src="images/orange_run.gif" alt="Loading..." style="
+                width: 32px;
+                height: 32px;
+                margin-right: 12px;
+                display: inline-block;
+                vertical-align: middle;
+            ">
+            <span style="vertical-align: middle;">处理中...</span>
+        `;
     }
 }
 

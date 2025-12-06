@@ -325,11 +325,16 @@ body,
     transform: translate(-50%, -50%);
     display: none;
     z-index: 100000;
-    padding: 10px 20px;
-    background-color: rgba(0, 0, 0, 0.7);
+    padding: 15px 25px;
+    background-color: var(--bg-secondary);
     color: var(--text-primary);
-    border-radius: 5px;
+    border-radius: 8px;
     font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    min-height: 60px;
+    align-items: center;
+    justify-content: center;
 }
 
 .my-extension-slogan {

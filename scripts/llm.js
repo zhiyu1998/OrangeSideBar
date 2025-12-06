@@ -637,7 +637,7 @@ async function chatWithGemini(baseUrl, model, type, tools = [], systemPrompt = S
         <div class="thinking-header">
           <div class="thinking-indicator">
             <div class="thinking-spinner"></div>
-            <span>AI 思考中...</span>
+            <span>思考中...</span>
             <span class="thinking-time"></span>
           </div>
           <button class="thinking-toggle expanded">
@@ -1157,7 +1157,7 @@ async function parseAndUpdateChatContent(response, modelName, type) {
       <div class="thinking-header">
         <div class="thinking-indicator">
           <div class="thinking-spinner"></div>
-          <span>AI 思考中...</span>
+          <span>思考中...</span>
           <span class="thinking-time"></span>
         </div>
         <button class="thinking-toggle expanded">
