@@ -295,3 +295,189 @@ async function getBaseUrlAndApiKey(model) {
         });
     });
 }
+
+/**
+ * 提取字幕
+ * @param {string} url
+ * @returns
+ */
+async function extractSubtitles(url, format = FORMAT_SRT) {
+    if(url.includes('youtube.com')) {
+        return extractYoutubeSubtitles(url, format);
+    } else if(url.includes('bilibili.com')) {
+        return extractBilibiliSubtitles(url, format);
+    }
+}
+
+/**
+ * 用 Youtube-transcript.js 提取 youtube 视频字幕
+ * @returns
+ */
+async function extractYoutubeSubtitles(url, format) {
+    try {
+        // 暂时抛出错误，因为Youtube功能还未实现
+        throw new Error('YouTube字幕提取功能暂未实现');
+    } catch (error) {
+        console.error('Error fetching subtitles:', error);
+        throw new Error('视频字幕获取失败，原因：字幕获取接口暂不可用！');
+    }
+}
+
+/**
+ * 获取bilibili 视频字幕
+ * @param {string} paramURL
+ * @returns
+ */
+async function extractBilibiliSubtitles(paramURL, format) {
+    const url = new URL(paramURL);
+    const pathSearchs = {}
+    url.search.slice(1).replace(/([^=&]*)=([^=&]*)/g, (matchs, a, b, c) => pathSearchs[a] = b)
+
+    // bvid or aid
+    let aidOrBvid = pathSearchs.bvid; // Check watchlater list first
+    if (!aidOrBvid) {
+        let path = url.pathname;
+        if (path.endsWith('/')) {
+          path = path.slice(0, -1);
+        }
+        const paths = path.split('/');
+        aidOrBvid = paths[paths.length - 1]; // Get from video path e.g. /video/BVxxxx
+      }
+
+    if (!aidOrBvid) {
+        throw new Error('无法从URL中提取 BVID 或 AID');
+    }
+
+    let aid;
+    let cid;
+
+    try {
+        if (aidOrBvid.toLowerCase().startsWith('bv')) {
+            // If it's a bvid, get aid and cid from the view API
+            const bvidResponse = await fetch(
+                `https://api.bilibili.com/x/web-interface/view?bvid=${aidOrBvid}`,
+                { credentials: 'include' } // Removed USER_AGENT
+            );
+            const bvidData = await bvidResponse.json();
+            if (bvidData.code !== 0 || !bvidData.data) {
+                throw new Error(`获取视频信息失败: ${bvidData.message || '未知错误'}`);
+            }
+            aid = bvidData.data.aid;
+            // Get cid of the first page
+            if (!bvidData.data.pages || bvidData.data.pages.length === 0) {
+                 throw new Error('无法获取视频的分P信息');
+            }
+            cid = bvidData.data.pages[0].cid;
+
+        } else if (aidOrBvid.toLowerCase().startsWith('av')) {
+            // If it's an avid, use it directly and get cid from pagelist API
+            aid = aidOrBvid.slice(2); // Remove "av" prefix
+            const pageListResponse = await fetch(
+                `https://api.bilibili.com/x/player/pagelist?aid=${aid}`,
+                { credentials: 'include' } // Removed USER_AGENT
+            );
+            const pageListData = await pageListResponse.json();
+            if (pageListData.code !== 0 || !pageListData.data || pageListData.data.length === 0) {
+                throw new Error(`获取视频分P列表失败: ${pageListData.message || '未知错误'}`);
+            }
+            cid = pageListData.data[0].cid; // Get cid of the first page
+        } else {
+            throw new Error('无法识别的视频ID格式 (非BV或AV号)');
+        }
+
+        if (!aid || !cid) {
+             throw new Error('未能成功获取视频的 AID 和 CID');
+        }
+
+        // Fetch subtitle information using the wbi endpoint
+        const subtitleResponse = await fetch(
+            `https://api.bilibili.com/x/player/wbi/v2?aid=${aid}&cid=${cid}`,
+            { credentials: 'include' } // Removed USER_AGENT
+        );
+        const subtitleData = await subtitleResponse.json();
+
+        if (subtitleData.code !== 0) {
+            throw new Error(`视频字幕获取失败，原因： ${subtitleData.message || '接口返回错误'}`);
+        }
+
+        if (!subtitleData.data || !subtitleData.data.subtitle) {
+             throw new Error('视频字幕获取失败，原因：接口未返回字幕数据');
+        }
+
+        // Handle cases where login might be required
+        if (subtitleData.data.need_login_subtitle && (!subtitleData.data.subtitle.subtitles || subtitleData.data.subtitle.subtitles.length === 0)) {
+            throw new Error('视频字幕获取失败，原因：需要登录才能获取字幕！');
+        }
+
+        let subtitleList = subtitleData.data.subtitle.subtitles || [];
+
+        // Filter out subtitles without a valid URL
+        subtitleList = subtitleList.filter(sub => sub.subtitle_url && sub.subtitle_url.trim() !== '');
+
+        if (subtitleList.length === 0) {
+            throw new Error('视频字幕获取失败，原因：该视频暂未提供有效字幕！');
+        }
+
+        let subtitleUrl = subtitleList[0].subtitle_url;
+        // Ensure subtitle URL uses https
+        if (subtitleUrl.startsWith('//')) {
+            subtitleUrl = 'https:' + subtitleUrl;
+        } else if (subtitleUrl.startsWith('http://')) {
+            subtitleUrl = subtitleUrl.replace('http://', 'https://');
+        }
+
+        // Fetch the actual subtitle JSON
+        const subtitleJSONResponse = await fetch(
+            subtitleUrl // No headers needed for the subtitle content URL generally
+        );
+        const subtitleJSONData = await subtitleJSONResponse.json();
+
+        if (!subtitleJSONData || !subtitleJSONData.body) {
+             throw new Error('获取字幕内容失败，格式无效');
+        }
+
+        const formattedSubtitles = bilibiliSubtitlesJSONToFormat(subtitleJSONData, format);
+        return formattedSubtitles;
+
+    } catch (error) {
+        console.error('extractBilibiliSubtitles error:', error);
+        // Re-throw specific user-friendly errors, or a generic one
+        if (error.message.startsWith('视频字幕获取失败') || error.message.startsWith('无法') || error.message.startsWith('未能')) {
+             throw error;
+        }
+        throw new Error(`处理B站字幕时出错: ${error.message}`);
+    }
+}
+
+/**
+ * 将 bilibili 视频字幕的 json 格式 转为 srt 格式
+ * @param {json} subtitles
+ * @returns
+ */
+function bilibiliSubtitlesJSONToFormat(subtitles, format) {
+    const subtitlesBody = subtitles.body;
+    return subtitlesBody.map((sub, index) => {
+        if(format == FORMAT_SRT) {
+            const startTime = formatTime(sub.from);
+            const endTime = formatTime(sub.to);
+
+            return `${index + 1}\n${startTime} --> ${endTime}\n${sub.content}\n`;
+        } else if(format == FORMAT_TEXT) {
+            return `${sub.content}`;
+        }
+    }).join('\n');
+}
+
+function formatTime(seconds) {
+    const date = new Date(seconds * 1000);
+    const hh = pad(date.getUTCHours());
+    const mm = pad(date.getUTCMinutes());
+    const ss = pad(date.getUTCSeconds());
+    const ms = date.getUTCMilliseconds();
+
+    return `${hh}:${mm}:${ss},${ms.toString().padStart(3, '0')}`;
+}
+
+function pad(number) {
+    return number.toString().padStart(2, '0');
+}
