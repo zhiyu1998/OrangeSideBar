@@ -3485,7 +3485,7 @@ async function chatWithLLM(model, inputText, base64Images, type, tools = [], cus
     renderKatexMath(aiMessageDiv);
   }
 
-  while (result.tools.length > 0) {
+  while (result && result.tools && result.tools.length > 0) {
     result = await parseFunctionCalling(result, baseUrl, apiKey, model, type);
     // 每次工具调用返回后也渲染数学公式
     if (aiMessageDiv) {
@@ -3493,7 +3493,7 @@ async function chatWithLLM(model, inputText, base64Images, type, tools = [], cus
     }
   }
 
-  return result.completeText;
+  return (result && result.completeText) || result || '';
 }
 
 function initTheme() {

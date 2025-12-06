@@ -913,7 +913,6 @@ async function getModelParameters() {
  * @returns
  */
 async function fetchAndHandleResponse(baseUrl, params, modelName, type) {
-  let result = { resultString: '', resultArray: [] };
   try {
     const response = await fetch(baseUrl, params);
     if (!response.ok) {
@@ -926,8 +925,8 @@ async function fetchAndHandleResponse(baseUrl, params, modelName, type) {
     return result;
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.log('Fetch aborted...', completeText, '<<');
-      return result;
+      console.log('Fetch aborted...');
+      return { completeText: '', tools: [] };
     } else {
       console.error(error.message);
       throw new Error(error.message);
@@ -1354,11 +1353,42 @@ async function parseAndUpdateChatContent(response, modelName, type) {
     };
 
   } catch (error) {
-    if (thinkingDiv) {
-      const contentDiv = document.querySelector('.chat-content');
-      contentDiv.removeChild(thinkingDiv);
+    if (error.name === 'AbortError') {
+      // 请求被中止时，保存已有的内容
+      if (completeText && completeText.length > 0) {
+        dialogueHistory.push({
+          "role": "assistant",
+          "content": completeText
+        });
+
+        geminiDialogueHistory.push({
+          "role": "model",
+          "parts": [{
+            "text": completeText
+          }]
+        });
+      }
+
+      if (thinkingDiv) {
+        const contentDiv = document.querySelector('.chat-content');
+        if (contentDiv && thinkingDiv.parentNode) {
+          contentDiv.removeChild(thinkingDiv);
+        }
+      }
+
+      return {
+        completeText: completeText,
+        tools: tools
+      };
+    } else {
+      if (thinkingDiv) {
+        const contentDiv = document.querySelector('.chat-content');
+        if (contentDiv && thinkingDiv.parentNode) {
+          contentDiv.removeChild(thinkingDiv);
+        }
+      }
+      throw error;
     }
-    throw error;
   }
 }
 
@@ -1371,14 +1401,22 @@ function updateChatContent(completeText, type) {
   if (type == CHAT_TYPE) {
     // loading
     const loadingDiv = document.querySelector('.my-extension-loading');
-    loadingDiv.style.display = 'none';
+    if (loadingDiv) {
+      loadingDiv.style.display = 'none';
+    }
 
     const contentDiv = document.querySelector('.chat-content');
+    if (!contentDiv) return;
+
     const isAtBottom = (contentDiv.scrollHeight - contentDiv.clientHeight) <= contentDiv.scrollTop;
 
     // update content
     const lastDiv = contentDiv.lastElementChild;
-    lastDiv.innerHTML = marked.parse(completeText);
+    if (!lastDiv) return;
+
+    if (completeText && completeText.length > 0) {
+      lastDiv.innerHTML = marked.parse(completeText);
+    }
 
     // 渲染数学公式
     if (typeof window.renderMathInElement === 'function') {
