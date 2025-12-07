@@ -258,12 +258,28 @@
 
         <div class="tab-content active" id="general">
             <h2>主题设置</h2>
-            <div class="theme-toggle-container">
-                <span class="theme-label">深色主题</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="themeToggle" checked>
-                    <span class="slider"></span>
-                </label>
+            <div class="theme-options">
+                <div class="theme-option">
+                    <input type="radio" id="themeLight" name="theme" value="light">
+                    <label for="themeLight">
+                        <span class="theme-icon">☀️</span>
+                        <span class="theme-text">浅色</span>
+                    </label>
+                </div>
+                <div class="theme-option">
+                    <input type="radio" id="themeDark" name="theme" value="dark">
+                    <label for="themeDark">
+                        <span class="theme-icon">🌙</span>
+                        <span class="theme-text">深色</span>
+                    </label>
+                </div>
+                <div class="theme-option">
+                    <input type="radio" id="themeSystem" name="theme" value="system">
+                    <label for="themeSystem">
+                        <span class="theme-icon">💻</span>
+                        <span class="theme-text">跟随系统</span>
+                    </label>
+                </div>
             </div>
 
             <h2>包含功能</h2>

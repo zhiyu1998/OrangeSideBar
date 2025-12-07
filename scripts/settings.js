@@ -1,23 +1,63 @@
+// 跟随系统主题的函数
+function applySystemTheme() {
+  const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = isDarkMode ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+
+  // 通知其他页面更新主题
+  chrome.runtime.sendMessage({ action: 'themeChanged', theme: theme });
+}
+
 function initThemeToggle() {
-  const themeToggle = document.getElementById('themeToggle');
+  // 主题选项的radio按钮
+  const themeOptions = document.querySelectorAll('input[name="theme"]');
 
   // 从存储中获取当前主题
   chrome.storage.local.get('theme', ({ theme }) => {
     const currentTheme = theme || 'dark';
-    document.documentElement.setAttribute('data-theme', currentTheme);
-    themeToggle.checked = currentTheme === 'dark';
+
+    // 设置当前选中的主题选项
+    themeOptions.forEach(option => {
+      if (option.value === currentTheme) {
+        option.checked = true;
+      }
+    });
+
+    // 应用主题
+    if (currentTheme === 'system') {
+      applySystemTheme();
+    } else {
+      document.documentElement.setAttribute('data-theme', currentTheme);
+    }
   });
 
   // 监听主题切换
-  themeToggle.addEventListener('change', (e) => {
-    const newTheme = e.target.checked ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', newTheme);
+  themeOptions.forEach(option => {
+    option.addEventListener('change', (e) => {
+      const newTheme = e.target.value;
 
-    // 保存主题设置
-    chrome.storage.local.set({ theme: newTheme });
+      // 保存主题设置
+      chrome.storage.local.set({ theme: newTheme });
 
-    // 通知其他页面更新主题
-    chrome.runtime.sendMessage({ action: 'themeChanged', theme: newTheme });
+      // 应用主题
+      if (newTheme === 'system') {
+        applySystemTheme();
+      } else {
+        document.documentElement.setAttribute('data-theme', newTheme);
+        // 通知其他页面更新主题
+        chrome.runtime.sendMessage({ action: 'themeChanged', theme: newTheme });
+      }
+    });
+  });
+
+  // 监听系统主题变化
+  const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  darkModeMediaQuery.addEventListener('change', () => {
+    chrome.storage.local.get('theme', ({ theme }) => {
+      if (theme === 'system') {
+        applySystemTheme();
+      }
+    });
   });
 }
 

@@ -3591,18 +3591,46 @@ async function chatWithLLM(model, inputText, base64Images, type, tools = [], cus
   return (result && result.completeText) || result || '';
 }
 
+// 跟随系统主题的函数
+function applySystemTheme() {
+  const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = isDarkMode ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
 function initTheme() {
   // 从存储中获取当前主题
   chrome.storage.local.get('theme', ({ theme }) => {
     const currentTheme = theme || 'dark';
-    document.documentElement.setAttribute('data-theme', currentTheme);
+
+    // 应用主题
+    if (currentTheme === 'system') {
+      applySystemTheme();
+    } else {
+      document.documentElement.setAttribute('data-theme', currentTheme);
+    }
+  });
+
+  // 监听系统主题变化
+  const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  darkModeMediaQuery.addEventListener('change', () => {
+    chrome.storage.local.get('theme', ({ theme }) => {
+      if (theme === 'system') {
+        applySystemTheme();
+      }
+    });
   });
 }
 
 // 监听主题变化
 chrome.runtime.onMessage.addListener((message) => {
   if (message.action === 'themeChanged') {
-    document.documentElement.setAttribute('data-theme', message.theme);
+    chrome.storage.local.get('theme', ({ theme }) => {
+      // 如果是system模式，不应用传来的主题，因为系统主题可能不同
+      if (theme !== 'system') {
+        document.documentElement.setAttribute('data-theme', message.theme);
+      }
+    });
   }
 });
 
