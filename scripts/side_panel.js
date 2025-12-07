@@ -228,9 +228,8 @@ function showSubmitBtnAndHideGenBtn() {
 
 /**
  * 设置图像上传控件
- * @param {string} selectedModel
  */
-function toggleImageUpload(selectedModel) {
+function toggleImageUpload() {
   const imageUploadDiv = document.getElementById('image-upload-div');
   const imageUpload = document.getElementById('image-upload');
   const imageUploadLabel = document.getElementById('image-upload-label');
@@ -240,13 +239,8 @@ function toggleImageUpload(selectedModel) {
   imageUpload.disabled = false;
   imageUploadLabel.style.pointerEvents = 'auto';
 
-  // 默认接受所有图像
-  imageUpload.setAttribute('accept', 'image/*');
-
-  // 如果模型在ANY_FILE_SUPPORT_MODELS列表中，则接受任何文件类型
-  if (ANY_FILE_SUPPORT_MODELS.includes(selectedModel)) {
-    imageUpload.removeAttribute('accept');
-  }
+  // 接受所有文件类型
+  imageUpload.removeAttribute('accept');
 }
 
 function loadImage(imgElement) {
@@ -505,7 +499,7 @@ function handleModelSelection() {
       selectedModel = result.selectedModel;
       updateSelectedModel(result.selectedModel);
     }
-    toggleImageUpload(selectedModel);
+    toggleImageUpload();
   });
 }
 
@@ -642,7 +636,7 @@ function selectModel(value, displayName) {
   const fullDisplayName = allModels.find(m => m.value === value)?.name || displayName;
   searchInput.value = fullDisplayName;
   hideDropdown();
-  toggleImageUpload(value);
+  toggleImageUpload();
   chrome.storage.local.set({ 'selectedModel': value });
 }
 
@@ -2983,7 +2977,7 @@ function initResultPage() {
             displayLoading('正在提取视频字幕...');
 
             // 提取字幕
-            const subtitles = await extractSubtitles(currentURL, FORMAT_TEXT);
+            const subtitles = await extractSubtitles(currentURL, FORMAT_TEXT_WITH_TIMESTAMPS);
 
             hiddenLoadding();
 
