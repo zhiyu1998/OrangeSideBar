@@ -2992,8 +2992,11 @@ function initResultPage() {
               return;
             }
 
-            // 构造提示词
-            const fullPrompt = BILIBILI_SUBTITLE_SUMMARY_PROMPT + subtitles;
+            // 根据视频来源选择提示词
+            const isYouTube = currentURL.includes('youtube.com') || currentURL.includes('youtu.be');
+            const fullPrompt = isYouTube
+              ? YOUTUBE_SUBTITLE_SUMMARY_PROMPT + subtitles
+              : BILIBILI_SUBTITLE_SUMMARY_PROMPT + subtitles;
 
             // 隐藏初始推荐内容
             hideRecommandContent();

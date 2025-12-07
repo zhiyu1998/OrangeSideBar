@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "OrangeSideBar - 网页总结助手",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 OpenAI、Gemini、Anthropic 规范的 API，支持自动摘要、网页及视频翻译、多轮对话等功能✨",
   "icons": {
     "16": "images/logo_16.png",
@@ -31,7 +31,8 @@
     "tabs",
     "activeTab",
     "contextMenus",
-    "clipboardWrite"
+    "clipboardWrite",
+    "scripting"
   ],
   "minimum_chrome_version": "114",
   "content_scripts": [
@@ -50,6 +51,17 @@
         "scripts/llm.js",
         "scripts/content.js"
       ]
+    },
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://youtube.com/*"
+      ],
+      "js": [
+        "scripts/youtube_subtitle_injector.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ],
   "web_accessible_resources": [

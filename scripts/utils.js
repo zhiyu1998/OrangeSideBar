@@ -342,11 +342,44 @@ async function extractSubtitles(url, format = FORMAT_SRT) {
  */
 async function extractYoutubeSubtitles(url, format) {
     try {
-        // 暂时抛出错误，因为Youtube功能还未实现
-        throw new Error('YouTube字幕提取功能暂未实现');
+        // 通过background script获取字幕缓存
+        return new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({ action: 'getYouTubeSubtitles' }, (response) => {
+                if (!response?.success) {
+                    reject(new Error(response?.error || '获取字幕失败'));
+                    return;
+                }
+
+                const { cache, installed } = response.data;
+
+                if (!installed) {
+                    reject(new Error('字幕拦截器未安装，请刷新YouTube页面后重试'));
+                    return;
+                }
+
+                const keys = Object.keys(cache);
+                if (keys.length === 0) {
+                    reject(new Error('暂无缓存字幕，请先播放视频或点击CC字幕按钮'));
+                    return;
+                }
+
+                // 优先选择非自动生成的字幕
+                let selectedKey = keys.find(k => !k.endsWith('_auto'));
+                if (!selectedKey) {
+                    // 如果都是自动生成的，选择第一个
+                    selectedKey = keys[0];
+                }
+
+                const subtitleData = cache[selectedKey].data;
+
+                // 转换YouTube字幕格式
+                const converted = youtubeSubtitlesToFormat(subtitleData, format);
+                resolve(converted);
+            });
+        });
     } catch (error) {
-        console.error('Error fetching subtitles:', error);
-        throw new Error('视频字幕获取失败，原因：字幕获取接口暂不可用！');
+        console.error('Error fetching YouTube subtitles:', error);
+        throw new Error(`视频字幕获取失败: ${error.message}`);
     }
 }
 
@@ -511,6 +544,59 @@ function bilibiliSubtitlesJSONToFormat(subtitles, format) {
             return `${sub.content}`;
         }
     }).join('\n');
+}
+
+/**
+ * 将 YouTube 视频字幕的 json 格式转换为指定格式
+ * @param {object} subtitles - YouTube字幕数据
+ * @param {string} format - 目标格式 (FORMAT_SRT 或 FORMAT_TEXT)
+ * @returns {string} 转换后的字幕文本
+ */
+function youtubeSubtitlesToFormat(subtitles, format) {
+    const events = subtitles.events || subtitles;
+    if (!Array.isArray(events)) {
+        throw new Error('无效的字幕数据格式');
+    }
+
+    let result = [];
+    let index = 1;
+
+    for (const event of events) {
+        if (!event.segs || event.segs.length === 0) continue;
+
+        const text = event.segs.map(s => s.utf8 || '').join('').trim();
+        if (!text) continue;
+
+        if (format === FORMAT_SRT) {
+            const startMs = event.tStartMs || 0;
+            const endMs = startMs + (event.dDurationMs || 2000);
+            const startTime = msToSrtTime(startMs);
+            const endTime = msToSrtTime(endMs);
+            result.push(`${index}\n${startTime} --> ${endTime}\n${text}\n`);
+            index++;
+        } else if (format === FORMAT_TEXT) {
+            result.push(text);
+        }
+    }
+
+    if (result.length === 0) {
+        throw new Error('没有找到有效的字幕内容');
+    }
+
+    return result.join('\n');
+}
+
+/**
+ * 将毫秒转换为SRT时间格式 (HH:MM:SS,mmm)
+ * @param {number} ms - 毫秒数
+ * @returns {string} SRT格式的时间字符串
+ */
+function msToSrtTime(ms) {
+    const h = String(Math.floor(ms / 3600000)).padStart(2, '0');
+    const m = String(Math.floor((ms % 3600000) / 60000)).padStart(2, '0');
+    const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
+    const ms2 = String(ms % 1000).padStart(3, '0');
+    return `${h}:${m}:${s},${ms2}`;
 }
 
 function formatTime(seconds) {
