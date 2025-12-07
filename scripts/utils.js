@@ -325,8 +325,9 @@ async function getBaseUrlAndApiKey(model) {
 
 /**
  * 提取字幕
- * @param {string} url
- * @returns
+ * @param {string} url - 视频URL
+ * @param {string} format - 字幕格式 (FORMAT_SRT, FORMAT_TEXT, FORMAT_TEXT_WITH_TIMESTAMPS)
+ * @returns {string} 格式化后的字幕内容
  */
 async function extractSubtitles(url, format = FORMAT_SRT) {
     if(url.includes('youtube.com')) {
@@ -540,6 +541,10 @@ function bilibiliSubtitlesJSONToFormat(subtitles, format) {
             const endTime = formatTime(sub.to);
 
             return `${index + 1}\n${startTime} --> ${endTime}\n${sub.content}\n`;
+        } else if(format == FORMAT_TEXT_WITH_TIMESTAMPS) {
+            const startTime = formatTime(sub.from);
+            const endTime = formatTime(sub.to);
+            return `[${startTime}-${endTime}] ${sub.content}`;
         } else if(format == FORMAT_TEXT) {
             return `${sub.content}`;
         }
@@ -574,6 +579,12 @@ function youtubeSubtitlesToFormat(subtitles, format) {
             const endTime = msToSrtTime(endMs);
             result.push(`${index}\n${startTime} --> ${endTime}\n${text}\n`);
             index++;
+        } else if (format === FORMAT_TEXT_WITH_TIMESTAMPS) {
+            const startMs = event.tStartMs || 0;
+            const endMs = startMs + (event.dDurationMs || 2000);
+            const startTime = msToSrtTime(startMs);
+            const endTime = msToSrtTime(endMs);
+            result.push(`[${startTime}-${endTime}] ${text}`);
         } else if (format === FORMAT_TEXT) {
             result.push(text);
         }
