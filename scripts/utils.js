@@ -375,6 +375,9 @@ async function extractBilibiliSubtitles(paramURL, format) {
         throw new Error('无法从URL中提取 BVID 或 AID');
     }
 
+    // Get the page number (p parameter) from URL, default to 1
+    const pageNumber = parseInt(pathSearchs.p) || 1;
+
     let aid;
     let cid;
 
@@ -390,11 +393,19 @@ async function extractBilibiliSubtitles(paramURL, format) {
                 throw new Error(`获取视频信息失败: ${bvidData.message || '未知错误'}`);
             }
             aid = bvidData.data.aid;
-            // Get cid of the first page
+
+            // Get cid of the specified page
             if (!bvidData.data.pages || bvidData.data.pages.length === 0) {
                  throw new Error('无法获取视频的分P信息');
             }
-            cid = bvidData.data.pages[0].cid;
+
+            // Check if the requested page exists
+            if (pageNumber > bvidData.data.pages.length) {
+                throw new Error(`请求的页码 ${pageNumber} 超出了视频的总页数 ${bvidData.data.pages.length}`);
+            }
+
+            // Get cid of the specified page (page number is 1-based, array is 0-based)
+            cid = bvidData.data.pages[pageNumber - 1].cid;
 
         } else if (aidOrBvid.toLowerCase().startsWith('av')) {
             // If it's an avid, use it directly and get cid from pagelist API
@@ -407,7 +418,14 @@ async function extractBilibiliSubtitles(paramURL, format) {
             if (pageListData.code !== 0 || !pageListData.data || pageListData.data.length === 0) {
                 throw new Error(`获取视频分P列表失败: ${pageListData.message || '未知错误'}`);
             }
-            cid = pageListData.data[0].cid; // Get cid of the first page
+
+            // Check if the requested page exists
+            if (pageNumber > pageListData.data.length) {
+                throw new Error(`请求的页码 ${pageNumber} 超出了视频的总页数 ${pageListData.data.length}`);
+            }
+
+            // Get cid of the specified page (page number is 1-based, array is 0-based)
+            cid = pageListData.data[pageNumber - 1].cid;
         } else {
             throw new Error('无法识别的视频ID格式 (非BV或AV号)');
         }

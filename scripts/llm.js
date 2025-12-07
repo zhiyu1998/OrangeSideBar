@@ -1214,7 +1214,6 @@ async function parseAndUpdateChatContent(response, modelName, type) {
         let jsonText = buffer.substring(start, end + 1);
         try {
           const jsonData = JSON.parse(jsonText);
-          console.log('Response data:', jsonData);
           let content = '';
 
           // 处理思考过程输出，使用 isThinkingModel 替换原来的 isR1Model
