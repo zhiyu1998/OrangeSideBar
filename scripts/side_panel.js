@@ -146,10 +146,75 @@ async function chatLLMAndUIUpdate(model, inputText, base64Images, customSystemPr
  * @param {string} completeText
  */
 function createCopyButton(completeText) {
+  // 创建按钮容器
+  const buttonContainer = document.createElement('div');
+  buttonContainer.style.display = 'flex';
+  buttonContainer.style.gap = '12px';
+  buttonContainer.style.alignItems = 'center';
+  buttonContainer.style.justifyContent = 'flex-end';
+  buttonContainer.style.marginTop = '15px';
+  buttonContainer.style.padding = '8px 0';
+
+  // 创建Save Note按钮（文字形式，融入现有设计风格）
+  const saveNoteBtn = document.createElement('button');
+  saveNoteBtn.textContent = 'Save Note';
+  saveNoteBtn.style.cursor = 'pointer';
+  saveNoteBtn.style.padding = '8px 14px';
+  saveNoteBtn.style.fontSize = '13px';
+  saveNoteBtn.style.border = 'none';
+  saveNoteBtn.style.borderRadius = '0';
+  saveNoteBtn.style.backgroundColor = 'transparent';
+  saveNoteBtn.style.color = 'var(--text-secondary)';
+  saveNoteBtn.style.transition = 'all 0.2s ease';
+  saveNoteBtn.style.fontFamily = "'FZB', Arial, sans-serif";
+  saveNoteBtn.style.fontWeight = '500';
+  saveNoteBtn.style.boxShadow = 'none';
+
+  // 添加悬停效果，透明背景下的颜色变化
+  saveNoteBtn.addEventListener('mouseenter', function () {
+    saveNoteBtn.style.color = 'var(--accent-color)';
+    saveNoteBtn.style.transform = 'translateY(-1px)';
+  });
+  saveNoteBtn.addEventListener('mouseleave', function () {
+    saveNoteBtn.style.color = 'var(--text-secondary)';
+    saveNoteBtn.style.transform = 'translateY(0)';
+  });
+
+  saveNoteBtn.addEventListener('click', function () {
+    saveNoteAsMarkdown(completeText);
+  });
+
+  // 创建复制按钮容器，透明背景
+  const copyBtnContainer = document.createElement('div');
+  copyBtnContainer.style.cursor = 'pointer';
+  copyBtnContainer.style.padding = '8px';
+  copyBtnContainer.style.borderRadius = '0';
+  copyBtnContainer.style.transition = 'all 0.2s ease';
+  copyBtnContainer.style.border = 'none';
+  copyBtnContainer.style.backgroundColor = 'transparent';
+  copyBtnContainer.style.boxShadow = 'none';
+  copyBtnContainer.style.display = 'flex';
+  copyBtnContainer.style.alignItems = 'center';
+  copyBtnContainer.style.justifyContent = 'center';
+
+  // 创建复制按钮
   const copySvg = document.querySelector('.icon-copy').cloneNode(true);
   copySvg.style.display = 'block';
+  copySvg.style.width = '16px';
+  copySvg.style.height = '16px';
+  copySvg.style.stroke = 'var(--text-secondary)';
+  copySvg.title = '复制';
 
-  copySvg.addEventListener('click', function () {
+  copyBtnContainer.addEventListener('mouseenter', function () {
+    copySvg.style.stroke = 'var(--accent-color)';
+    copyBtnContainer.style.transform = 'translateY(-1px)';
+  });
+  copyBtnContainer.addEventListener('mouseleave', function () {
+    copySvg.style.stroke = 'var(--text-secondary)';
+    copyBtnContainer.style.transform = 'translateY(0)';
+  });
+
+  copyBtnContainer.addEventListener('click', function () {
     navigator.clipboard.writeText(completeText).then(() => {
       // 复制成功，替换为对号 SVG
       const originalSvg = copySvg.innerHTML;
@@ -163,9 +228,16 @@ function createCopyButton(completeText) {
     });
   });
 
+  // 将复制SVG添加到容器
+  copyBtnContainer.appendChild(copySvg);
+
+  // 将按钮添加到主容器
+  buttonContainer.appendChild(saveNoteBtn);
+  buttonContainer.appendChild(copyBtnContainer);
+
   const contentDiv = document.querySelector('.chat-content');
   let lastDiv = contentDiv.lastElementChild;
-  lastDiv.appendChild(copySvg);
+  lastDiv.appendChild(buttonContainer);
 
   // 渲染数学公式
   renderKatexMath(lastDiv);
@@ -2010,10 +2082,77 @@ function createUserMessageDiv(inputText, base64Images) {
  * 为指定栏创建复制按钮
  */
 function createCopyButtonForColumn(completeText, targetElement) {
+  // 创建按钮容器
+  const buttonContainer = document.createElement('div');
+  buttonContainer.style.display = 'flex';
+  buttonContainer.style.gap = '10px';
+  buttonContainer.style.alignItems = 'center';
+  buttonContainer.style.justifyContent = 'flex-end';
+  buttonContainer.style.marginTop = '12px';
+  buttonContainer.style.padding = '6px 0';
+
+  // 创建Save Note按钮（文字形式，适应双栏模式，融入设计风格）
+  const saveNoteBtn = document.createElement('button');
+  saveNoteBtn.textContent = 'Save';
+  saveNoteBtn.style.cursor = 'pointer';
+  saveNoteBtn.style.padding = '5px 9px';
+  saveNoteBtn.style.fontSize = '11px';
+  saveNoteBtn.style.border = 'none';
+  saveNoteBtn.style.borderRadius = '0';
+  saveNoteBtn.style.backgroundColor = 'transparent';
+  saveNoteBtn.style.color = 'var(--text-secondary)';
+  saveNoteBtn.style.transition = 'all 0.2s ease';
+  saveNoteBtn.style.flexShrink = '0';
+  saveNoteBtn.style.fontFamily = "'FZB', Arial, sans-serif";
+  saveNoteBtn.style.fontWeight = '500';
+  saveNoteBtn.style.boxShadow = 'none';
+
+  // 添加悬停效果，透明背景下的颜色变化
+  saveNoteBtn.addEventListener('mouseenter', function () {
+    saveNoteBtn.style.color = 'var(--accent-color)';
+    saveNoteBtn.style.transform = 'translateY(-1px)';
+  });
+  saveNoteBtn.addEventListener('mouseleave', function () {
+    saveNoteBtn.style.color = 'var(--text-secondary)';
+    saveNoteBtn.style.transform = 'translateY(0)';
+  });
+
+  saveNoteBtn.addEventListener('click', function () {
+    saveNoteAsMarkdown(completeText);
+  });
+
+  // 创建复制按钮容器，与Save Note按钮风格一致（双栏模式）
+  const copyBtnContainer = document.createElement('div');
+  copyBtnContainer.style.cursor = 'pointer';
+  copyBtnContainer.style.padding = '6px';
+  copyBtnContainer.style.borderRadius = '0';
+  copyBtnContainer.style.transition = 'all 0.2s ease';
+  copyBtnContainer.style.border = 'none';
+  copyBtnContainer.style.backgroundColor = 'transparent';
+  copyBtnContainer.style.boxShadow = 'none';
+  copyBtnContainer.style.flexShrink = '0';
+  copyBtnContainer.style.display = 'flex';
+  copyBtnContainer.style.alignItems = 'center';
+  copyBtnContainer.style.justifyContent = 'center';
+
+  // 创建复制按钮
   const copySvg = document.querySelector('.icon-copy').cloneNode(true);
   copySvg.style.display = 'block';
+  copySvg.style.width = '14px';
+  copySvg.style.height = '14px';
+  copySvg.style.stroke = 'var(--text-secondary)';
+  copySvg.title = '复制';
 
-  copySvg.addEventListener('click', function () {
+  copyBtnContainer.addEventListener('mouseenter', function () {
+    copySvg.style.stroke = 'var(--accent-color)';
+    copyBtnContainer.style.transform = 'translateY(-1px)';
+  });
+  copyBtnContainer.addEventListener('mouseleave', function () {
+    copySvg.style.stroke = 'var(--text-secondary)';
+    copyBtnContainer.style.transform = 'translateY(0)';
+  });
+
+  copyBtnContainer.addEventListener('click', function () {
     navigator.clipboard.writeText(completeText).then(() => {
       const originalSvg = copySvg.innerHTML;
       copySvg.innerHTML = rightSvgString;
@@ -2025,7 +2164,14 @@ function createCopyButtonForColumn(completeText, targetElement) {
     });
   });
 
-  targetElement.appendChild(copySvg);
+  // 将复制SVG添加到容器
+  copyBtnContainer.appendChild(copySvg);
+
+  // 将按钮添加到主容器
+  buttonContainer.appendChild(saveNoteBtn);
+  buttonContainer.appendChild(copyBtnContainer);
+
+  targetElement.appendChild(buttonContainer);
 }
 
 /**
@@ -3630,6 +3776,59 @@ chrome.runtime.onMessage.addListener((message) => {
     });
   }
 });
+
+/**
+ * 保存笔记为Markdown文件
+ * @param {string} content 要保存的内容
+ */
+async function saveNoteAsMarkdown(content) {
+  try {
+    // 获取当前网站名称
+    let siteName = 'UnknownSite';
+
+    try {
+      // 使用Chrome扩展API获取当前标签页信息
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.title) {
+        // 清理文件名，移除非法字符
+        siteName = tab.title
+          .replace(/[<>:"/\\|?*]/g, '') // 移除Windows文件名非法字符
+          .replace(/\s+/g, '_') // 空格替换为下划线
+          .substring(0, 50); // 限制长度避免文件名过长
+      }
+    } catch (error) {
+      console.warn('无法获取网站名称:', error);
+      // 如果无法获取网站名称，使用默认值
+    }
+
+    const filename = `${siteName}_OrangeSidebar.md`;
+
+    // 创建Blob对象
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+
+    // 创建下载链接
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.style.display = 'none';
+
+    // 触发下载
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 清理URL对象
+    URL.revokeObjectURL(url);
+
+    // 显示保存成功提示
+    showToast('笔记已保存', 'success');
+
+  } catch (error) {
+    console.error('保存笔记失败:', error);
+    showToast('保存笔记失败', 'error');
+  }
+}
 
 document.addEventListener('DOMContentLoaded', async function () {
   // 现有代码...
