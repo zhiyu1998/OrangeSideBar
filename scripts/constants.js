@@ -344,6 +344,7 @@ const DEFAULT_FILE_LOGO_PATH = "/images/file.png";
 
 // 智谱清言模型 - 固定模型列表
 const GLM_MODELS = [
+  "glm-4.6",
   "glm-4.5",
   "glm-4.5-air",
   "glm-4.5-x",
