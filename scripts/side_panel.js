@@ -3230,7 +3230,25 @@ function initResultPage() {
         background-color: #FAF8F6;
         border-radius: 16px;
         padding: 15px 25px;
+        color: #34495e;
       `;
+
+      // 强制所有元素使用浅色主题样式
+      const allElements = newDiv.querySelectorAll('*');
+      allElements.forEach(element => {
+        element.style.setProperty('color', '#34495e', 'important');
+        element.style.setProperty('background-color', 'transparent', 'important');
+        element.style.setProperty('border-color', '#ddd', 'important');
+        element.style.setProperty('background', 'transparent', 'important');
+      });
+
+      // 特别处理可能影响颜色的CSS变量
+      newDiv.style.setProperty('--text-primary', '#2c3e50', 'important');
+      newDiv.style.setProperty('--text-secondary', '#34495e', 'important');
+      newDiv.style.setProperty('--bg-primary', '#ffffff', 'important');
+      newDiv.style.setProperty('--bg-secondary', '#f8f9fa', 'important');
+      newDiv.style.setProperty('--border-color', '#ddd', 'important');
+      newDiv.style.setProperty('--accent-color', '#3498db', 'important');
 
       // Remove the first h1 element (summary title)
       const firstH1 = newDiv.querySelector('h1');
@@ -3317,10 +3335,35 @@ function initResultPage() {
         // Append the new div to body
         document.body.appendChild(newDiv);
 
+        // 在渲染前再次强制设置所有元素颜色
+        newDiv.querySelectorAll('*').forEach(element => {
+          const computedStyle = window.getComputedStyle(element);
+          if (computedStyle.color.includes('rgb') && !computedStyle.color.includes('34495e')) {
+            element.style.setProperty('color', '#34495e', 'important');
+          }
+        });
+
         // Render the new div
         html2canvas(newDiv, {
-          backgroundColor: '#1F2937',
-          useCORS: true
+          backgroundColor: '#FAF8F6',
+          useCORS: true,
+          onclone: function(clonedDoc) {
+            // 在克隆的文档中也强制应用浅色主题
+            const clonedDiv = clonedDoc.querySelector('div[style*="position: absolute"]');
+            if (clonedDiv) {
+              clonedDiv.querySelectorAll('*').forEach(element => {
+                element.style.setProperty('color', '#34495e', 'important');
+                element.style.setProperty('background-color', 'transparent', 'important');
+                element.style.setProperty('background', 'transparent', 'important');
+              });
+
+              // 设置CSS变量
+              clonedDiv.style.setProperty('--text-primary', '#2c3e50', 'important');
+              clonedDiv.style.setProperty('--text-secondary', '#34495e', 'important');
+              clonedDiv.style.setProperty('--bg-primary', '#ffffff', 'important');
+              clonedDiv.style.setProperty('--bg-secondary', '#f8f9fa', 'important');
+            }
+          }
         }).then(canvas => {
           canvas.toBlob(function (blob) {
             var url = URL.createObjectURL(blob);
