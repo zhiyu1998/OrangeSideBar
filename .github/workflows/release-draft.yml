@@ -82,12 +82,60 @@ jobs:
               });
               draftRelease = newRelease.data;
             } else {
-              // 更新 Draft Release 的 body
+              // 解析现有的 Draft Release 内容
+              let existingBody = draftRelease.body;
+              let changelogSection = '';
+              let otherSections = '';
+
+              // 提取 "Full Changelog" 和 "Contributors" 部分
+              const changelogMatch = existingBody.match(/\n\n\*\*Full Changelog\*\*:.*/);
+              const contributorsMatch = existingBody.match(/\n\n\*\*Contributors\*\*:.*/);
+
+              if (changelogMatch || contributorsMatch) {
+                // 提取变更列表部分（### Changes: 到下一个部分之前）
+                const changesMatch = existingBody.match(/(### Changes:[\s\S]*?)(?=\n\n\*\*)/);
+                if (changesMatch) {
+                  changelogSection = changesMatch[1];
+                }
+
+                // 保留其他部分
+                if (changelogMatch) {
+                  otherSections += changelogMatch[0];
+                }
+                if (contributorsMatch) {
+                  otherSections += contributorsMatch[0];
+                }
+              } else {
+                // 如果没有特殊部分，整个 body 就是变更列表
+                changelogSection = existingBody;
+              }
+
+              // 解析现有的提交列表并添加新的提交
+              let newChangelog = '### Changes:\n';
+              const existingCommits = changelogSection.match(/^- [a-f0-9]+ .*$/gm) || [];
+              const allCommits = [...existingCommits, `- ${commitMessage}`];
+
+              // 按提交哈希排序（最新的在后面）
+              const sortedCommits = allCommits.sort((a, b) => {
+                const hashA = a.match(/^([a-f0-9]+)/)[1];
+                const hashB = b.match(/^([a-f0-9]+)/)[1];
+                return hashA.localeCompare(hashB);
+              });
+
+              // 添加所有提交
+              sortedCommits.forEach(commit => {
+                newChangelog += `${commit}\n`;
+              });
+
+              // 组合成新的 body
+              const newBody = newChangelog + otherSections;
+
+              // 更新 Draft Release
               await github.rest.repos.updateRelease({
                 owner,
                 repo,
                 release_id: draftRelease.id,
-                body: `${draftRelease.body}\n- ${commitMessage}`,
+                body: newBody,
               });
             }
 
