@@ -85,28 +85,13 @@ jobs:
               // 解析现有的 Draft Release 内容
               let existingBody = draftRelease.body;
               let changelogSection = '';
-              let otherSections = '';
 
-              // 提取 "Full Changelog" 和 "Contributors" 部分
-              const changelogMatch = existingBody.match(/\n\n\*\*Full Changelog\*\*:.*/);
-              const contributorsMatch = existingBody.match(/\n\n\*\*Contributors:\*\*[\s\S]*$/);
-
-              if (changelogMatch || contributorsMatch) {
-                // 提取变更列表部分（### Changes: 到下一个部分之前）
-                const changesMatch = existingBody.match(/(### Changes:[\s\S]*?)(?=\n\n\*\*)/);
-                if (changesMatch) {
-                  changelogSection = changesMatch[1];
-                }
-
-                // 保留其他部分
-                if (changelogMatch) {
-                  otherSections += changelogMatch[0];
-                }
-                if (contributorsMatch) {
-                  otherSections += contributorsMatch[0];
-                }
+              // 提取变更列表部分（### Changes: 到第一个 ** 之前，或到文档末尾）
+              const changesMatch = existingBody.match(/(### Changes:[\s\S]*?)(?=\n\n\*\*|$)/);
+              if (changesMatch) {
+                changelogSection = changesMatch[1];
               } else {
-                // 如果没有特殊部分，整个 body 就是变更列表
+                // 如果没有找到，整个 body 就是变更列表
                 changelogSection = existingBody;
               }
 
@@ -130,8 +115,46 @@ jobs:
                 newChangelog += `${commit}\n`;
               });
 
-              // 组合成新的 body
-              const newBody = newChangelog + otherSections;
+              // 重新生成 Full Changelog 和 Contributors（每次都刷新）
+              const sortedReleases = releases.data.filter(r => !r.draft).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+              const previousTag = sortedReleases.length > 0 ? sortedReleases[0].tag_name : null;
+
+              let changelogContent = '';
+              let contributorsContent = '';
+
+              if (previousTag) {
+                // 生成 Full Changelog 链接
+                changelogContent = `\n\n**Full Changelog**: https://github.com/${owner}/${repo}/compare/${previousTag}...HEAD`;
+
+                // 重新获取所有 contributors
+                try {
+                  const comparison = await github.rest.repos.compareCommits({
+                    owner,
+                    repo,
+                    base: previousTag,
+                    head: 'main'
+                  });
+
+                  const contributors = new Set();
+                  comparison.data.commits.forEach(commit => {
+                    if (commit.author && commit.author.login) {
+                      contributors.add(commit.author.login);
+                    }
+                    if (commit.committer && commit.committer.login && commit.committer.login !== 'web-flow') {
+                      contributors.add(commit.committer.login);
+                    }
+                  });
+
+                  if (contributors.size > 0) {
+                    contributorsContent = '\n\n**Contributors:**\n' + Array.from(contributors).map(username => `@${username}`).join(', ');
+                  }
+                } catch (error) {
+                  console.log('Could not generate contributors list:', error.message);
+                }
+              }
+
+              // 组合成新的 body（使用重新生成的 Full Changelog 和 Contributors）
+              const newBody = newChangelog + changelogContent + contributorsContent;
 
               // 更新 Draft Release
               await github.rest.repos.updateRelease({
