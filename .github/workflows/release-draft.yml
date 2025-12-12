@@ -89,7 +89,7 @@ jobs:
 
               // 提取 "Full Changelog" 和 "Contributors" 部分
               const changelogMatch = existingBody.match(/\n\n\*\*Full Changelog\*\*:.*/);
-              const contributorsMatch = existingBody.match(/\n\n\*\*Contributors\*\*:.*/);
+              const contributorsMatch = existingBody.match(/\n\n\*\*Contributors:\*\*[\s\S]*$/);
 
               if (changelogMatch || contributorsMatch) {
                 // 提取变更列表部分（### Changes: 到下一个部分之前）
