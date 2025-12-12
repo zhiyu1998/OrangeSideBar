@@ -351,6 +351,9 @@ function storeParams(tabName, param1, param2, saveMessage, models = null) {
       if (models) {
         updateModelSelect(models, tabName);
       }
+
+      // 更新供应商图标显示状态
+      updateProviderIconStatus(tabName);
     });
   });
 }
@@ -1184,6 +1187,9 @@ function initProviderToggles() {
         saveEnabledProviders(enabledProviders, () => {
           setProviderButtonState(btn, isEnabled);
 
+          // 更新供应商图标状态
+          updateProviderIconStatus(provider);
+
           if (!isEnabled) {
             removeProviderFromGlobalModels(provider);
           } else {
@@ -1212,6 +1218,111 @@ function initProviderToggles() {
 
       setProviderButtonState(btn, checkbox.checked);
     });
+  });
+}
+
+/**
+ * 初始化供应商图标展示网格
+ */
+function initProviderIconsGrid() {
+  const gridContainer = document.getElementById('provider-icons-grid');
+  if (!gridContainer) return;
+
+  // 供应商图标映射（从侧边栏按钮中提取SVG）
+  const providerIconMap = {};
+
+  // 遍历所有供应商按钮，获取它们的图标
+  document.querySelectorAll('.tab-link[data-tab]').forEach(btn => {
+    const tabId = btn.getAttribute('data-tab');
+    if (isSupportedProvider(tabId)) {
+      const iconElement = btn.querySelector('svg, img');
+      if (iconElement) {
+        providerIconMap[tabId] = iconElement.cloneNode(true);
+      }
+    }
+  });
+
+  // 加载启用状态
+  loadEnabledProviders((enabledProviders) => {
+    // 加载 API 配置状态
+    chrome.storage.local.get(null, (result) => {
+      gridContainer.innerHTML = '';
+
+      // 遍历所有供应商并创建图标项
+      Object.values(PROVIDERS).forEach(provider => {
+        const iconElement = providerIconMap[provider];
+        if (!iconElement) return;
+
+        const isEnabled = enabledProviders[provider] !== false;
+        const hasConfig = result[provider]?.apiKey || result[provider]?.apiKeys;
+
+        // 创建图标项
+        const item = document.createElement('div');
+        item.className = 'provider-icon-item';
+        item.dataset.provider = provider;
+
+        // 设置状态样式
+        if (hasConfig && isEnabled) {
+          item.classList.add('enabled');
+        } else {
+          item.classList.add('disabled');
+        }
+
+        // 添加图标
+        const clonedIcon = iconElement.cloneNode(true);
+        item.appendChild(clonedIcon);
+
+        // 添加供应商名称
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'provider-name';
+        nameSpan.textContent = getProviderDisplayName(provider);
+        item.appendChild(nameSpan);
+
+        // 点击跳转到对应配置页面
+        item.addEventListener('click', () => {
+          const targetButton = document.querySelector(`.tab-link[data-tab="${provider}"]`);
+          if (targetButton) {
+            // 如果在折叠菜单中,先展开菜单
+            const collapsibleParent = targetButton.closest('.collapsible-content');
+            if (collapsibleParent) {
+              const collapsibleButton = collapsibleParent.previousElementSibling;
+              if (collapsibleButton && !collapsibleButton.classList.contains('active')) {
+                collapsibleButton.click();
+              }
+            }
+            targetButton.click();
+          }
+        });
+
+        gridContainer.appendChild(item);
+      });
+    });
+  });
+}
+
+/**
+ * 更新供应商图标状态
+ */
+function updateProviderIconStatus(provider) {
+  const gridContainer = document.getElementById('provider-icons-grid');
+  if (!gridContainer) return;
+
+  const item = gridContainer.querySelector(`.provider-icon-item[data-provider="${provider}"]`);
+  if (!item) return;
+
+  // 重新检查配置状态
+  chrome.storage.local.get([provider, ENABLED_PROVIDERS_KEY], (result) => {
+    const hasConfig = result[provider]?.apiKey || result[provider]?.apiKeys;
+    const enabledProviders = { ...getDefaultEnabledProviders(), ...(result[ENABLED_PROVIDERS_KEY] || {}) };
+    const isEnabled = enabledProviders[provider] !== false;
+
+    // 更新样式
+    item.classList.remove('enabled', 'disabled');
+    if (hasConfig && isEnabled) {
+      item.classList.add('enabled');
+    } else {
+      item.classList.add('disabled');
+    }
   });
 }
 
@@ -1246,6 +1357,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 初始化模型供应商启用开关
   initProviderToggles();
+
+  // 初始化供应商图标展示
+  initProviderIconsGrid();
 
   // 初始化多 API Key UI
   initApiKeyMultiSupport();
