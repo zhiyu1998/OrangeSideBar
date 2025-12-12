@@ -67,6 +67,21 @@ function initChatHistory() {
   geminiDialogueHistory = []
 }
 
+function normalizeApiKeysFromInfo(info) {
+  if (!info) return [];
+  const keys = Array.isArray(info.apiKeys)
+    ? info.apiKeys
+    : (info.apiKey ? [info.apiKey] : []);
+  return keys.map(k => (k || '').trim()).filter(Boolean);
+}
+
+function pickRandomApiKey(info) {
+  const keys = normalizeApiKeysFromInfo(info);
+  if (keys.length === 0) return info?.apiKey?.trim() || null;
+  if (keys.length === 1) return keys[0];
+  return keys[Math.floor(Math.random() * keys.length)];
+}
+
 
 /**
  * 根据不同的模型，选择对应的接口地址
@@ -88,7 +103,7 @@ async function getBaseUrlAndApiKey(model) {
       if (defaultConfig) {
         return {
           baseUrl: `${providerInfo.baseUrl || defaultConfig.baseUrl}${defaultConfig.apiPath}`,
-          apiKey: providerInfo.apiKey
+          apiKey: pickRandomApiKey(providerInfo)
         };
       }
     }
@@ -105,7 +120,7 @@ async function getBaseUrlAndApiKey(model) {
       if (defaultConfig) {
         return {
           baseUrl: `${providerInfo.baseUrl || defaultConfig.baseUrl}${defaultConfig.apiPath}`,
-          apiKey: providerInfo.apiKey
+          apiKey: pickRandomApiKey(providerInfo)
         };
       }
     }
@@ -121,9 +136,7 @@ async function getBaseUrlAndApiKey(model) {
         if (modelInfo.baseUrl) {
           domain = modelInfo.baseUrl;
         }
-        if (modelInfo.apiKey) {
-          apiKey = modelInfo.apiKey;
-        }
+        apiKey = pickRandomApiKey(modelInfo) || '';
       }
       return { baseUrl: `${domain}${apiPath}`, apiKey: apiKey };
     }
@@ -138,15 +151,18 @@ async function getModelInfoFromChromeStorage(modelKey) {
         reject(chrome.runtime.lastError);
       } else {
         const modelInfo = result[modelKey];
-        if (modelInfo && modelInfo.baseUrl && modelInfo.apiKey) {
-          resolve({ baseUrl: modelInfo.baseUrl, apiKey: modelInfo.apiKey });
-        } else if (modelInfo && modelInfo.baseUrl) {
-          resolve({ baseUrl: modelInfo.baseUrl });
-        } else if (modelInfo && modelInfo.apiKey) {
-          resolve({ apiKey: modelInfo.apiKey });
-        } else {
+        if (!modelInfo) {
           resolve(null);
+          return;
         }
+        const keys = normalizeApiKeysFromInfo(modelInfo);
+        const hasBaseUrl = !!(modelInfo.baseUrl && String(modelInfo.baseUrl).trim());
+        const hasKey = keys.length > 0;
+        if (!hasBaseUrl && !hasKey) {
+          resolve(null);
+          return;
+        }
+        resolve(modelInfo);
       }
     });
   });

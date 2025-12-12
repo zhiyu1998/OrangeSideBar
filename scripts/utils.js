@@ -315,9 +315,16 @@ async function getBaseUrlAndApiKey(model) {
     return new Promise((resolve) => {
         chrome.storage.local.get([model], function (result) {
             const modelInfo = result[model] || {};
+            const keys = Array.isArray(modelInfo.apiKeys)
+                ? modelInfo.apiKeys
+                : (modelInfo.apiKey ? [modelInfo.apiKey] : []);
+            const cleanKeys = keys.map(k => (k || '').trim()).filter(Boolean);
+            const apiKey = cleanKeys.length
+                ? cleanKeys[Math.floor(Math.random() * cleanKeys.length)]
+                : (modelInfo.apiKey || null);
             resolve({
                 baseUrl: modelInfo.baseUrl,
-                apiKey: modelInfo.apiKey
+                apiKey
             });
         });
     });

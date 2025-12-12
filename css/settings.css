@@ -386,6 +386,10 @@ body {
   border: 1px solid var(--border-color);
 }
 
+.api-key-input {
+  padding-right: 70px; /* 预留 toggle 和 + 按钮空间 */
+}
+
 .api-key-input:focus,
 .baseurl-input:focus {
   border-color: #3B82F6;
@@ -414,6 +418,78 @@ body {
 .toggle-password svg {
   width: 16px;
   height: 16px;
+}
+
+/* 多 API Key 标签与添加按钮 */
+.api-key-tags {
+  display: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.api-key-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.api-key-tag-status {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.api-key-tag-status.success {
+  color: #22c55e;
+}
+
+.api-key-tag-status.error {
+  color: #ef4444;
+}
+
+.api-key-tag-remove {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.api-key-tag-remove:hover {
+  color: var(--accent-color);
+}
+
+.add-api-key-btn {
+  position: absolute;
+  right: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.add-api-key-btn:hover {
+  border-color: var(--accent-color);
+  background-color: var(--bg-secondary);
 }
 
 

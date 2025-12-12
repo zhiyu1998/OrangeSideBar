@@ -146,6 +146,159 @@ function updateGlobalModels(provider, models) {
   });
 }
 
+// 多 API Key 支持
+const providerApiKeysMap = {};
+
+function normalizeApiKeys(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map(k => (k || '').trim()).filter(Boolean);
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  }
+  if (typeof value === 'object') {
+    const keys = Array.isArray(value.apiKeys) ? value.apiKeys : (value.apiKey ? [value.apiKey] : []);
+    return keys.map(k => (k || '').trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function maskApiKey(key) {
+  const trimmed = (key || '').trim();
+  if (trimmed.length <= 8) return trimmed;
+  const prefix = trimmed.slice(0, 5);
+  const suffix = trimmed.slice(-3);
+  return `${prefix}${'*'.repeat(8)}${suffix}`;
+}
+
+function getApiKeyTagsContainer(tabContent) {
+  if (!tabContent) return null;
+  let container = tabContent.querySelector('.api-key-tags');
+  if (!container) {
+    container = document.createElement('div');
+    container.className = 'api-key-tags';
+    const pwWrapper = tabContent.querySelector('.password-wrapper');
+    if (pwWrapper && pwWrapper.parentNode) {
+      pwWrapper.parentNode.insertBefore(container, pwWrapper);
+    }
+  }
+  return container;
+}
+
+function renderApiKeyTags(tabContent, keys) {
+  const container = getApiKeyTagsContainer(tabContent);
+  if (!container) return;
+
+  container.innerHTML = '';
+  keys.forEach(key => {
+    const tag = document.createElement('div');
+    tag.className = 'api-key-tag';
+    tag.dataset.rawKey = key;
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'api-key-tag-text';
+    textSpan.textContent = maskApiKey(key);
+
+    const statusSpan = document.createElement('span');
+    statusSpan.className = 'api-key-tag-status';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'api-key-tag-remove';
+    removeBtn.title = '移除 API Key';
+    removeBtn.textContent = '×';
+    removeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const tabId = tabContent?.id;
+      if (!tabId) return;
+
+      const existing = providerApiKeysMap[tabId] || keys;
+      providerApiKeysMap[tabId] = existing.filter(k => k !== key);
+      renderApiKeyTags(tabContent, providerApiKeysMap[tabId]);
+    });
+
+    tag.appendChild(textSpan);
+    tag.appendChild(statusSpan);
+    tag.appendChild(removeBtn);
+    container.appendChild(tag);
+  });
+
+  container.style.display = keys.length ? 'flex' : 'none';
+}
+
+function setApiKeyTagStatus(tabContent, rawKey, status) {
+  const container = tabContent?.querySelector('.api-key-tags');
+  if (!container) return;
+  const tags = container.querySelectorAll('.api-key-tag');
+  tags.forEach(tag => {
+    if (tag.dataset.rawKey === rawKey) {
+      const statusSpan = tag.querySelector('.api-key-tag-status');
+      if (!statusSpan) return;
+      if (status === true) {
+        statusSpan.textContent = '✅';
+        statusSpan.classList.add('success');
+        statusSpan.classList.remove('error');
+      } else if (status === false) {
+        statusSpan.textContent = '❌';
+        statusSpan.classList.add('error');
+        statusSpan.classList.remove('success');
+      } else {
+        statusSpan.textContent = '';
+        statusSpan.classList.remove('success', 'error');
+      }
+    }
+  });
+}
+
+function initApiKeyMultiSupport() {
+  document.querySelectorAll('.tab-content').forEach(tabContent => {
+    const tabId = tabContent.id;
+    if (!isSupportedProvider(tabId)) return;
+
+    const pwWrapper = tabContent.querySelector('.password-wrapper');
+    const apiKeyInput = tabContent.querySelector('.api-key-input');
+    if (!pwWrapper || !apiKeyInput) return;
+
+    // 确保标签容器存在
+    getApiKeyTagsContainer(tabContent);
+
+    // 添加 "+" 按钮（放在 toggle-password 后面，避免影响原逻辑）
+    if (!pwWrapper.querySelector('.add-api-key-btn')) {
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'add-api-key-btn';
+      addBtn.textContent = '+';
+      addBtn.title = '添加 API Key';
+
+      addBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const key = apiKeyInput.value.trim();
+        if (!key) {
+          alert('请输入有效的 API Key');
+          return;
+        }
+
+        const existing = providerApiKeysMap[tabId] || [];
+        if (!existing.includes(key)) {
+          existing.push(key);
+        }
+        providerApiKeysMap[tabId] = existing;
+        renderApiKeyTags(tabContent, existing);
+
+        apiKeyInput.value = '';
+      });
+
+      pwWrapper.appendChild(addBtn);
+    }
+  });
+}
+
 function storeParams(tabName, param1, param2, saveMessage, models = null) {
   console.log('Storing params for tab:', tabName, {
     baseUrl: param1,
@@ -162,11 +315,13 @@ function storeParams(tabName, param1, param2, saveMessage, models = null) {
       modelInfo.enabled = param1;
       modelInfo.selectedModel = param2;
     } else {
+      const apiKeys = normalizeApiKeys(param2) || normalizeApiKeys(modelInfo);
       // 保存 API 配置，同时保留现有的 models 数据
       modelInfo = {
         ...modelInfo,  // 保留现有数据
         baseUrl: param1,
-        apiKey: param2,
+        apiKeys: apiKeys,
+        apiKey: apiKeys[0] || '',
         models: models || modelInfo.models || [] // 如果传入了新的模型列表就使用新的，否则保留现有的
       };
 
@@ -224,13 +379,15 @@ function openTab(evt, tabName) {
     if (modelInfo) {
       console.log('Found stored model info:', modelInfo);
 
-      // 设置API Key
-      if (modelInfo.apiKey) {
-        const apiKeyInput = activeTabContent.querySelector('.api-key-input');
-        if (apiKeyInput) {
-          apiKeyInput.value = modelInfo.apiKey;
-          console.log('Set API key successfully');
-        }
+      // 设置 API Keys（支持多 Key）
+      const storedApiKeys = normalizeApiKeys(modelInfo);
+      providerApiKeysMap[tabName] = storedApiKeys;
+      renderApiKeyTags(activeTabContent, storedApiKeys);
+
+      const apiKeyInput = activeTabContent.querySelector('.api-key-input');
+      if (apiKeyInput) {
+        apiKeyInput.value = isSupportedProvider(tabName) ? '' : (storedApiKeys[0] || '');
+        console.log('Set API keys successfully');
       }
 
       // 设置Base URL
@@ -275,6 +432,11 @@ function openTab(evt, tabName) {
       }
     } else {
       console.log('No stored data found for tab:', tabName);
+      // 无存储数据时清理当前 tab 的 key 标签
+      providerApiKeysMap[tabName] = [];
+      renderApiKeyTags(activeTabContent, []);
+      const apiKeyInput = activeTabContent.querySelector('.api-key-input');
+      if (apiKeyInput) apiKeyInput.value = '';
       // 如果是智谱清言且没有存储数据，直接显示固定模型列表
       if (tabName === PROVIDERS.GLM) {
         const freeOnly = localStorage.getItem('glm-free-only') === 'true';
@@ -693,11 +855,17 @@ function loadMoreModels(tabContent) {
 /**
  * 检查API可用性
  */
-async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
+async function checkAPIAvailable(baseUrl, apiKeys, model, resultElement) {
   const tabContent = resultElement.closest('.tab-content');
   const modelList = tabContent.querySelector('#model-list');
   const checkButton = tabContent.querySelector('.checkapi-button');
   const loadingElement = tabContent.querySelector('.model-list-loading');
+  const keysToTest = normalizeApiKeys(apiKeys);
+
+  if (keysToTest.length === 0 && model !== PROVIDERS.OLLAMA) {
+    showErrorMessage(resultElement, '请先输入 API Key');
+    return;
+  }
 
   // 添加加载状态
   if (checkButton) {
@@ -715,208 +883,205 @@ async function checkAPIAvailable(baseUrl, apiKey, model, resultElement) {
   }
 
   try {
-    // 智谱清言特殊处理：使用固定模型列表，只测试连通性
-    if (model === PROVIDERS.GLM) {
-      // 构建简单的连通性测试请求
-      const apiUrl = `${baseUrl}${GLM_CHAT_API_PATH}`;
-      const testParams = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: GLM_DEFAULT_MODEL,
-          messages: [{ role: 'user', content: 'test' }],
-          max_tokens: 1
-        })
-      };
+    // 先清空状态
+    keysToTest.forEach(k => setApiKeyTagStatus(tabContent, k, null));
 
-      // 发起连通性测试
-      const response = await fetch(apiUrl, testParams);
+    let anySuccess = false;
+    let firstSuccessModels = null;
 
-      // 智谱清言API可能返回401等错误，但只要不是网络错误就说明连通性正常
-      if (response.status === 401) {
-        throw new Error('API Key 无效，请检查您的 API Key');
-      } else if (response.status >= 500) {
-        throw new Error('服务器错误，请稍后重试');
-      }
+    for (const key of keysToTest) {
+      try {
+        // 智谱清言：只测试连通性
+        if (model === PROVIDERS.GLM) {
+          const apiUrl = `${baseUrl}${GLM_CHAT_API_PATH}`;
+          const testParams = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify({
+              model: GLM_DEFAULT_MODEL,
+              messages: [{ role: 'user', content: 'test' }],
+              max_tokens: 1
+            })
+          };
 
-      // 显示成功消息
-      resultElement.textContent = '检查通过';
-      resultElement.className = 'checkapi-message success';
-      resultElement.style.display = "block";
-
-      // 使用固定模型列表
-      const freeOnly = localStorage.getItem('glm-free-only') === 'true';
-      const fixedModels = getGLMFixedModels(freeOnly);
-      const tabId = tabContent.id;
-      const saveMessage = tabContent.querySelector('.save-message');
-      storeParams(tabId, baseUrl, apiKey, saveMessage, fixedModels);
-
-      return;
-    }
-
-    // 火山引擎特殊处理：使用固定模型列表，只测试连通性
-    if (model === PROVIDERS.VOLCENGINE) {
-      // 构建简单的连通性测试请求
-      const apiUrl = `${baseUrl}${VOLCENGINE_CHAT_API_PATH}`;
-      const testParams = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: VOLCENGINE_DEFAULT_MODEL,
-          messages: [{ role: 'user', content: 'test' }],
-          max_tokens: 1
-        })
-      };
-
-      // 发起连通性测试
-      const response = await fetch(apiUrl, testParams);
-
-      // 火山引擎API可能返回401等错误，但只要不是网络错误就说明连通性正常
-      if (response.status === 401) {
-        throw new Error('API Key 无效，请检查您的 API Key');
-      } else if (response.status >= 500) {
-        throw new Error('服务器错误，请稍后重试');
-      }
-
-      // 显示成功消息
-      resultElement.textContent = '检查通过';
-      resultElement.className = 'checkapi-message success';
-      resultElement.style.display = "block";
-
-      // 使用固定模型列表
-      const fixedModels = getVolcengineFixedModels();
-      const tabId = tabContent.id;
-      const saveMessage = tabContent.querySelector('.save-message');
-      storeParams(tabId, baseUrl, apiKey, saveMessage, fixedModels);
-
-      return;
-    }
-
-    // 其他模型的原有逻辑
-    // 构建API请求参数
-    let apiUrl, params;
-    if (model.includes(TOOL_KEY)) {
-      ({ apiUrl, params } = getToolsParamForCheck(baseUrl, model, apiKey));
-    } else {
-      ({ apiUrl, params } = getModelBaseParamForCheck(baseUrl, model, apiKey));
-    }
-
-    // 发起API请求
-    const response = await fetch(apiUrl, params);
-
-    if (!response.ok) {
-      throw new Error('API 请求失败，状态码：' + response.status);
-    }
-
-    // 显示成功消息
-    resultElement.textContent = '检查通过';
-    resultElement.className = 'checkapi-message success';
-    resultElement.style.display = "block";
-
-    // 直接处理响应数据
-    const data = await response.json();
-
-    // 处理模型数据
-    let formattedModels = [];
-    // TODO 如果要加一些特殊模型的处理可以在这里
-    if (model === 'gpt') {
-      // 处理 OpenAI 格式
-      formattedModels = data.data.map(model => ({
-        id: `openai-${model.id}`,
-        object: model.object,
-        owned_by: model.owned_by
-      }));
-    } else if (model === 'gemini') {
-      // Gemini格式
-      formattedModels = data.models.map(model => ({
-        id: `${model.name.replace("models\/", "")}`,
-        object: model.object,
-        owned_by: model.owned_by
-      }));
-    } else if (model === 'openrouter') {
-      formattedModels = data.data
-        .filter(item => {
-          const showFreeOnly = localStorage.getItem('openrouter-free-only') === 'true';
-          if (showFreeOnly) {
-            return item.id.includes(':free');
+          const response = await fetch(apiUrl, testParams);
+          if (response.status === 401) {
+            throw new Error('API Key 无效');
+          } else if (response.status >= 500) {
+            throw new Error('服务器错误');
           }
-          return true;
-        }).map(model => ({
-          id: `openrouter-${model.id}`,
-          object: 'model',
-          owned_by: model.name.split(':')[0] || 'unknown'
-        }));
-    } else if (model === 'siliconflow') {
-      formattedModels = data.data.map(model => ({
-        id: `siliconflow-${model.id}`,
-        object: model.object,
-        owned_by: model.owned_by
-      }));
-    } else if (model === 'groq') {
-      formattedModels = data.data.map(model => ({
-        id: `groq-${model.id}`,
-        object: model.object,
-        owned_by: model.owned_by
-      }));
-    } else if (model === 'github') {
-      // GitHub 格式处理
-      formattedModels = data.map(model => {
-        // 对于OpenAI模型，去掉"openai/"前缀，其他模型保持原样
-        let modelId = model.id;
-        if (modelId.startsWith('openai/')) {
-          modelId = modelId.replace('openai/', '');
-        } else {
-          modelId = model.id;
+
+          anySuccess = true;
+          setApiKeyTagStatus(tabContent, key, true);
+
+          if (!firstSuccessModels) {
+            const freeOnly = localStorage.getItem('glm-free-only') === 'true';
+            firstSuccessModels = getGLMFixedModels(freeOnly);
+          }
+
+          continue;
         }
-        return {
-          id: `github-${modelId}`,
-          object: 'model',
-          owned_by: model.publisher || 'unknown'
-        };
-      });
-    } else if (model.includes(PROVIDERS.MODELSCOPE)) {
-      // ModelScope 格式处理
-      formattedModels = (data.data || data.models || []).map(model => ({
-        id: `modelscope-${model.id}`,
-        object: model.object || 'model',
-        owned_by: model.owned_by || 'unknown'
-      }));
-    } else if (model.includes(PROVIDERS.NVIDIA)) {
-      // NVIDIA 格式处理
-      formattedModels = data.data.map(model => ({
-        id: `nvidia-${model.id}`,
-        object: model.object || 'model',
-        owned_by: model.owned_by || 'nvidia'
-      }));
-    } else if (model.includes(PROVIDERS.POE)) {
-      // Poe 格式处理
-      formattedModels = data.data.map(model => ({
-        id: `poe-${model.id}`,
-        object: model.object || 'model',
-        owned_by: model.owned_by || 'poe'
-      }));
-    } else if (model.includes(PROVIDERS.VOLCENGINE)) {
-      // 火山引擎格式处理
-      formattedModels = data.data.map(model => ({
-        id: `volcengine-${model.id}`,
-        object: model.object || 'model',
-        owned_by: model.owned_by || 'volcengine'
-      }));
-    } else {
-      formattedModels = data.data || data.models || [];
+
+        // 火山引擎：只测试连通性
+        if (model === PROVIDERS.VOLCENGINE) {
+          const apiUrl = `${baseUrl}${VOLCENGINE_CHAT_API_PATH}`;
+          const testParams = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify({
+              model: VOLCENGINE_DEFAULT_MODEL,
+              messages: [{ role: 'user', content: 'test' }],
+              max_tokens: 1
+            })
+          };
+
+          const response = await fetch(apiUrl, testParams);
+          if (response.status === 401) {
+            throw new Error('API Key 无效');
+          } else if (response.status >= 500) {
+            throw new Error('服务器错误');
+          }
+
+          anySuccess = true;
+          setApiKeyTagStatus(tabContent, key, true);
+
+          if (!firstSuccessModels) {
+            firstSuccessModels = getVolcengineFixedModels();
+          }
+
+          continue;
+        }
+
+        // 其他模型
+        let apiUrl, params;
+        if (model.includes(TOOL_KEY)) {
+          ({ apiUrl, params } = getToolsParamForCheck(baseUrl, model, key));
+        } else {
+          ({ apiUrl, params } = getModelBaseParamForCheck(baseUrl, model, key));
+        }
+
+        const response = await fetch(apiUrl, params);
+        if (!response.ok) {
+          throw new Error('API 请求失败，状态码：' + response.status);
+        }
+
+        anySuccess = true;
+        setApiKeyTagStatus(tabContent, key, true);
+
+        if (!firstSuccessModels) {
+          const data = await response.json();
+          let formattedModels = [];
+          if (model === 'gpt') {
+            formattedModels = data.data.map(model => ({
+              id: `openai-${model.id}`,
+              object: model.object,
+              owned_by: model.owned_by
+            }));
+          } else if (model === 'gemini') {
+            formattedModels = data.models.map(model => ({
+              id: `${model.name.replace("models\/", "")}`,
+              object: model.object,
+              owned_by: model.owned_by
+            }));
+          } else if (model === 'openrouter') {
+            formattedModels = data.data
+              .filter(item => {
+                const showFreeOnly = localStorage.getItem('openrouter-free-only') === 'true';
+                if (showFreeOnly) {
+                  return item.id.includes(':free');
+                }
+                return true;
+              }).map(model => ({
+                id: `openrouter-${model.id}`,
+                object: 'model',
+                owned_by: model.name.split(':')[0] || 'unknown'
+              }));
+          } else if (model === 'siliconflow') {
+            formattedModels = data.data.map(model => ({
+              id: `siliconflow-${model.id}`,
+              object: model.object,
+              owned_by: model.owned_by
+            }));
+          } else if (model === 'groq') {
+            formattedModels = data.data.map(model => ({
+              id: `groq-${model.id}`,
+              object: model.object,
+              owned_by: model.owned_by
+            }));
+          } else if (model === 'github') {
+            formattedModels = data.map(model => {
+              let modelId = model.id;
+              if (modelId.startsWith('openai/')) {
+                modelId = modelId.replace('openai/', '');
+              }
+              return {
+                id: `github-${modelId}`,
+                object: 'model',
+                owned_by: model.publisher || 'unknown'
+              };
+            });
+          } else if (model.includes(PROVIDERS.MODELSCOPE)) {
+            formattedModels = (data.data || data.models || []).map(model => ({
+              id: `modelscope-${model.id}`,
+              object: model.object || 'model',
+              owned_by: model.owned_by || 'unknown'
+            }));
+          } else if (model.includes(PROVIDERS.NVIDIA)) {
+            formattedModels = data.data.map(model => ({
+              id: `nvidia-${model.id}`,
+              object: model.object || 'model',
+              owned_by: model.owned_by || 'nvidia'
+            }));
+          } else if (model.includes(PROVIDERS.POE)) {
+            formattedModels = data.data.map(model => ({
+              id: `poe-${model.id}`,
+              object: model.object || 'model',
+              owned_by: model.owned_by || 'poe'
+            }));
+          } else if (model.includes(PROVIDERS.VOLCENGINE)) {
+            formattedModels = data.data.map(model => ({
+              id: `volcengine-${model.id}`,
+              object: model.object || 'model',
+              owned_by: model.owned_by || 'volcengine'
+            }));
+          } else {
+            formattedModels = data.data || data.models || [];
+          }
+
+          if (formattedModels && formattedModels.length > 0) {
+            firstSuccessModels = formattedModels;
+          }
+        }
+
+      } catch (error) {
+        console.error('API check failed for key:', error);
+        setApiKeyTagStatus(tabContent, key, false);
+      }
     }
 
-    // 如果有模型数据，保存并更新显示
-    if (formattedModels && formattedModels.length > 0) {
-      const tabId = tabContent.id;
-      const saveMessage = tabContent.querySelector('.save-message');
-      storeParams(tabId, baseUrl, apiKey, saveMessage, formattedModels);
+    if (anySuccess) {
+      resultElement.textContent = '检查通过';
+      resultElement.className = 'checkapi-message success';
+      resultElement.style.display = "block";
+
+      if (firstSuccessModels && firstSuccessModels.length > 0) {
+        const tabId = tabContent.id;
+        const saveMessage = tabContent.querySelector('.save-message');
+        storeParams(tabId, baseUrl, keysToTest, saveMessage, firstSuccessModels);
+      } else {
+        // 仅连通性通过（无模型列表）时也保存 keys/baseUrl
+        const tabId = tabContent.id;
+        const saveMessage = tabContent.querySelector('.save-message');
+        storeParams(tabId, baseUrl, keysToTest, saveMessage);
+      }
+    } else {
+      showErrorMessage(resultElement, '检查未通过');
     }
 
   } catch (error) {
@@ -1082,6 +1247,9 @@ document.addEventListener('DOMContentLoaded', function () {
   // 初始化模型供应商启用开关
   initProviderToggles();
 
+  // 初始化多 API Key UI
+  initApiKeyMultiSupport();
+
   // 点击保存按钮
   var saveButtons = document.querySelectorAll('.save-button');
   saveButtons.forEach(function (button) {
@@ -1090,11 +1258,18 @@ document.addEventListener('DOMContentLoaded', function () {
       var tabId = tabContent.id;
       console.log('Saving data for tab:', tabId);
 
-      // 获取api key
+      // 获取 API Key（支持多 Key）
       var input = tabContent.querySelector('.api-key-input');
-      var apiKey = '';
-      if (input) {
-        apiKey = input.value;
+      const inputKey = input ? input.value.trim() : '';
+      const existingKeys = providerApiKeysMap[tabId] || [];
+      const apiKeysToSave = isSupportedProvider(tabId)
+        ? (existingKeys.length > 0 ? existingKeys : (inputKey ? [inputKey] : []))
+        : inputKey;
+
+      if (isSupportedProvider(tabId)) {
+        providerApiKeysMap[tabId] = apiKeysToSave;
+        renderApiKeyTags(tabContent, apiKeysToSave);
+        if (input) input.value = '';
       }
 
       // api 代理地址
@@ -1109,28 +1284,28 @@ document.addEventListener('DOMContentLoaded', function () {
       if (tabId === PROVIDERS.GLM) {
         const freeOnly = localStorage.getItem('glm-free-only') === 'true';
         currentModels = getGLMFixedModels(freeOnly);
-        console.log('Saving GLM values with fixed models:', { tabId, baseUrl, apiKey, models: currentModels });
+        console.log('Saving GLM values with fixed models:', { tabId, baseUrl, apiKeys: apiKeysToSave, models: currentModels });
         var saveMessage = tabContent.querySelector('.save-message');
-        storeParams(tabId, baseUrl, apiKey, saveMessage, currentModels);
+        storeParams(tabId, baseUrl, apiKeysToSave, saveMessage, currentModels);
       } else if (tabId === PROVIDERS.VOLCENGINE) {
         // 火山引擎特殊处理：使用固定模型列表
         currentModels = getVolcengineFixedModels();
-        console.log('Saving Volcengine values with fixed models:', { tabId, baseUrl, apiKey, models: currentModels });
+        console.log('Saving Volcengine values with fixed models:', { tabId, baseUrl, apiKeys: apiKeysToSave, models: currentModels });
         var saveMessage = tabContent.querySelector('.save-message');
-        storeParams(tabId, baseUrl, apiKey, saveMessage, currentModels);
+        storeParams(tabId, baseUrl, apiKeysToSave, saveMessage, currentModels);
       } else if (modelList) {
         // 其他供应商从存储中获取当前的模型列表
         chrome.storage.local.get(tabId, function (result) {
           currentModels = result[tabId]?.models || [];
-          console.log('Saving values:', { tabId, baseUrl, apiKey, models: currentModels });
+          console.log('Saving values:', { tabId, baseUrl, apiKeys: apiKeysToSave, models: currentModels });
           // 保存所有数据
           var saveMessage = tabContent.querySelector('.save-message');
-          storeParams(tabId, baseUrl, apiKey, saveMessage, currentModels);
+          storeParams(tabId, baseUrl, apiKeysToSave, saveMessage, currentModels);
         });
       } else {
-        console.log('Saving values:', { tabId, baseUrl, apiKey });
+        console.log('Saving values:', { tabId, baseUrl, apiKeys: apiKeysToSave });
         var saveMessage = tabContent.querySelector('.save-message');
-        storeParams(tabId, baseUrl, apiKey, saveMessage);
+        storeParams(tabId, baseUrl, apiKeysToSave, saveMessage);
       }
     });
   });
@@ -1145,18 +1320,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const resultElement = tabContent.querySelector('.checkapi-message');
 
-      // 获取api key
+      // 获取 API Key（支持多 Key）
       var input = tabContent.querySelector('.api-key-input');
-      var apiKey = '';
-      if (input) {
-        apiKey = input.value;
+      const inputKey = input ? input.value.trim() : '';
+      const existingKeys = providerApiKeysMap[tabId] || [];
+      const apiKeysToTest = isSupportedProvider(tabId)
+        ? (existingKeys.length > 0 ? existingKeys : (inputKey ? [inputKey] : []))
+        : inputKey;
+
+      if (isSupportedProvider(tabId)) {
+        providerApiKeysMap[tabId] = apiKeysToTest;
+        renderApiKeyTags(tabContent, apiKeysToTest);
+        if (input) input.value = '';
       }
 
       // api 代理地址
       var baseUrlInput = tabContent.querySelector('.baseurl-input');
       var baseUrl = baseUrlInput.value || baseUrlInput.getAttribute("placeholder");
 
-      checkAPIAvailable(baseUrl, apiKey, tabId, resultElement);
+      checkAPIAvailable(baseUrl, apiKeysToTest, tabId, resultElement);
     });
   });
 
