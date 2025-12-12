@@ -113,17 +113,20 @@ jobs:
               // 解析现有的提交列表并添加新的提交
               let newChangelog = '### Changes:\n';
               const existingCommits = changelogSection.match(/^- [a-f0-9]+ .*$/gm) || [];
-              const allCommits = [...existingCommits, `- ${commitMessage}`];
 
-              // 按提交哈希排序（最新的在后面）
-              const sortedCommits = allCommits.sort((a, b) => {
-                const hashA = a.match(/^([a-f0-9]+)/)[1];
-                const hashB = b.match(/^([a-f0-9]+)/)[1];
-                return hashA.localeCompare(hashB);
-              });
+              // 检查新提交是否已存在（通过哈希值判断）
+              const newCommitHash = commitMessage.match(/^([a-f0-9]+)/)?.[1];
+              const isDuplicate = newCommitHash && existingCommits.some(commit =>
+                commit.match(/^- ([a-f0-9]+)/)?.[1] === newCommitHash
+              );
 
-              // 添加所有提交
-              sortedCommits.forEach(commit => {
+              // 如果不是重复提交，则添加
+              if (!isDuplicate) {
+                existingCommits.push(`- ${commitMessage}`);
+              }
+
+              // 按时间顺序添加所有提交（不排序，保持原有顺序）
+              existingCommits.forEach(commit => {
                 newChangelog += `${commit}\n`;
               });
 
