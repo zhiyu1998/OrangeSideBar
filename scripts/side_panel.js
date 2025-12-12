@@ -2659,7 +2659,7 @@ function getPageTitle() {
 /**
  * 更新模型选择列表
  */
-function updateModelSelection(globalModels) {
+function updateModelSelection(globalModels, enabledProviders = null) {
   // 清空全局模型数组
   allModels = [];
 
@@ -2669,8 +2669,15 @@ function updateModelSelection(globalModels) {
   // 使用 constants.js 中的服务商数据
   const providerOrder = Object.values(PROVIDERS);
   const providerDisplayName = PROVIDER_DISPLAY_NAMES;
+  const enabledMap = enabledProviders || providerOrder.reduce((acc, p) => {
+    acc[p] = true;
+    return acc;
+  }, {});
 
   providerOrder.forEach(provider => {
+    if (enabledMap[provider] === false) {
+      return;
+    }
     const models = globalModels[provider];
     if (models && models.length > 0) {
       // 应用OpenRouter过滤
@@ -2698,9 +2705,15 @@ function updateModelSelection(globalModels) {
 
   // 恢复之前选择的模型
   chrome.storage.local.get(['selectedModel'], function (result) {
-    if (result.selectedModel) {
+    if (result.selectedModel && allModels.find(m => m.value === result.selectedModel)) {
       selectedModel = result.selectedModel;
       updateSelectedModel(result.selectedModel);
+    } else if (result.selectedModel) {
+      // 已关闭供应商或模型不存在时清理选中状态
+      selectedModel = null;
+      const searchInput = document.getElementById('model-search');
+      if (searchInput) searchInput.value = '';
+      chrome.storage.local.remove('selectedModel');
     }
   });
 
@@ -2726,10 +2739,20 @@ function updateModelSelection(globalModels) {
  */
 function initResultPage() {
   // 加载全局模型列表
-  chrome.storage.local.get('globalModels', function (result) {
+  chrome.storage.local.get(['globalModels', 'enabledProviders'], function (result) {
     console.log('Loaded global models:', result.globalModels); // 添加日志
+    const providerOrder = Object.values(PROVIDERS);
+    const enabledMap = providerOrder.reduce((acc, p) => {
+      acc[p] = true;
+      return acc;
+    }, {});
+    if (result.enabledProviders) {
+      Object.assign(enabledMap, result.enabledProviders);
+    }
     if (result.globalModels) {
-      updateModelSelection(result.globalModels);
+      updateModelSelection(result.globalModels, enabledMap);
+    } else {
+      updateModelSelection({}, enabledMap);
     }
   });
 

@@ -132,6 +132,57 @@ body {
   font-weight: 500;
 }
 
+/* 供应商启用开关 */
+.provider-toggle {
+  margin-left: auto;
+  position: relative;
+  width: 34px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.provider-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.provider-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.provider-toggle-slider:before {
+  content: '';
+  position: absolute;
+  height: 14px;
+  width: 14px;
+  left: 1px;
+  top: 1px;
+  background-color: var(--text-secondary);
+  border-radius: 50%;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.provider-toggle input:checked + .provider-toggle-slider {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.provider-toggle input:checked + .provider-toggle-slider:before {
+  transform: translateX(16px);
+  background-color: #fff;
+}
+
+.tab-link.provider-disabled {
+  opacity: 0.5;
+}
+
 .collapsible-content {
   display: none;
   margin-left: -30px;

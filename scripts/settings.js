@@ -61,9 +61,59 @@ function initThemeToggle() {
   });
 }
 
+// 供应商启用开关存储 key
+const ENABLED_PROVIDERS_KEY = 'enabledProviders';
+
+function getDefaultEnabledProviders() {
+  const defaults = {};
+  Object.values(PROVIDERS).forEach(p => {
+    defaults[p] = true;
+  });
+  return defaults;
+}
+
+function loadEnabledProviders(callback) {
+  chrome.storage.local.get(ENABLED_PROVIDERS_KEY, (result) => {
+    const stored = result[ENABLED_PROVIDERS_KEY] || {};
+    const enabledProviders = { ...getDefaultEnabledProviders(), ...stored };
+    // 如果有新增供应商，自动补全并回写
+    if (Object.keys(enabledProviders).length !== Object.keys(stored).length) {
+      chrome.storage.local.set({ [ENABLED_PROVIDERS_KEY]: enabledProviders });
+    }
+    callback(enabledProviders);
+  });
+}
+
+function saveEnabledProviders(enabledProviders, callback) {
+  chrome.storage.local.set({ [ENABLED_PROVIDERS_KEY]: enabledProviders }, () => {
+    if (callback) callback();
+  });
+}
+
+function removeProviderFromGlobalModels(provider) {
+  chrome.storage.local.get('globalModels', (result) => {
+    const globalModels = result.globalModels || {};
+    if (globalModels[provider]) {
+      delete globalModels[provider];
+      chrome.storage.local.set({ globalModels });
+    }
+  });
+}
+
 function updateGlobalModels(provider, models) {
-  chrome.storage.local.get('globalModels', function (result) {
+  chrome.storage.local.get([ENABLED_PROVIDERS_KEY, 'globalModels'], function (result) {
+    const enabledProviders = { ...getDefaultEnabledProviders(), ...(result[ENABLED_PROVIDERS_KEY] || {}) };
     let globalModels = result.globalModels || {};
+
+    // 如果供应商被关闭，确保不写入全局模型，并清理已有缓存
+    if (!enabledProviders[provider]) {
+      if (globalModels[provider]) {
+        delete globalModels[provider];
+        chrome.storage.local.set({ globalModels });
+      }
+      return;
+    }
+
     console.log('Current global models:', globalModels); // 添加日志
 
     // 根据不同供应商处理模型数据
@@ -920,6 +970,86 @@ function isSupportedProvider(provider) {
   return Object.values(PROVIDERS).includes(provider);
 }
 
+function setProviderButtonState(button, enabled) {
+  if (!button) return;
+  if (enabled) {
+    button.classList.remove('provider-disabled');
+  } else {
+    button.classList.add('provider-disabled');
+  }
+}
+
+/**
+ * 初始化模型供应商启用开关
+ */
+function initProviderToggles() {
+  const providersCollapsible = document.querySelector('.tab-link.collapsible[data-tab="model-providers"]');
+  const providersContainer = providersCollapsible?.nextElementSibling;
+  if (!providersContainer) return;
+
+  const providerButtons = Array.from(providersContainer.querySelectorAll('.tab-link[data-tab]'))
+    .filter(btn => isSupportedProvider(btn.getAttribute('data-tab')));
+
+  loadEnabledProviders((enabledProviders) => {
+    providerButtons.forEach(btn => {
+      const provider = btn.getAttribute('data-tab');
+      if (!provider) return;
+
+      // 避免重复注入
+      if (btn.querySelector('.provider-toggle')) {
+        return;
+      }
+
+      const toggleLabel = document.createElement('label');
+      toggleLabel.className = 'provider-toggle';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'provider-toggle-checkbox';
+      checkbox.dataset.provider = provider;
+      checkbox.checked = enabledProviders[provider] !== false;
+
+      // 阻止点击开关触发 tab 切换
+      checkbox.addEventListener('click', (e) => e.stopPropagation());
+
+      checkbox.addEventListener('change', (e) => {
+        const isEnabled = e.target.checked;
+        enabledProviders[provider] = isEnabled;
+
+        saveEnabledProviders(enabledProviders, () => {
+          setProviderButtonState(btn, isEnabled);
+
+          if (!isEnabled) {
+            removeProviderFromGlobalModels(provider);
+          } else {
+            // 重新启用时，如已有模型缓存则恢复到全局模型
+            chrome.storage.local.get(provider, (result) => {
+              const cachedModels = result[provider]?.models;
+              if (cachedModels && cachedModels.length > 0) {
+                updateGlobalModels(provider, cachedModels);
+              } else if (provider === PROVIDERS.GLM) {
+                const freeOnly = localStorage.getItem('glm-free-only') === 'true';
+                updateGlobalModels(provider, getGLMFixedModels(freeOnly));
+              } else if (provider === PROVIDERS.VOLCENGINE) {
+                updateGlobalModels(provider, getVolcengineFixedModels());
+              }
+            });
+          }
+        });
+      });
+
+      const slider = document.createElement('span');
+      slider.className = 'provider-toggle-slider';
+
+      toggleLabel.appendChild(checkbox);
+      toggleLabel.appendChild(slider);
+      btn.appendChild(toggleLabel);
+
+      setProviderButtonState(btn, checkbox.checked);
+    });
+  });
+}
+
 /**
  * 主程序
  */
@@ -948,6 +1078,9 @@ document.addEventListener('DOMContentLoaded', function () {
       content.style.display = content.style.display === 'flex' ? 'none' : 'flex';
     });
   });
+
+  // 初始化模型供应商启用开关
+  initProviderToggles();
 
   // 点击保存按钮
   var saveButtons = document.querySelectorAll('.save-button');
@@ -1267,4 +1400,3 @@ document.addEventListener('DOMContentLoaded', function () {
     window.filterConfigurations = filterConfigurations;
   }, 100);
 });
-
