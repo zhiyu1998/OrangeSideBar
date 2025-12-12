@@ -2330,6 +2330,14 @@ function initDualColumnActionButtons() {
       await handleDualColumnLocalPDF();
     });
   }
+
+  // 双栏视频字幕总结按钮
+  const dualSubtitleSummaryBtn = document.getElementById('dual-subtitle-summary-btn');
+  if (dualSubtitleSummaryBtn) {
+    dualSubtitleSummaryBtn.addEventListener('click', async function() {
+      await handleDualColumnSubtitleSummary();
+    });
+  }
 }
 
 /**
@@ -2507,6 +2515,54 @@ async function handleDualColumnLocalPDF() {
     // 使用文件上传
     const pdfInput = document.getElementById('pdf-file-input');
     pdfInput.click();
+  }
+}
+
+/**
+ * 处理双栏模式视频字幕总结
+ */
+async function handleDualColumnSubtitleSummary() {
+  if (!leftColumnModel || !rightColumnModel) {
+    showToast('请先为两个栏位选择模型', 'error');
+    return;
+  }
+
+  const leftApiKeyValid = await verifyApiKeyConfigured(leftColumnModel);
+  const rightApiKeyValid = await verifyApiKeyConfigured(rightColumnModel);
+  if (!leftApiKeyValid || !rightApiKeyValid) {
+    return;
+  }
+
+  const currentURL = await getCurrentURL();
+  if (!currentURL.includes('bilibili.com') && !currentURL.includes('youtube.com')) {
+    showToast('当前页面不是支持的视频页面（仅支持B站和YouTube）', 'error');
+    return;
+  }
+
+  try {
+    displayLoading('正在提取视频字幕...');
+    const subtitles = await extractSubtitles(currentURL, FORMAT_TEXT_WITH_TIMESTAMPS);
+    hiddenLoadding();
+
+    if (!subtitles || subtitles.trim().length === 0) {
+      showToast('该视频没有找到字幕内容', 'error');
+      return;
+    }
+
+    const isYouTube = currentURL.includes('youtube.com') || currentURL.includes('youtu.be');
+    const fullPrompt = isYouTube
+      ? YOUTUBE_SUBTITLE_SUMMARY_PROMPT + subtitles
+      : BILIBILI_SUBTITLE_SUMMARY_PROMPT + subtitles;
+
+    // 清空聊天内容并开始双栏字幕总结
+    document.getElementById('left-chat-content').innerHTML = '';
+    document.getElementById('right-chat-content').innerHTML = '';
+
+    await dualColumnChatLLMAndUIUpdate(fullPrompt, [], SYSTEM_PROMPT);
+  } catch (error) {
+    hiddenLoadding();
+    console.error('提取字幕失败:', error);
+    showToast(`提取字幕失败: ${error.message}`, 'error');
   }
 }
 
@@ -3877,4 +3933,3 @@ document.addEventListener('DOMContentLoaded', async function () {
   // 现有代码...
   initTheme();
 });
-
