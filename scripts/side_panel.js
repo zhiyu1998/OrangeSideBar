@@ -184,6 +184,35 @@ function createCopyButton(completeText) {
     saveNoteAsMarkdown(completeText);
   });
 
+  // 创建保存到知识库按钮
+  const saveToKbBtn = document.createElement('button');
+  saveToKbBtn.textContent = '保存到知识库';
+  saveToKbBtn.style.cursor = 'pointer';
+  saveToKbBtn.style.padding = '8px 14px';
+  saveToKbBtn.style.fontSize = '13px';
+  saveToKbBtn.style.border = 'none';
+  saveToKbBtn.style.borderRadius = '0';
+  saveToKbBtn.style.backgroundColor = 'transparent';
+  saveToKbBtn.style.color = 'var(--text-secondary)';
+  saveToKbBtn.style.transition = 'all 0.2s ease';
+  saveToKbBtn.style.fontFamily = "'FZB', Arial, sans-serif";
+  saveToKbBtn.style.fontWeight = '500';
+  saveToKbBtn.style.boxShadow = 'none';
+  saveToKbBtn.title = '保存当前内容到知识库';
+
+  saveToKbBtn.addEventListener('mouseenter', function () {
+    saveToKbBtn.style.color = 'var(--accent-color)';
+    saveToKbBtn.style.transform = 'translateY(-1px)';
+  });
+  saveToKbBtn.addEventListener('mouseleave', function () {
+    saveToKbBtn.style.color = 'var(--text-secondary)';
+    saveToKbBtn.style.transform = 'translateY(0)';
+  });
+
+  saveToKbBtn.addEventListener('click', async function () {
+    await handleSaveToKnowledgeBase(completeText, saveToKbBtn);
+  });
+
   // 创建复制按钮容器，透明背景
   const copyBtnContainer = document.createElement('div');
   copyBtnContainer.style.cursor = 'pointer';
@@ -233,6 +262,7 @@ function createCopyButton(completeText) {
 
   // 将按钮添加到主容器
   buttonContainer.appendChild(saveNoteBtn);
+  buttonContainer.appendChild(saveToKbBtn);
   buttonContainer.appendChild(copyBtnContainer);
 
   const contentDiv = document.querySelector('.chat-content');
@@ -3950,6 +3980,154 @@ async function saveNoteAsMarkdown(content) {
     console.error('保存笔记失败:', error);
     showToast('保存笔记失败', 'error');
   }
+}
+
+/**
+ * 处理保存到知识库的功能
+ * @param {string} completeText - 要保存的完整文本内容
+ * @param {HTMLElement} buttonElement - 按钮元素（用于更新UI状态）
+ */
+async function handleSaveToKnowledgeBase(completeText, buttonElement) {
+  const originalText = buttonElement.textContent;
+
+  try {
+    // 1. 检查知识库配置
+    const qdrantConfig = await getValueFromChromeStorage('qdrant');
+
+    if (!qdrantConfig || !qdrantConfig.enabled) {
+      showToast('⚠️ 请先在设置页面启用知识库功能', 'warning');
+      return;
+    }
+
+    if (!qdrantConfig.serverUrl) {
+      showToast('⚠️ 请先在设置页面配置 Qdrant 服务器地址', 'warning');
+      return;
+    }
+
+    if (!qdrantConfig.siliconflowApiKey) {
+      showToast('⚠️ 请先在设置页面配置硅基流动 API Key', 'warning');
+      return;
+    }
+
+    // 2. 显示加载状态
+    buttonElement.textContent = 'Saving...';
+    buttonElement.disabled = true;
+    buttonElement.style.cursor = 'wait';
+
+    // 3. 获取当前页面信息
+    const queryOptions = { active: true, currentWindow: true };
+    const [tab] = await chrome.tabs.query(queryOptions);
+    const pageUrl = tab?.url || 'Unknown URL';
+    const pageTitle = tab?.title || 'Untitled';
+
+    // 4. 检查文本长度，决定是否需要分块
+    const embeddingModel = qdrantConfig.embeddingModel || 'BAAI/bge-m3';
+    const modelConfig = EMBEDDING_MODELS[embeddingModel];
+    const estimatedTokens = estimateTokenCount(completeText);
+    // 记录当前使用的模型名称（如果未能获取则标记为未知）
+    const activeModel =
+      (typeof getSelectedModel === 'function' && getSelectedModel()) ||
+      selectedModel ||
+      'Unknown Model';
+
+    let embedding;
+    let chunks = [];
+    let embeddings = [];
+
+    if (estimatedTokens > modelConfig.maxTokens) {
+      // 需要分块处理
+      console.log(`Content is too long (${estimatedTokens} tokens), chunking...`);
+
+      // 分块（基于字符数，保守估计）
+      const maxChunkChars = Math.floor(modelConfig.maxTokens * 1.3);  // 1.3字符≈1token
+      chunks = chunkText(completeText, maxChunkChars, 200);
+
+      showToast(`📄 内容较长，正在处理 ${chunks.length} 个分块...`, 'info');
+
+      // 批量生成嵌入向量
+      embeddings = await generateEmbeddingBatch(chunks, embeddingModel, qdrantConfig.vectorDimensions);
+    } else {
+      // 单个文本处理
+      embedding = await generateEmbedding(completeText, embeddingModel, qdrantConfig.vectorDimensions);
+    }
+
+    // 5. 初始化 Qdrant 客户端并保存
+    const kb = new QdrantKnowledgeBase();
+    await kb.initialize();
+
+    let result;
+    if (chunks.length > 0) {
+      // 批量保存分块内容
+      result = await kb.saveBatchToKnowledgeBase({
+        content: completeText,
+        url: pageUrl,
+        title: pageTitle,
+        model: activeModel,
+        contentType: getCurrentPromptMode(),
+        chunks: chunks,
+        embeddings: embeddings
+      });
+    } else {
+      // 保存单个内容
+      result = await kb.saveToKnowledgeBase({
+        content: completeText,
+        url: pageUrl,
+        title: pageTitle,
+        model: activeModel,
+        contentType: getCurrentPromptMode(),
+        embedding: embedding
+      });
+    }
+
+    if (result.success) {
+      // 6. 显示成功状态
+      buttonElement.textContent = '✓ Saved';
+      buttonElement.style.color = '#52c41a';
+
+      showToast('✅ 已成功保存到知识库！', 'success');
+
+      // 7. 更新最后保存时间
+      await chrome.storage.local.set({ 'kb-last-saved': new Date().toISOString() });
+
+      // 8. 2秒后恢复按钮状态
+      setTimeout(() => {
+        buttonElement.textContent = originalText;
+        buttonElement.style.color = 'var(--text-secondary)';
+        buttonElement.disabled = false;
+        buttonElement.style.cursor = 'pointer';
+      }, 2000);
+    } else {
+      throw new Error(result.message || 'Unknown error');
+    }
+
+  } catch (error) {
+    console.error('Failed to save to knowledge base:', error);
+
+    // 显示错误状态
+    buttonElement.textContent = '✗ Failed';
+    buttonElement.style.color = '#ff4d4f';
+
+    showToast(`❌ 保存失败: ${error.message}`, 'error');
+
+    // 3秒后恢复按钮状态
+    setTimeout(() => {
+      buttonElement.textContent = originalText;
+      buttonElement.style.color = 'var(--text-secondary)';
+      buttonElement.disabled = false;
+      buttonElement.style.cursor = 'pointer';
+    }, 3000);
+  }
+}
+
+/**
+ * 获取当前提示词模式
+ * @returns {string} 'summary' | 'paper' | 'learning' | 'default'
+ */
+function getCurrentPromptMode() {
+  // 根据当前使用的系统提示判断模式
+  // 这里可以通过全局变量或其他方式获取
+  // 暂时返回 'summary' 作为默认值
+  return 'summary';
 }
 
 document.addEventListener('DOMContentLoaded', async function () {

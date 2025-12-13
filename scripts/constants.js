@@ -888,3 +888,59 @@ const THINKING_PROCESS_MODELS = [
   'MiniMax-M2',
   'GLM-4.6'
 ];
+
+// 嵌入模型配置（用于向量数据库）
+const EMBEDDING_MODELS = {
+  'BAAI/bge-m3': {
+    provider: PROVIDERS.SILICONFLOW,
+    maxTokens: 8192,
+    defaultDimensions: 1024,
+    supportedDimensions: [64, 128, 256, 512, 768, 1024, 1536, 2048, 2560, 4096],
+    displayName: 'BAAI/bge-m3 (推荐)'
+  },
+  'Pro/BAAI/bge-m3': {
+    provider: PROVIDERS.SILICONFLOW,
+    maxTokens: 8192,
+    defaultDimensions: 1024,
+    supportedDimensions: [64, 128, 256, 512, 768, 1024, 1536, 2048, 2560, 4096],
+    displayName: 'Pro/BAAI/bge-m3 (增强版)'
+  },
+  'BAAI/bge-large-zh-v1.5': {
+    provider: PROVIDERS.SILICONFLOW,
+    maxTokens: 512,
+    defaultDimensions: 1024,
+    supportedDimensions: [1024],
+    displayName: 'BAAI/bge-large-zh-v1.5'
+  },
+  'BAAI/bge-large-en-v1.5': {
+    provider: PROVIDERS.SILICONFLOW,
+    maxTokens: 512,
+    defaultDimensions: 1024,
+    supportedDimensions: [1024],
+    displayName: 'BAAI/bge-large-en-v1.5'
+  },
+  'Qwen/Qwen3-Embedding-8B': {
+    provider: PROVIDERS.SILICONFLOW,
+    maxTokens: 32768,
+    defaultDimensions: 4096,
+    supportedDimensions: [64, 128, 256, 512, 768, 1024, 1536, 2048, 2560, 4096],
+    displayName: 'Qwen3-Embedding-8B (超长上下文)'
+  },
+  'Qwen/Qwen3-Embedding-4B': {
+    provider: PROVIDERS.SILICONFLOW,
+    maxTokens: 32768,
+    defaultDimensions: 2560,
+    supportedDimensions: [64, 128, 256, 512, 768, 1024, 1536, 2048, 2560],
+    displayName: 'Qwen3-Embedding-4B'
+  },
+  'Qwen/Qwen3-Embedding-0.6B': {
+    provider: PROVIDERS.SILICONFLOW,
+    maxTokens: 32768,
+    defaultDimensions: 1024,
+    supportedDimensions: [64, 128, 256, 512, 768, 1024],
+    displayName: 'Qwen3-Embedding-0.6B (轻量级)'
+  }
+};
+
+// 硅基流动嵌入API路径
+const SILICONFLOW_EMBEDDINGS_API_PATH = "/v1/embeddings";

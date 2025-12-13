@@ -1695,4 +1695,239 @@ document.addEventListener('DOMContentLoaded', function () {
     // Make the configurations available to openTab
     window.filterConfigurations = filterConfigurations;
   }, 100);
+
+  // ============================================
+  // Knowledge Base 配置相关功能
+  // ============================================
+
+  // 加载知识库配置
+  function loadKnowledgeBaseConfig() {
+    chrome.storage.local.get(['qdrant', 'siliconflow', 'kb-last-saved'], function(result) {
+      const qdrantConfig = result.qdrant || {};
+      const siliconflowConfig = result.siliconflow || {};
+
+      // 加载 Qdrant 配置
+      document.getElementById('kb-enabled').checked = qdrantConfig.enabled || false;
+      document.getElementById('qdrant-url').value = qdrantConfig.serverUrl || '';
+      document.getElementById('qdrant-api-key').value = qdrantConfig.apiKey || '';
+      document.getElementById('qdrant-collection').value = qdrantConfig.collectionName || 'orangesidebar-knowledge';
+
+      // 加载嵌入模型配置
+      document.getElementById('embedding-model').value = qdrantConfig.embeddingModel || 'BAAI/bge-m3';
+      document.getElementById('vector-dimensions').value = qdrantConfig.vectorDimensions || 1024;
+
+      // 加载 SiliconFlow API Key（优先使用 qdrant 配置中的，否则使用 siliconflow 配置）
+      const apiKey = qdrantConfig.siliconflowApiKey || siliconflowConfig.apiKey || '';
+      document.getElementById('kb-siliconflow-api-key').value = apiKey;
+
+      // 加载保存选项
+      document.getElementById('auto-save-summaries').checked = qdrantConfig.autoSave || false;
+
+      // 更新配置区域显示状态
+      toggleKbConfigSection();
+
+      // 加载最后保存时间
+      if (result['kb-last-saved']) {
+        const lastSavedDate = new Date(result['kb-last-saved']);
+        document.getElementById('kb-last-saved').textContent = lastSavedDate.toLocaleString('zh-CN');
+      }
+
+      // 如果配置已启用，刷新统计信息
+      if (qdrantConfig.enabled && qdrantConfig.serverUrl) {
+        refreshKbStatistics();
+      }
+    });
+  }
+
+  // 切换配置区域显示
+  function toggleKbConfigSection() {
+    const enabled = document.getElementById('kb-enabled').checked;
+    const configSection = document.getElementById('kb-config-section');
+    if (configSection) {
+      configSection.style.display = enabled ? 'block' : 'none';
+    }
+  }
+
+  // 保存知识库配置
+  async function saveKnowledgeBaseConfig() {
+    const config = {
+      enabled: document.getElementById('kb-enabled').checked,
+      serverUrl: document.getElementById('qdrant-url').value.trim(),
+      apiKey: document.getElementById('qdrant-api-key').value.trim(),
+      collectionName: document.getElementById('qdrant-collection').value.trim() || 'orangesidebar-knowledge',
+      embeddingModel: document.getElementById('embedding-model').value,
+      vectorDimensions: parseInt(document.getElementById('vector-dimensions').value),
+      siliconflowApiKey: document.getElementById('kb-siliconflow-api-key').value.trim(),
+      autoSave: document.getElementById('auto-save-summaries').checked
+    };
+
+    // 验证必填字段
+    if (config.enabled) {
+      if (!config.serverUrl) {
+        showKbMessage('请输入 Qdrant 服务器地址', 'error');
+        return;
+      }
+      if (!config.siliconflowApiKey) {
+        showKbMessage('请输入硅基流动 API Key', 'error');
+        return;
+      }
+    }
+
+    // 保存配置
+    chrome.storage.local.set({ qdrant: config }, function() {
+      showKbMessage('配置保存成功！', 'success');
+
+      // 同时更新 siliconflow 配置（如果未配置过）
+      chrome.storage.local.get('siliconflow', function(result) {
+        const siliconflowConfig = result.siliconflow || {};
+        if (!siliconflowConfig.apiKey && config.siliconflowApiKey) {
+          siliconflowConfig.apiKey = config.siliconflowApiKey;
+          siliconflowConfig.baseUrl = siliconflowConfig.baseUrl || SILICONFLOW_BASE_URL;
+          chrome.storage.local.set({ siliconflow: siliconflowConfig });
+        }
+      });
+    });
+  }
+
+  // 显示保存消息
+  function showKbMessage(message, type = 'success') {
+    const messageElement = document.getElementById('kb-save-message');
+    messageElement.textContent = message;
+    messageElement.style.display = 'block';
+    messageElement.style.color = type === 'error' ? '#ff4d4f' : '#52c41a';
+    setTimeout(() => {
+      messageElement.style.display = 'none';
+    }, 3000);
+  }
+
+  // 测试 Qdrant 连接
+  async function testQdrantConnection() {
+    const testButton = document.getElementById('test-qdrant-connection');
+    const resultDiv = document.getElementById('qdrant-test-result');
+
+    testButton.disabled = true;
+    testButton.textContent = '测试中...';
+    resultDiv.textContent = '';
+
+    try {
+      const serverUrl = document.getElementById('qdrant-url').value.trim();
+      const apiKey = document.getElementById('qdrant-api-key').value.trim();
+
+      if (!serverUrl) {
+        throw new Error('请输入服务器地址');
+      }
+
+      if (typeof waitForQdrantClient !== 'function') {
+        throw new Error('Qdrant client loader is not available. Please reload the extension page.');
+      }
+
+      // 临时创建客户端测试连接
+      const QdrantClient = await waitForQdrantClient();
+      const client = new QdrantClient({
+        url: serverUrl,
+        apiKey: apiKey || undefined,
+        timeout: 10000
+      });
+
+      const versionInfo = await client.api().root({});
+
+      resultDiv.textContent = `✅ 连接成功！服务器版本: ${versionInfo.data?.version || 'Unknown'}`;
+      resultDiv.style.color = '#52c41a';
+    } catch (error) {
+      resultDiv.textContent = `❌ 连接失败: ${error.message}`;
+      resultDiv.style.color = '#ff4d4f';
+    } finally {
+      testButton.disabled = false;
+      testButton.textContent = '测试连接';
+    }
+  }
+
+  // 创建集合
+  async function createQdrantCollection() {
+    const createButton = document.getElementById('create-collection-btn');
+    const resultDiv = document.getElementById('qdrant-test-result');
+
+    createButton.disabled = true;
+    createButton.textContent = '创建中...';
+
+    try {
+      const kb = new QdrantKnowledgeBase();
+      await kb.initialize();
+
+      const collectionName = document.getElementById('qdrant-collection').value.trim() || 'orangesidebar-knowledge';
+      const vectorSize = parseInt(document.getElementById('vector-dimensions').value);
+
+      const result = await kb.createCollection(collectionName, vectorSize);
+
+      if (result.success) {
+        resultDiv.textContent = `✅ ${result.message}`;
+        resultDiv.style.color = '#52c41a';
+        // 刷新统计信息
+        setTimeout(refreshKbStatistics, 1000);
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      resultDiv.textContent = `❌ 创建失败: ${error.message}`;
+      resultDiv.style.color = '#ff4d4f';
+    } finally {
+      createButton.disabled = false;
+      createButton.textContent = '创建集合';
+    }
+  }
+
+  // 刷新知识库统计
+  async function refreshKbStatistics() {
+    try {
+      const kb = new QdrantKnowledgeBase();
+      await kb.initialize();
+
+      const stats = await kb.getStatistics();
+
+      document.getElementById('kb-count').textContent = stats.count || 0;
+      document.getElementById('kb-vector-size').textContent = stats.vectorSize || '-';
+    } catch (error) {
+      console.error('Failed to refresh statistics:', error);
+      document.getElementById('kb-count').textContent = '错误';
+      document.getElementById('kb-vector-size').textContent = '-';
+    }
+  }
+
+  // 绑定事件监听器（使用可选链防止元素不存在时报错）
+  const kbEnabledCheckbox = document.getElementById('kb-enabled');
+  const saveKbConfigBtn = document.getElementById('save-kb-config');
+  const testQdrantBtn = document.getElementById('test-qdrant-connection');
+  const createCollectionBtn = document.getElementById('create-collection-btn');
+  const refreshStatsBtn = document.getElementById('refresh-stats-btn');
+
+  if (kbEnabledCheckbox) {
+    kbEnabledCheckbox.addEventListener('change', toggleKbConfigSection);
+  }
+  if (saveKbConfigBtn) {
+    saveKbConfigBtn.addEventListener('click', saveKnowledgeBaseConfig);
+  }
+  if (testQdrantBtn) {
+    testQdrantBtn.addEventListener('click', testQdrantConnection);
+  }
+  if (createCollectionBtn) {
+    createCollectionBtn.addEventListener('click', createQdrantCollection);
+  }
+  if (refreshStatsBtn) {
+    refreshStatsBtn.addEventListener('click', refreshKbStatistics);
+  }
+
+  // 扩展 openTab 函数以支持知识库配置加载
+  // 保存对原始 openTab 的引用（在第一个 DOMContentLoaded 中定义）
+  const existingOpenTab = window.openTab;
+  if (existingOpenTab && typeof existingOpenTab === 'function') {
+    window.openTab = function(evt, tabName) {
+      // 调用原始 openTab 函数
+      existingOpenTab.call(this, evt, tabName);
+
+      // 如果是知识库标签，加载配置
+      if (tabName === 'knowledgeBase') {
+        loadKnowledgeBaseConfig();
+      }
+    };
+  }
 });

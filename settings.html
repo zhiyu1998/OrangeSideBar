@@ -235,6 +235,17 @@
                 </svg>
                 <span>提示词设置</span>
             </button>
+            <button class="tab-link" data-tab="knowledgeBase">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    <path d="M9 6h6"></path>
+                    <path d="M9 10h6"></path>
+                    <path d="M9 14h2"></path>
+                </svg>
+                <span>知识库</span>
+            </button>
             <button class="tab-link" data-tab="quality-content">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1700,8 +1711,133 @@
             </div>
         </div>
 
+        <!-- Knowledge Base 配置标签页 -->
+        <div class="tab-content" id="knowledgeBase">
+            <h2>🗄️ 知识库配置</h2>
+            <p>将网页总结保存到 Qdrant 向量数据库，构建你的个人知识库</p>
+
+            <div class="settings-section">
+                <h3>启用知识库</h3>
+                <div class="toggle-container">
+                    <label class="switch">
+                        <input type="checkbox" id="kb-enabled">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">启用知识库功能</span>
+                </div>
+            </div>
+
+            <div class="settings-section" id="kb-config-section">
+                <h3>Qdrant 服务器配置</h3>
+                <div class="form-group">
+                    <label for="qdrant-url">服务器地址</label>
+                    <input type="text" id="qdrant-url" class="input-field"
+                           placeholder="https://your-qdrant-instance.com:6333">
+                    <small>支持 Qdrant Cloud 或自托管实例</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="qdrant-api-key">API Key（可选）</label>
+                    <input type="password" id="qdrant-api-key" class="input-field"
+                           placeholder="your-qdrant-api-key">
+                    <small>自托管实例可选，Qdrant Cloud 需要</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="qdrant-collection">集合名称</label>
+                    <input type="text" id="qdrant-collection" class="input-field"
+                           value="orangesidebar-knowledge">
+                    <small>向量存储的集合名称</small>
+                </div>
+
+                <button id="create-collection-btn" class="secondary-button">创建集合</button>
+                <button id="test-qdrant-connection" class="test-button">测试连接</button>
+                <div id="qdrant-test-result" class="test-result"></div>
+            </div>
+
+            <div class="settings-section">
+                <h3>嵌入模型配置</h3>
+                <p class="settings-description">使用硅基流动的嵌入模型将文本转换为向量</p>
+
+                <div class="form-group">
+                    <label for="embedding-model">嵌入模型</label>
+                    <select id="embedding-model" class="select-field">
+                        <option value="BAAI/bge-m3" selected>BAAI/bge-m3 (推荐) - 8192 tokens</option>
+                        <option value="Pro/BAAI/bge-m3">Pro/BAAI/bge-m3 (增强版) - 8192 tokens</option>
+                        <option value="BAAI/bge-large-zh-v1.5">BAAI/bge-large-zh-v1.5 - 512 tokens</option>
+                        <option value="BAAI/bge-large-en-v1.5">BAAI/bge-large-en-v1.5 - 512 tokens</option>
+                        <option value="Qwen/Qwen3-Embedding-8B">Qwen3-Embedding-8B (超长上下文) - 32768 tokens</option>
+                        <option value="Qwen/Qwen3-Embedding-4B">Qwen3-Embedding-4B - 32768 tokens</option>
+                        <option value="Qwen/Qwen3-Embedding-0.6B">Qwen3-Embedding-0.6B (轻量级) - 32768 tokens</option>
+                    </select>
+                    <small>选择适合你需求的嵌入模型</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="vector-dimensions">向量维度</label>
+                    <select id="vector-dimensions" class="select-field">
+                        <option value="512">512</option>
+                        <option value="768">768</option>
+                        <option value="1024" selected>1024 (推荐)</option>
+                        <option value="1536">1536</option>
+                        <option value="2048">2048</option>
+                        <option value="2560">2560</option>
+                        <option value="4096">4096</option>
+                    </select>
+                    <small>更高维度 = 更好精度，但占用更多存储空间</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="kb-siliconflow-api-key">硅基流动 API Key</label>
+                    <input type="password" id="kb-siliconflow-api-key" class="input-field"
+                           placeholder="sk-xxxxxxxxx">
+                    <small>从 <a href="https://cloud.siliconflow.cn" target="_blank">SiliconFlow</a> 获取免费 API Key（如已在"硅基流动"标签页配置，会自动复用）</small>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>保存选项</h3>
+                <div class="toggle-container">
+                    <label class="switch">
+                        <input type="checkbox" id="auto-save-summaries">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">自动保存所有总结到知识库</span>
+                </div>
+                <small>启用后，每次生成总结都会自动保存。当前版本建议手动保存。</small>
+            </div>
+
+            <div class="prompt-actions">
+                <button id="save-kb-config" class="save-button">保存配置</button>
+            </div>
+            <div class="save-message" id="kb-save-message" style="display:none;">保存成功！</div>
+
+            <div class="settings-section">
+                <h3>📊 知识库统计</h3>
+                <div id="kb-stats" class="stats-container">
+                    <div class="stat-item">
+                        <span class="stat-label">总条目数：</span>
+                        <span class="stat-value" id="kb-count">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">向量维度：</span>
+                        <span class="stat-value" id="kb-vector-size">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最后保存：</span>
+                        <span class="stat-value" id="kb-last-saved">从未</span>
+                    </div>
+                </div>
+                <button id="refresh-stats-btn" class="secondary-button">刷新统计</button>
+            </div>
+        </div>
+
         <!-- Add more content divs here -->
     </div>
+    <script src="scripts/utils.js"></script>
+    <script src="scripts/llm.js"></script>
+    <script src="scripts/embedding.js"></script>
+    <script src="scripts/qdrant.js"></script>
 </body>
 
 </html>
