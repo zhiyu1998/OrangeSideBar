@@ -1715,6 +1715,9 @@ document.addEventListener('DOMContentLoaded', function () {
       // 加载嵌入模型配置
       document.getElementById('embedding-model').value = qdrantConfig.embeddingModel || 'BAAI/bge-m3';
       document.getElementById('vector-dimensions').value = qdrantConfig.vectorDimensions || 1024;
+      document.getElementById('kb-score-threshold').value = typeof qdrantConfig.scoreThreshold === 'number'
+        ? qdrantConfig.scoreThreshold
+        : 0.5;
 
       // 加载 SiliconFlow API Key（优先使用 qdrant 配置中的，否则使用 siliconflow 配置）
       const apiKey = qdrantConfig.siliconflowApiKey || siliconflowConfig.apiKey || '';
@@ -1758,8 +1761,13 @@ document.addEventListener('DOMContentLoaded', function () {
       embeddingModel: document.getElementById('embedding-model').value,
       vectorDimensions: parseInt(document.getElementById('vector-dimensions').value),
       siliconflowApiKey: document.getElementById('kb-siliconflow-api-key').value.trim(),
+      scoreThreshold: parseFloat(document.getElementById('kb-score-threshold').value) || 0.5,
       autoSave: document.getElementById('auto-save-summaries').checked
     };
+
+    // 约束阈值范围
+    if (config.scoreThreshold < 0) config.scoreThreshold = 0;
+    if (config.scoreThreshold > 1) config.scoreThreshold = 1;
 
     // 验证必填字段
     if (config.enabled) {

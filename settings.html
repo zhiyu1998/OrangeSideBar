@@ -1788,6 +1788,12 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="kb-score-threshold">搜索相似度阈值</label>
+                    <input type="number" id="kb-score-threshold" class="input-field" min="0" max="1" step="0.05" value="0.5">
+                    <small>0-1 之间，越高越严格，命中结果越少；默认 0.5</small>
+                </div>
+
+                <div class="form-group">
                     <label for="kb-siliconflow-api-key">硅基流动 API Key</label>
                     <input type="password" id="kb-siliconflow-api-key" class="input-field"
                            placeholder="sk-xxxxxxxxx">

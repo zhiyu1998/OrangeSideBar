@@ -84,7 +84,7 @@ function showRecommandContent() {
 /**
  * 定义清空并加载内容的函数
  */
-async function clearAndGenerate(model, inputText, base64Images) {
+async function clearAndGenerate(model, inputText, base64Images, useKbContext = true) {
   // 隐藏初始推荐内容
   hideRecommandContent();
 
@@ -93,7 +93,7 @@ async function clearAndGenerate(model, inputText, base64Images) {
   contentDiv.innerHTML = '';
 
   // generate
-  await chatLLMAndUIUpdate(model, inputText, base64Images);
+  await chatLLMAndUIUpdate(model, inputText, base64Images, null, useKbContext);
 }
 
 /**
@@ -103,7 +103,7 @@ async function clearAndGenerate(model, inputText, base64Images) {
  * @param {Array} base64Images
  * @param {string} customSystemPrompt - 可选的自定义系统提示词
  */
-async function chatLLMAndUIUpdate(model, inputText, base64Images, customSystemPrompt = null) {
+async function chatLLMAndUIUpdate(model, inputText, base64Images, customSystemPrompt = null, useKbContext = true) {
   // loading
   displayLoading();
 
@@ -130,9 +130,10 @@ async function chatLLMAndUIUpdate(model, inputText, base64Images, customSystemPr
       tools.push(WEB_SEARCH_TOOL);
     }
 
-    // 知识库检索并拼接上下文
-    const kbPrompt = await buildKbAugmentedPrompt(inputText);
-    const promptWithKb = kbPrompt.text || inputText;
+    // 知识库检索并拼接上下文（仅在允许时开启）
+    const promptWithKb = useKbContext
+      ? (await buildKbAugmentedPrompt(inputText)).text || inputText
+      : inputText;
 
     const completeText = await chatWithLLM(
       model,
@@ -1083,7 +1084,7 @@ function getSelectedModel() {
 /**
  * 在双栏模式下同时调用两个模型并更新UI
  */
-async function dualColumnChatLLMAndUIUpdate(inputText, base64Images, customSystemPrompt = null) {
+async function dualColumnChatLLMAndUIUpdate(inputText, base64Images, customSystemPrompt = null, useKbContext = true) {
   if (!leftColumnModel || !rightColumnModel) {
     displayErrorMessage('请为两个栏位选择模型');
     return;
@@ -1123,8 +1124,9 @@ async function dualColumnChatLLMAndUIUpdate(inputText, base64Images, customSyste
     }
 
     // 知识库上下文
-    const kbPrompt = await buildKbAugmentedPrompt(inputText);
-    const promptForLLM = kbPrompt.text || inputText;
+    const promptForLLM = useKbContext
+      ? (await buildKbAugmentedPrompt(inputText)).text || inputText
+      : inputText;
 
     // 异步并行启动两个流式输出
     const leftPromise = streamingChatForColumn('left', leftColumnModel, leftAiMessageDiv, promptForLLM, base64Images, tools, customSystemPrompt);
@@ -2446,7 +2448,7 @@ async function handleDualColumnSummary() {
     document.getElementById('left-chat-content').innerHTML = '';
     document.getElementById('right-chat-content').innerHTML = '';
     
-    await dualColumnChatLLMAndUIUpdate(fullPrompt, [], systemPromptToUse);
+    await dualColumnChatLLMAndUIUpdate(fullPrompt, [], systemPromptToUse, false);
   });
 }
 
@@ -2488,7 +2490,7 @@ async function handleDualColumnTranslate() {
   document.getElementById('left-chat-content').innerHTML = '';
   document.getElementById('right-chat-content').innerHTML = '';
   
-  await dualColumnChatLLMAndUIUpdate(TRANSLATE2CHN_PROMPT + inputText, []);
+  await dualColumnChatLLMAndUIUpdate(TRANSLATE2CHN_PROMPT + inputText, [], null, false);
 }
 
 /**
@@ -2550,7 +2552,9 @@ async function handleDualColumnLocalPDF() {
         
         await dualColumnChatLLMAndUIUpdate(
           `以下是PDF文件"${fileName}"的内容，请提供一个详细的摘要:\n\n${pdfText}`,
-          []
+          [],
+          null,
+          false
         );
       } catch (error) {
         hiddenLoadding();
@@ -2607,7 +2611,7 @@ async function handleDualColumnSubtitleSummary() {
     document.getElementById('left-chat-content').innerHTML = '';
     document.getElementById('right-chat-content').innerHTML = '';
 
-    await dualColumnChatLLMAndUIUpdate(fullPrompt, [], SYSTEM_PROMPT);
+    await dualColumnChatLLMAndUIUpdate(fullPrompt, [], SYSTEM_PROMPT, false);
   } catch (error) {
     hiddenLoadding();
     console.error('提取字幕失败:', error);
@@ -3066,7 +3070,7 @@ function initResultPage() {
       contentDiv.scrollTop = contentDiv.scrollHeight;
 
       // 调用核心聊天函数，传入包含页面内容的完整提示和系统提示词
-      await chatLLMAndUIUpdate(model, fullPrompt, [], systemPromptToUse);
+      await chatLLMAndUIUpdate(model, fullPrompt, [], systemPromptToUse, false);
     });
   });
 
@@ -3098,7 +3102,7 @@ function initResultPage() {
       return;
     }
 
-    await clearAndGenerate(model, TRANSLATE2CHN_PROMPT + inputText, null);
+    await clearAndGenerate(model, TRANSLATE2CHN_PROMPT + inputText, null, false);
   });
 
   // 本地PDF分析
@@ -3160,7 +3164,8 @@ function initResultPage() {
       await clearAndGenerate(
         model,
         `以下是PDF文件"${fileName}"的内容，请提供一个详细的摘要:\n\n${pdfText}`,
-        null
+        null,
+        false
       );
     } catch (error) {
       hiddenLoadding();
@@ -3203,7 +3208,8 @@ function initResultPage() {
       await clearAndGenerate(
         model,
         `以下是PDF文件"${fileName}"的内容，请提供一个详细的摘要:\n\n${pdfText}`,
-        null
+        null,
+        false
       );
     } catch (error) {
       hiddenLoadding();
@@ -3301,7 +3307,7 @@ function initResultPage() {
           contentDiv.scrollTop = contentDiv.scrollHeight;
 
           // 调用AI进行总结
-          chatLLMAndUIUpdate(model, fullPrompt, [], SYSTEM_PROMPT);
+          chatLLMAndUIUpdate(model, fullPrompt, [], SYSTEM_PROMPT, false);
 
         } catch (error) {
           hiddenLoadding();
@@ -3640,7 +3646,7 @@ function initResultPage() {
             userInput.value = "";
             const previewArea = document.querySelector('.image-preview-area');
             previewArea.innerHTML = '';
-            chatLLMAndUIUpdate(model, newInputText, base64Images, systemPromptToUse);
+            chatLLMAndUIUpdate(model, newInputText, base64Images, systemPromptToUse, false);
           });
           return; // 提前返回，防止直接执行下面的代码
         } else if (inputText.startsWith(SHORTCUT_DICTION)) {
@@ -3668,7 +3674,7 @@ function initResultPage() {
         previewArea.innerHTML = '';
 
         // AI 回答
-        chatLLMAndUIUpdate(model, newInputText, base64Images);
+        chatLLMAndUIUpdate(model, newInputText, base64Images, null, true);
       }
     });
   }
@@ -4178,6 +4184,10 @@ async function buildKbAugmentedPrompt(userQuestion) {
 
     const embeddingModel = qdrantConfig.embeddingModel || 'BAAI/bge-m3';
     const dimensions = qdrantConfig.vectorDimensions;
+    const scoreThreshold =
+      typeof qdrantConfig.scoreThreshold === 'number'
+        ? qdrantConfig.scoreThreshold
+        : 0.5;
 
     const queryEmbedding = await generateEmbedding(
       userQuestion,
@@ -4189,7 +4199,13 @@ async function buildKbAugmentedPrompt(userQuestion) {
     await kb.initialize();
 
     const results =
-      (await kb.searchSimilar(queryEmbedding, KB_TOP_K, null, collectionName)) ||
+      (await kb.searchSimilar(
+        queryEmbedding,
+        KB_TOP_K,
+        null,
+        collectionName,
+        { scoreThreshold }
+      )) ||
       [];
 
     if (results.length === 0) {

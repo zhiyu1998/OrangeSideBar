@@ -403,15 +403,17 @@ class QdrantKnowledgeBase {
    * @param {number} topK - 返回前K个结果（默认5）
    * @param {Object|null} filter - 可选过滤条件
    * @param {string|null} collectionOverride - 指定集合（可选）
+   * @param {{scoreThreshold?: number}} options - 额外参数
    * @returns {Promise<Array<{score: number, content: string, url: string, title: string, timestamp: string, contentType: string}>>}
    */
-  async searchSimilar(queryEmbedding, topK = 5, filter = null, collectionOverride = null) {
+  async searchSimilar(queryEmbedding, topK = 5, filter = null, collectionOverride = null, options = {}) {
     try {
       if (!this.client) {
         await this.initialize();
       }
 
       const collectionName = collectionOverride || this.config.collectionName || 'orangesidebar-knowledge';
+      const scoreThreshold = typeof options.scoreThreshold === 'number' ? options.scoreThreshold : 0.5;
 
       // 检查集合是否存在
       const exists = await this.collectionExists(collectionName);
@@ -424,7 +426,7 @@ class QdrantKnowledgeBase {
         limit: topK,
         with_payload: true,
         with_vector: false,  // 不返回向量节省带宽
-        score_threshold: 0.5  // 相似度阈值
+        score_threshold: scoreThreshold  // 相似度阈值
       };
 
       if (filter) {
