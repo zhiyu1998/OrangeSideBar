@@ -130,7 +130,18 @@ async function chatLLMAndUIUpdate(model, inputText, base64Images, customSystemPr
       tools.push(WEB_SEARCH_TOOL);
     }
 
-    const completeText = await chatWithLLM(model, inputText, base64Images, CHAT_TYPE, tools, customSystemPrompt);
+    // 知识库检索并拼接上下文
+    const kbPrompt = await buildKbAugmentedPrompt(inputText);
+    const promptWithKb = kbPrompt.text || inputText;
+
+    const completeText = await chatWithLLM(
+      model,
+      promptWithKb,
+      base64Images,
+      CHAT_TYPE,
+      tools,
+      customSystemPrompt
+    );
     createCopyButton(completeText);
   } catch (error) {
     hiddenLoadding();
@@ -497,6 +508,10 @@ function loadOllamaModels(callback) {
 // 全局变量存储模型数据
 let allModels = [];
 let selectedModel = '';
+// 知识库问答配置
+const KB_TOP_K = 5;
+let kbRetrievalEnabled = false;
+let kbRetrievalCollection = '';
 
 // 双栏模式状态管理对象
 const DualColumnState = {
@@ -1107,9 +1122,13 @@ async function dualColumnChatLLMAndUIUpdate(inputText, base64Images, customSyste
       tools.push(WEB_SEARCH_TOOL);
     }
 
+    // 知识库上下文
+    const kbPrompt = await buildKbAugmentedPrompt(inputText);
+    const promptForLLM = kbPrompt.text || inputText;
+
     // 异步并行启动两个流式输出
-    const leftPromise = streamingChatForColumn('left', leftColumnModel, leftAiMessageDiv, inputText, base64Images, tools, customSystemPrompt);
-    const rightPromise = streamingChatForColumn('right', rightColumnModel, rightAiMessageDiv, inputText, base64Images, tools, customSystemPrompt);
+    const leftPromise = streamingChatForColumn('left', leftColumnModel, leftAiMessageDiv, promptForLLM, base64Images, tools, customSystemPrompt);
+    const rightPromise = streamingChatForColumn('right', rightColumnModel, rightAiMessageDiv, promptForLLM, base64Images, tools, customSystemPrompt);
 
     // 等待两个流式输出都完成（独立进行，不会互相阻塞）
     await Promise.allSettled([leftPromise, rightPromise]);
@@ -2800,6 +2819,11 @@ function initResultPage() {
   // 加载工具选择状态
   loadToolsSelectedStatus();
 
+  // 初始化知识库问答配置
+  initKnowledgeBaseRetrievalUI().catch(err =>
+    console.error('Failed to init KB retrieval UI:', err)
+  );
+
   // 初始化按钮状态
   updateSubmitButton();
 
@@ -4128,6 +4152,171 @@ function getCurrentPromptMode() {
   // 这里可以通过全局变量或其他方式获取
   // 暂时返回 'summary' 作为默认值
   return 'summary';
+}
+
+/**
+ * 从知识库检索相似内容，并拼接到提示词前
+ * @param {string} userQuestion
+ * @returns {Promise<{text: string, sources: Array}>}
+ */
+async function buildKbAugmentedPrompt(userQuestion) {
+  if (!kbRetrievalEnabled) {
+    return { text: userQuestion, sources: [] };
+  }
+
+  try {
+    const qdrantConfig = await getValueFromChromeStorage('qdrant');
+    if (!qdrantConfig || !qdrantConfig.enabled || !qdrantConfig.serverUrl) {
+      showToast('知识库未配置，已用原问题继续对话', 'warning');
+      return { text: userQuestion, sources: [] };
+    }
+
+    const collectionName =
+      kbRetrievalCollection ||
+      qdrantConfig.collectionName ||
+      'orangesidebar-knowledge';
+
+    const embeddingModel = qdrantConfig.embeddingModel || 'BAAI/bge-m3';
+    const dimensions = qdrantConfig.vectorDimensions;
+
+    const queryEmbedding = await generateEmbedding(
+      userQuestion,
+      embeddingModel,
+      dimensions
+    );
+
+    const kb = new QdrantKnowledgeBase();
+    await kb.initialize();
+
+    const results =
+      (await kb.searchSimilar(queryEmbedding, KB_TOP_K, null, collectionName)) ||
+      [];
+
+    if (results.length === 0) {
+      return { text: userQuestion, sources: [] };
+    }
+
+    const context = results
+      .map(
+        (hit, idx) =>
+          `【${idx + 1}】标题：${hit.title || '无标题'}\nURL：${
+            hit.url || ''
+          }\n内容：${hit.content}`
+      )
+      .join('\n\n');
+
+    const augmented = `你是一个基于知识库的助手。请优先使用下列知识库片段回答用户问题，如信息不足请直说，勿编造。\n知识库集合：${collectionName}\n知识库片段：\n${context}\n\n用户问题：${userQuestion}`;
+
+    return { text: augmented, sources: results };
+  } catch (error) {
+    console.warn('Knowledge base retrieval failed:', error);
+    return { text: userQuestion, sources: [] };
+  }
+}
+
+/**
+ * 初始化知识库问答 UI
+ */
+async function initKnowledgeBaseRetrievalUI() {
+  const toggle = document.getElementById('kb-retrieval-toggle');
+  const select = document.getElementById('kb-collection-select');
+  const status = document.getElementById('kb-retrieval-status');
+
+  if (!toggle || !select) return;
+
+  // 读取存储
+  const stored = await new Promise(resolve => {
+    chrome.storage.local.get('kbRetrieval', resolve);
+  });
+  const saved = stored.kbRetrieval || {};
+  kbRetrievalEnabled = !!saved.enabled;
+  kbRetrievalCollection = saved.collection || '';
+
+  toggle.checked = kbRetrievalEnabled;
+  if (status) {
+    status.textContent = kbRetrievalEnabled ? '已启用' : '未启用';
+  }
+
+  toggle.addEventListener('change', () => {
+    kbRetrievalEnabled = toggle.checked;
+    chrome.storage.local.set({
+      kbRetrieval: {
+        enabled: kbRetrievalEnabled,
+        collection: kbRetrievalCollection
+      }
+    });
+    if (status) {
+      status.textContent = kbRetrievalEnabled ? '已启用' : '未启用';
+    }
+  });
+
+  select.addEventListener('change', () => {
+    kbRetrievalCollection = select.value;
+    chrome.storage.local.set({
+      kbRetrieval: {
+        enabled: kbRetrievalEnabled,
+        collection: kbRetrievalCollection
+      }
+    });
+  });
+
+  await refreshKbCollectionsSelect(kbRetrievalCollection);
+}
+
+/**
+ * 刷新集合下拉列表
+ * @param {string} preferredCollection
+ */
+async function refreshKbCollectionsSelect(preferredCollection = '') {
+  const select = document.getElementById('kb-collection-select');
+  const status = document.getElementById('kb-retrieval-status');
+  if (!select) return;
+
+  select.innerHTML = '';
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = '默认集合';
+  select.appendChild(defaultOption);
+
+  try {
+    const qdrantConfig = await getValueFromChromeStorage('qdrant');
+    if (!qdrantConfig || !qdrantConfig.enabled || !qdrantConfig.serverUrl) {
+      if (status) {
+        status.textContent = '未配置 Qdrant';
+      }
+      return;
+    }
+
+    const kb = new QdrantKnowledgeBase();
+    await kb.initialize();
+    const collections = await kb.listCollections();
+
+    collections.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      select.appendChild(opt);
+    });
+
+    const target =
+      preferredCollection ||
+      kbRetrievalCollection ||
+      qdrantConfig.collectionName ||
+      '';
+    if (target) {
+      select.value = target;
+      kbRetrievalCollection = target;
+    }
+
+    if (status) {
+      status.textContent = `已加载 ${collections.length} 个集合`;
+    }
+  } catch (error) {
+    console.error('Failed to load collections:', error);
+    if (status) {
+      status.textContent = '加载集合失败';
+    }
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async function () {

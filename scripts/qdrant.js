@@ -402,15 +402,16 @@ class QdrantKnowledgeBase {
    * @param {number[]} queryEmbedding - 查询向量
    * @param {number} topK - 返回前K个结果（默认5）
    * @param {Object|null} filter - 可选过滤条件
+   * @param {string|null} collectionOverride - 指定集合（可选）
    * @returns {Promise<Array<{score: number, content: string, url: string, title: string, timestamp: string, contentType: string}>>}
    */
-  async searchSimilar(queryEmbedding, topK = 5, filter = null) {
+  async searchSimilar(queryEmbedding, topK = 5, filter = null, collectionOverride = null) {
     try {
       if (!this.client) {
         await this.initialize();
       }
 
-      const collectionName = this.config.collectionName || 'orangesidebar-knowledge';
+      const collectionName = collectionOverride || this.config.collectionName || 'orangesidebar-knowledge';
 
       // 检查集合是否存在
       const exists = await this.collectionExists(collectionName);
@@ -446,6 +447,26 @@ class QdrantKnowledgeBase {
     } catch (error) {
       console.error('Error searching knowledge base:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 获取所有集合名称列表
+   * @returns {Promise<string[]>}
+   */
+  async listCollections() {
+    try {
+      if (!this.client) {
+        await this.initialize();
+      }
+      const result = await this.client.getCollections();
+      if (!result || !Array.isArray(result.collections)) {
+        return [];
+      }
+      return result.collections.map(c => c.name).filter(Boolean);
+    } catch (error) {
+      console.error('Error listing collections:', error);
+      return [];
     }
   }
 

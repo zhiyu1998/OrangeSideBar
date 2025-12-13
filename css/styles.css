@@ -214,7 +214,7 @@ body,
 
 .my-extension-dialogue {
   position: fixed;
-  bottom: 0;
+  bottom: 54px; /* 为知识库条预留高度 */
   left: 0;
   right: 0;
   padding: 15px 20px;
@@ -442,15 +442,12 @@ body,
 
 .navigation-bar {
   position: fixed;
-  bottom: 115px;
+  bottom: 166px; /* 提高高度，避免与输入框/知识库条重叠 */
   display: flex;
   justify-content: start;
   align-items: center;
-  padding: 0 20px;
-  background-color: var(--bg-secondary);
+  padding: 0 10px 0 8px; /* 左侧只保留8px边距 */
   width: 100%;
-  z-index: 100;
-  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -462,6 +459,7 @@ body,
 
 .navigation-bar > div {
   margin-right: 12px;
+  margin-left: 0; /* 确保子元素没有左边距 */
   position: relative;
   overflow: visible;
 }
@@ -1762,7 +1760,48 @@ body,
     font-size: 14px;
   }
   
-  .column-model-selector .model-selection-wrapper {
+.column-model-selector .model-selection-wrapper {
     width: 120px;
   }
+}
+
+/* 知识库问答配置条 */
+.kb-retrieval-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0; /* 放在发送框下方 */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.05);
+  z-index: 300;
+}
+
+.kb-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.kb-select {
+  flex: 1;
+  min-width: 140px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.kb-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
