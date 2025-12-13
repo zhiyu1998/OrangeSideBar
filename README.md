@@ -60,7 +60,7 @@ docker run -p 6333:6333 -p 6334:6334 \
 
 2、将地址输出到配置页面，创建集合测试一下，最下面有一个保存配置，点一下
 
-![img](.\public\qdrant.png)
+![img](./public/qdrant.png)
 
 ## 🌼 致谢
 
