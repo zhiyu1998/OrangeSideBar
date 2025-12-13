@@ -371,7 +371,8 @@ body {
   display: flex;
   align-items: center;
   height: 48px;
-  width: 50%;
+  width: 100%;
+  max-width: 600px;
   margin-bottom: 20px;
 }
 
@@ -681,7 +682,8 @@ input:checked+.slider:before {
 
 .model-selection-container {
   margin: 20px 0;
-  width: 50%;
+  width: 100%;
+  max-width: 600px;
 }
 
 .model-select {
@@ -1257,6 +1259,7 @@ input:checked + .slider:before {
 /* 表单组样式 */
 .form-group {
   margin-bottom: 20px;
+  max-width: 600px;
 }
 
 .form-group label {
@@ -1287,6 +1290,7 @@ input:checked + .slider:before {
 .input-field,
 .select-field {
   width: 100%;
+  max-width: 600px;
   padding: 10px 12px;
   font-size: 14px;
   border: 1px solid var(--border-color);
@@ -1294,6 +1298,7 @@ input:checked + .slider:before {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
 .input-field:focus,
@@ -1384,5 +1389,52 @@ input:checked + .slider:before {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+/* 知识库保存按钮区域 */
+.kb-save-section {
+  margin-top: 30px;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.kb-save-button {
+  padding: 12px 40px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--accent-color);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 200px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.kb-save-button:hover {
+  background-color: var(--hover-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.kb-save-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.kb-save-section .save-message {
+  position: static;
+  margin: 0;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #059669;
+  color: white;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
 }
 

@@ -1813,11 +1813,6 @@
                 <small>启用后，每次生成总结都会自动保存。当前版本建议手动保存。</small>
             </div>
 
-            <div class="prompt-actions">
-                <button id="save-kb-config" class="save-button">保存配置</button>
-            </div>
-            <div class="save-message" id="kb-save-message" style="display:none;">保存成功！</div>
-
             <div class="settings-section">
                 <h3>📊 知识库统计</h3>
                 <div id="kb-stats" class="stats-container">
@@ -1835,6 +1830,11 @@
                     </div>
                 </div>
                 <button id="refresh-stats-btn" class="secondary-button">刷新统计</button>
+            </div>
+
+            <div class="kb-save-section">
+                <button id="save-kb-config" class="kb-save-button">保存配置</button>
+                <div class="save-message" id="kb-save-message" style="display:none;">保存成功！</div>
             </div>
         </div>
 
