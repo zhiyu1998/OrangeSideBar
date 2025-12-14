@@ -1818,6 +1818,15 @@
             </div>
 
             <div class="settings-section">
+                <h3>导入文件到知识库</h3>
+                <p class="settings-description">上传本地文件并自动分块生成嵌入向量，写入到 Qdrant 当前集合</p>
+                <input type="file" id="kb-file-input" style="display:none" accept=".txt,.md,.markdown,.pdf,.json,.csv">
+                <button id="kb-upload-file-btn" class="secondary-button">选择文件并导入</button>
+                <div id="kb-upload-result" class="test-result"></div>
+                <small>会按嵌入模型的最大 tokens 自动分块；集合名称使用上方“集合名称”输入框的值</small>
+            </div>
+
+            <div class="settings-section">
                 <h3>📊 知识库统计</h3>
                 <div id="kb-stats" class="stats-container">
                     <div class="stat-item">
@@ -1844,6 +1853,7 @@
 
         <!-- Add more content divs here -->
     </div>
+    <script src="scripts/third/pdf.min.js"></script>
     <script src="scripts/utils.js"></script>
     <script src="scripts/llm.js"></script>
     <script src="scripts/embedding.js"></script>

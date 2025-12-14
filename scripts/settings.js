@@ -1987,6 +1987,174 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // 导入本地文件到知识库
+  async function importFileToKnowledgeBase(file) {
+    const resultDiv = document.getElementById('kb-upload-result');
+    const uploadBtn = document.getElementById('kb-upload-file-btn');
+
+    try {
+      if (uploadBtn) {
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = '导入中...';
+      }
+      if (resultDiv) {
+        resultDiv.textContent = '';
+        resultDiv.style.color = 'var(--text-primary)';
+      }
+
+      const enabled = document.getElementById('kb-enabled')?.checked;
+      const serverUrl = document.getElementById('qdrant-url')?.value?.trim();
+      const apiKey = document.getElementById('qdrant-api-key')?.value?.trim();
+      const collectionName = document.getElementById('qdrant-collection')?.value?.trim() || 'orangesidebar-knowledge';
+      const embeddingModel = document.getElementById('embedding-model')?.value || 'BAAI/bge-m3';
+      const vectorDimensions = parseInt(document.getElementById('vector-dimensions')?.value || '0') || null;
+      const siliconflowApiKey = document.getElementById('kb-siliconflow-api-key')?.value?.trim();
+
+      if (!enabled) {
+        throw new Error('请先启用知识库功能并保存配置');
+      }
+      if (!serverUrl) {
+        throw new Error('请先配置 Qdrant 服务器地址');
+      }
+      if (!siliconflowApiKey) {
+        throw new Error('请先配置硅基流动 API Key');
+      }
+
+      // 确保 SiliconFlow 配置可用于 embedding.js
+      chrome.storage.local.get('siliconflow', function(res) {
+        const cfg = res.siliconflow || {};
+        if (siliconflowApiKey && cfg.apiKey !== siliconflowApiKey) {
+          cfg.apiKey = siliconflowApiKey;
+          cfg.baseUrl = cfg.baseUrl || SILICONFLOW_BASE_URL;
+          chrome.storage.local.set({ siliconflow: cfg });
+        }
+      });
+
+      // 读取文件内容
+      const lowerName = (file.name || '').toLowerCase();
+      let textContent = '';
+
+      if (resultDiv) {
+        resultDiv.textContent = '正在读取文件...';
+      }
+
+      if (lowerName.endsWith('.pdf')) {
+        if (typeof extractPDFTextFromFile !== 'function') {
+          throw new Error('PDF 解析组件未加载，请刷新页面后重试');
+        }
+        if (resultDiv) {
+          resultDiv.textContent = '正在解析 PDF...';
+        }
+        textContent = await extractPDFTextFromFile(file);
+      } else {
+        textContent = await file.text();
+      }
+
+      if (!textContent || textContent.trim().length === 0) {
+        throw new Error('文件内容为空或无法解析为文本');
+      }
+
+      // 分块 & 生成嵌入
+      const modelConfig = EMBEDDING_MODELS[embeddingModel];
+      if (!modelConfig) {
+        throw new Error(`不支持的嵌入模型: ${embeddingModel}`);
+      }
+
+      const estimatedTokens = estimateTokenCount(textContent);
+      let chunks = [];
+      let embeddings = [];
+      let embedding = null;
+
+      if (estimatedTokens > modelConfig.maxTokens) {
+        const maxChunkChars = Math.floor(modelConfig.maxTokens * 1.3);
+        chunks = chunkText(textContent, maxChunkChars, 200);
+        if (resultDiv) {
+          resultDiv.textContent = `内容较长，已分块 ${chunks.length} 段，正在生成嵌入向量...`;
+        }
+
+        const batchSize = 16;
+        for (let i = 0; i < chunks.length; i += batchSize) {
+          const batch = chunks.slice(i, i + batchSize);
+          if (resultDiv) {
+            resultDiv.textContent = `正在生成嵌入向量... (${Math.min(i + batchSize, chunks.length)}/${chunks.length})`;
+          }
+          const batchEmbeddings = await generateEmbeddingBatch(batch, embeddingModel, vectorDimensions);
+          embeddings.push(...batchEmbeddings);
+        }
+      } else {
+        if (resultDiv) {
+          resultDiv.textContent = '正在生成嵌入向量...';
+        }
+        embedding = await generateEmbedding(textContent, embeddingModel, vectorDimensions);
+      }
+
+      // 初始化 Qdrant 客户端并保存
+      if (typeof waitForQdrantClient !== 'function') {
+        throw new Error('Qdrant client loader is not available. Please reload the extension page.');
+      }
+      const QdrantClient = await waitForQdrantClient();
+      const client = new QdrantClient({
+        url: serverUrl,
+        apiKey: apiKey || undefined,
+        timeout: 30000
+      });
+
+      const kb = new QdrantKnowledgeBase();
+      kb.client = client;
+      kb.config = { enabled: true, serverUrl, apiKey, collectionName };
+
+      const title = file.name || 'Untitled';
+      const url = `file:${title}`;
+
+      if (resultDiv) {
+        resultDiv.textContent = '正在写入 Qdrant...';
+      }
+
+      if (chunks.length > 0) {
+        const res = await kb.saveBatchToKnowledgeBase({
+          content: textContent,
+          url,
+          title,
+          model: 'file-upload',
+          contentType: 'file',
+          chunks,
+          embeddings,
+          collectionName
+        });
+        if (!res.success) {
+          throw new Error(res.message || '写入失败');
+        }
+      } else {
+        const res = await kb.saveToKnowledgeBase({
+          content: textContent,
+          url,
+          title,
+          model: 'file-upload',
+          contentType: 'file',
+          embedding,
+          collectionName
+        });
+        if (!res.success) {
+          throw new Error(res.message || '写入失败');
+        }
+      }
+
+      if (resultDiv) {
+        resultDiv.textContent = `✅ 导入成功：${title} → ${collectionName}`;
+        resultDiv.style.color = '#52c41a';
+      }
+
+      // 刷新统计
+      setTimeout(refreshKbStatistics, 1000);
+
+    } finally {
+      if (uploadBtn) {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = '选择文件并导入';
+      }
+    }
+  }
+
   // 刷新知识库统计
   async function refreshKbStatistics() {
     try {
@@ -2010,6 +2178,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const testQdrantBtn = document.getElementById('test-qdrant-connection');
   const createCollectionBtn = document.getElementById('create-collection-btn');
   const refreshStatsBtn = document.getElementById('refresh-stats-btn');
+  const kbUploadFileBtn = document.getElementById('kb-upload-file-btn');
+  const kbFileInput = document.getElementById('kb-file-input');
 
   if (kbEnabledCheckbox) {
     kbEnabledCheckbox.addEventListener('change', toggleKbConfigSection);
@@ -2029,6 +2199,24 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   if (refreshStatsBtn) {
     refreshStatsBtn.addEventListener('click', refreshKbStatistics);
+  }
+  if (kbUploadFileBtn && kbFileInput) {
+    kbUploadFileBtn.addEventListener('click', () => kbFileInput.click());
+    kbFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (file) {
+        try {
+          await importFileToKnowledgeBase(file);
+        } catch (err) {
+          const resultDiv = document.getElementById('kb-upload-result');
+          if (resultDiv) {
+            resultDiv.textContent = `❌ 导入失败: ${err.message}`;
+            resultDiv.style.color = '#ff4d4f';
+          }
+        }
+      }
+    });
   }
 
   // 扩展 openTab 函数以支持知识库配置加载
