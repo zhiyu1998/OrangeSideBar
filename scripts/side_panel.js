@@ -4187,6 +4187,10 @@ async function promptForCollectionSelection(qdrantConfig) {
     console.warn('load collections failed, fallback to default:', e);
   }
 
+  // 获取用户上次选择的集合
+  const lastSelectedResult = await chrome.storage.local.get(['lastSelectedCollection']);
+  const lastSelectedCollection = lastSelectedResult.lastSelectedCollection;
+
   return new Promise(resolve => {
     // 创建遮罩
     const overlay = document.createElement('div');
@@ -4229,7 +4233,13 @@ async function promptForCollectionSelection(qdrantConfig) {
       opt.textContent = name;
       select.appendChild(opt);
     });
-    select.value = defaultCollection;
+
+    // 优先使用上次选择的集合，如果该集合存在于列表中
+    if (lastSelectedCollection && uniqueCollections.includes(lastSelectedCollection)) {
+      select.value = lastSelectedCollection;
+    } else {
+      select.value = defaultCollection;
+    }
 
     const inputLabel = document.createElement('div');
     inputLabel.textContent = '或输入新集合名：';
@@ -4293,6 +4303,10 @@ async function promptForCollectionSelection(qdrantConfig) {
     okBtn.onclick = () => {
       const manual = input.value.trim();
       const chosen = manual || select.value || defaultCollection;
+
+      // 保存用户的选择到 Chrome storage
+      chrome.storage.local.set({ lastSelectedCollection: chosen });
+
       cleanup();
       resolve(chosen);
     };
