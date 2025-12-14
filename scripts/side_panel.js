@@ -144,6 +144,8 @@ async function chatLLMAndUIUpdate(model, inputText, base64Images, customSystemPr
       customSystemPrompt
     );
     createCopyButton(completeText);
+    // 自动保存到知识库（如果已启用）
+    await autoSaveIfEnabled(completeText, model);
   } catch (error) {
     hiddenLoadding();
     displayErrorMessage(`${error.message}`);
@@ -4310,6 +4312,65 @@ async function promptForCollectionSelection(qdrantConfig) {
       }
     };
   });
+}
+
+/**
+ * 自动保存到知识库（使用默认集合，不弹窗）
+ * @param {string} completeText
+ * @param {string} activeModel
+ */
+async function autoSaveIfEnabled(completeText, activeModel) {
+  try {
+    const qdrantConfig = await getValueFromChromeStorage('qdrant');
+    if (!qdrantConfig || !qdrantConfig.enabled || !qdrantConfig.autoSave) return;
+    if (!qdrantConfig.serverUrl || !qdrantConfig.siliconflowApiKey) return;
+
+    const collectionName = qdrantConfig.collectionName || 'orangesidebar-knowledge';
+    const embeddingModel = qdrantConfig.embeddingModel || 'BAAI/bge-m3';
+    const modelConfig = EMBEDDING_MODELS[embeddingModel];
+    if (!modelConfig) return;
+
+    const estimatedTokens = estimateTokenCount(completeText);
+    let embedding;
+    let chunks = [];
+    let embeddings = [];
+
+    if (estimatedTokens > modelConfig.maxTokens) {
+      const maxChunkChars = Math.floor(modelConfig.maxTokens * 1.3);
+      chunks = chunkText(completeText, maxChunkChars, 200);
+      embeddings = await generateEmbeddingBatch(chunks, embeddingModel, qdrantConfig.vectorDimensions);
+    } else {
+      embedding = await generateEmbedding(completeText, embeddingModel, qdrantConfig.vectorDimensions);
+    }
+
+    const kb = new QdrantKnowledgeBase();
+    await kb.initialize();
+
+    if (chunks.length > 0) {
+      await kb.saveBatchToKnowledgeBase({
+        content: completeText,
+        url: 'Unknown URL',
+        title: 'Untitled',
+        model: activeModel || 'Unknown Model',
+        contentType: getCurrentPromptMode(),
+        chunks,
+        embeddings,
+        collectionName
+      });
+    } else {
+      await kb.saveToKnowledgeBase({
+        content: completeText,
+        url: 'Unknown URL',
+        title: 'Untitled',
+        model: activeModel || 'Unknown Model',
+        contentType: getCurrentPromptMode(),
+        embedding,
+        collectionName
+      });
+    }
+  } catch (e) {
+    console.warn('Auto-save to knowledge base failed:', e);
+  }
 }
 
 /**
