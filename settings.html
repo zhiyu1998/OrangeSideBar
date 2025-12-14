@@ -1745,9 +1745,13 @@
 
                 <div class="form-group">
                     <label for="qdrant-collection">集合名称</label>
-                    <input type="text" id="qdrant-collection" class="input-field"
-                           value="orangesidebar-knowledge">
-                    <small>向量存储的集合名称</small>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" id="qdrant-collection" class="input-field"
+                               value="orangesidebar-knowledge" list="qdrant-collections-list" style="flex:1;">
+                        <button type="button" id="qdrant-collection-dropdown" class="secondary-button" style="flex-shrink:0; padding:8px 10px;">▼</button>
+                    </div>
+                    <datalist id="qdrant-collections-list"></datalist>
+                    <small>向量存储的集合名称（可输入或从现有集合下拉选择）</small>
                 </div>
 
                 <button id="create-collection-btn" class="secondary-button">创建集合</button>

@@ -1703,7 +1703,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // 加载知识库配置
   function loadKnowledgeBaseConfig() {
     chrome.storage.local.get(['qdrant', 'siliconflow', 'kb-last-saved'], function(result) {
-      const qdrantConfig = result.qdrant || {};
+    const qdrantConfig = result.qdrant || {};
       const siliconflowConfig = result.siliconflow || {};
 
       // 加载 Qdrant 配置
@@ -1726,8 +1726,8 @@ document.addEventListener('DOMContentLoaded', function () {
       // 加载保存选项
       document.getElementById('auto-save-summaries').checked = qdrantConfig.autoSave || false;
 
-      // 更新配置区域显示状态
-      toggleKbConfigSection();
+    // 更新配置区域显示状态
+    toggleKbConfigSection();
 
       // 加载最后保存时间
       if (result['kb-last-saved']) {
@@ -1735,12 +1735,17 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('kb-last-saved').textContent = lastSavedDate.toLocaleString('zh-CN');
       }
 
-      // 如果配置已启用，刷新统计信息
-      if (qdrantConfig.enabled && qdrantConfig.serverUrl) {
-        refreshKbStatistics();
-      }
-    });
-  }
+    // 如果配置已启用，刷新统计信息
+    if (qdrantConfig.enabled && qdrantConfig.serverUrl) {
+      refreshKbStatistics();
+    }
+
+    // 如果之前已经拉取过集合列表，也同步填充
+    if (qdrantConfig.collectionsCached && Array.isArray(qdrantConfig.collectionsCached)) {
+      populateQdrantCollectionsDatalist(qdrantConfig.collectionsCached);
+    }
+  });
+}
 
   // 切换配置区域显示
   function toggleKbConfigSection() {
@@ -1808,6 +1813,92 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 3000);
   }
 
+  // 填充 Qdrant 集合下拉/输入提示
+  function populateQdrantCollectionsDatalist(collections) {
+    const listEl = document.getElementById('qdrant-collections-list');
+    if (!listEl || !Array.isArray(collections)) return;
+    listEl.innerHTML = '';
+    const filtered = collections.filter(Boolean);
+    filtered.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      listEl.appendChild(opt);
+    });
+
+    // 如果当前输入为空，默认填充第一个
+    const inputEl = document.getElementById('qdrant-collection');
+    if (inputEl && !inputEl.value && filtered.length > 0) {
+      inputEl.value = filtered[0];
+    }
+
+    // 缓存到 qdrant 配置，方便下次进入 settings 直接显示
+    chrome.storage.local.get('qdrant', res => {
+      const cfg = res.qdrant || {};
+      cfg.collectionsCached = filtered;
+      chrome.storage.local.set({ qdrant: cfg });
+    });
+  }
+
+  // 展示集合下拉菜单（从缓存列表）
+  function showCollectionDropdown() {
+    const inputEl = document.getElementById('qdrant-collection');
+    const buttonEl = document.getElementById('qdrant-collection-dropdown');
+    const listEl = document.getElementById('qdrant-collections-list');
+    if (!inputEl || !buttonEl) return;
+
+    const options = listEl ? Array.from(listEl.options).map(o => o.value).filter(Boolean) : [];
+    if (options.length === 0) {
+      showKbMessage('请先点击“测试连接”获取集合列表', 'error');
+      return;
+    }
+
+    // 关闭已有的菜单
+    const existing = document.getElementById('collection-dropdown-menu');
+    if (existing) existing.remove();
+
+    const menu = document.createElement('div');
+    menu.id = 'collection-dropdown-menu';
+    menu.style.position = 'absolute';
+    menu.style.zIndex = '99999';
+    menu.style.background = 'var(--bg-primary)';
+    menu.style.border = '1px solid var(--border-color)';
+    menu.style.borderRadius = '8px';
+    menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+    menu.style.minWidth = inputEl.offsetWidth + 'px';
+    menu.style.maxHeight = '220px';
+    menu.style.overflowY = 'auto';
+    menu.style.padding = '6px 0';
+
+    options.forEach(name => {
+      const item = document.createElement('div');
+      item.textContent = name;
+      item.style.padding = '8px 12px';
+      item.style.cursor = 'pointer';
+      item.onmouseenter = () => { item.style.background = 'var(--bg-secondary)'; };
+      item.onmouseleave = () => { item.style.background = 'transparent'; };
+      item.onclick = () => {
+        inputEl.value = name;
+        menu.remove();
+      };
+      menu.appendChild(item);
+    });
+
+    // 定位在按钮下方
+    const rect = buttonEl.getBoundingClientRect();
+    menu.style.left = rect.left + 'px';
+    menu.style.top = (rect.bottom + 4) + 'px';
+
+    document.body.appendChild(menu);
+
+    const cleanup = (e) => {
+      if (!menu.contains(e.target) && e.target !== buttonEl) {
+        menu.remove();
+        document.removeEventListener('mousedown', cleanup);
+      }
+    };
+    document.addEventListener('mousedown', cleanup);
+  }
+
   // 测试 Qdrant 连接
   async function testQdrantConnection() {
     const testButton = document.getElementById('test-qdrant-connection');
@@ -1841,6 +1932,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
       resultDiv.textContent = `✅ 连接成功！服务器版本: ${versionInfo.data?.version || 'Unknown'}`;
       resultDiv.style.color = '#52c41a';
+
+      // 获取集合列表并填充 datalist
+      try {
+        const colResp = await client.getCollections();
+        const collections = (colResp?.collections || []).map(c => c.name).filter(Boolean);
+        populateQdrantCollectionsDatalist(collections);
+        if (collections.length > 0) {
+          resultDiv.textContent += ` | 已获取 ${collections.length} 个集合`;
+        }
+      } catch (listErr) {
+        console.warn('加载集合列表失败:', listErr);
+      }
     } catch (error) {
       resultDiv.textContent = `❌ 连接失败: ${error.message}`;
       resultDiv.style.color = '#ff4d4f';
@@ -1916,6 +2019,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   if (testQdrantBtn) {
     testQdrantBtn.addEventListener('click', testQdrantConnection);
+  }
+  const qdrantCollectionDropdownBtn = document.getElementById('qdrant-collection-dropdown');
+  if (qdrantCollectionDropdownBtn) {
+    qdrantCollectionDropdownBtn.addEventListener('click', showCollectionDropdown);
   }
   if (createCollectionBtn) {
     createCollectionBtn.addEventListener('click', createQdrantCollection);

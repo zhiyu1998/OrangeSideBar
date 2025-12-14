@@ -1391,6 +1391,17 @@ input:checked + .slider:before {
   color: var(--text-primary);
 }
 
+/* 隐藏集合输入框内置的下拉箭头，改用外侧按钮 */
+#qdrant-collection {
+  -webkit-appearance: textfield;
+  appearance: textfield;
+  background-image: none;
+}
+
+#qdrant-collection::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
 /* 知识库保存按钮区域 */
 .kb-save-section {
   margin-top: 30px;
@@ -1437,4 +1448,3 @@ input:checked + .slider:before {
   color: white;
   box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
 }
-
