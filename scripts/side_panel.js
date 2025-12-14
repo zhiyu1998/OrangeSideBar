@@ -512,7 +512,7 @@ let selectedModel = '';
 // 知识库问答配置
 const KB_TOP_K = 5;
 let kbRetrievalEnabled = false;
-let kbRetrievalCollection = '';
+let kbRetrievalCollections = [];
 
 // 双栏模式状态管理对象
 const DualColumnState = {
@@ -4039,6 +4039,13 @@ async function handleSaveToKnowledgeBase(completeText, buttonElement) {
       return;
     }
 
+    // 1.1 选择集合
+    const collectionName = await promptForCollectionSelection(qdrantConfig);
+    if (!collectionName) {
+      showToast('已取消保存', 'info');
+      return;
+    }
+
     // 2. 显示加载状态
     buttonElement.textContent = 'Saving...';
     buttonElement.disabled = true;
@@ -4095,7 +4102,8 @@ async function handleSaveToKnowledgeBase(completeText, buttonElement) {
         model: activeModel,
         contentType: getCurrentPromptMode(),
         chunks: chunks,
-        embeddings: embeddings
+        embeddings: embeddings,
+        collectionName
       });
     } else {
       // 保存单个内容
@@ -4105,7 +4113,8 @@ async function handleSaveToKnowledgeBase(completeText, buttonElement) {
         title: pageTitle,
         model: activeModel,
         contentType: getCurrentPromptMode(),
-        embedding: embedding
+        embedding: embedding,
+        collectionName
       });
     }
 
@@ -4161,6 +4170,149 @@ function getCurrentPromptMode() {
 }
 
 /**
+ * 弹窗选择要保存的集合
+ * @param {Object} qdrantConfig
+ * @returns {Promise<string|null>} 返回选中的集合名，取消返回null
+ */
+async function promptForCollectionSelection(qdrantConfig) {
+  const defaultCollection = qdrantConfig.collectionName || 'orangesidebar-knowledge';
+  let collections = [];
+  try {
+    const kb = new QdrantKnowledgeBase();
+    await kb.initialize();
+    collections = await kb.listCollections();
+  } catch (e) {
+    console.warn('load collections failed, fallback to default:', e);
+  }
+
+  return new Promise(resolve => {
+    // 创建遮罩
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.background = 'rgba(0,0,0,0.35)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '100000';
+
+    // 容器
+    const modal = document.createElement('div');
+    modal.style.background = 'var(--bg-secondary)';
+    modal.style.color = 'var(--text-primary)';
+    modal.style.padding = '18px';
+    modal.style.borderRadius = '10px';
+    modal.style.minWidth = '320px';
+    modal.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
+
+    const title = document.createElement('div');
+    title.textContent = '选择保存的知识库集合';
+    title.style.fontWeight = '600';
+    title.style.marginBottom = '10px';
+    modal.appendChild(title);
+
+    const select = document.createElement('select');
+    select.style.width = '100%';
+    select.style.padding = '8px 10px';
+    select.style.border = '1px solid var(--border-color)';
+    select.style.borderRadius = '8px';
+    select.style.background = 'var(--bg-primary)';
+    select.style.color = 'var(--text-primary)';
+
+    // 默认/配置集合放首位
+    const uniqueCollections = Array.from(new Set([defaultCollection, ...collections].filter(Boolean)));
+    uniqueCollections.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      select.appendChild(opt);
+    });
+    select.value = defaultCollection;
+
+    const inputLabel = document.createElement('div');
+    inputLabel.textContent = '或输入新集合名：';
+    inputLabel.style.margin = '10px 0 4px';
+    inputLabel.style.fontSize = '13px';
+    inputLabel.style.color = 'var(--text-secondary)';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = '自定义集合名称';
+    input.style.width = '93%';
+    input.style.padding = '8px 10px';
+    input.style.border = '1px solid var(--border-color)';
+    input.style.borderRadius = '8px';
+    input.style.background = 'var(--bg-primary)';
+    input.style.color = 'var(--text-primary)';
+
+    const btnRow = document.createElement('div');
+    btnRow.style.display = 'flex';
+    btnRow.style.justifyContent = 'flex-end';
+    btnRow.style.gap = '10px';
+    btnRow.style.marginTop = '14px';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '取消';
+    cancelBtn.style.padding = '8px 12px';
+    cancelBtn.style.borderRadius = '8px';
+    cancelBtn.style.border = '1px solid var(--border-color)';
+    cancelBtn.style.background = 'var(--bg-primary)';
+    cancelBtn.style.color = 'var(--text-primary)';
+    cancelBtn.style.cursor = 'pointer';
+
+    const okBtn = document.createElement('button');
+    okBtn.textContent = '保存';
+    okBtn.style.padding = '8px 12px';
+    okBtn.style.borderRadius = '8px';
+    okBtn.style.border = 'none';
+    okBtn.style.background = 'var(--accent-color)';
+    okBtn.style.color = '#fff';
+    okBtn.style.cursor = 'pointer';
+
+    btnRow.appendChild(cancelBtn);
+    btnRow.appendChild(okBtn);
+
+    modal.appendChild(select);
+    modal.appendChild(inputLabel);
+    modal.appendChild(input);
+    modal.appendChild(btnRow);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const cleanup = () => {
+      document.body.removeChild(overlay);
+    };
+
+    cancelBtn.onclick = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    okBtn.onclick = () => {
+      const manual = input.value.trim();
+      const chosen = manual || select.value || defaultCollection;
+      cleanup();
+      resolve(chosen);
+    };
+
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        cleanup();
+        resolve(null);
+      }
+    };
+
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        okBtn.click();
+      } else if (e.key === 'Escape') {
+        cancelBtn.click();
+      }
+    };
+  });
+}
+
+/**
  * 从知识库检索相似内容，并拼接到提示词前
  * @param {string} userQuestion
  * @returns {Promise<{text: string, sources: Array}>}
@@ -4177,10 +4329,11 @@ async function buildKbAugmentedPrompt(userQuestion) {
       return { text: userQuestion, sources: [] };
     }
 
-    const collectionName =
-      kbRetrievalCollection ||
-      qdrantConfig.collectionName ||
-      'orangesidebar-knowledge';
+    const collections =
+      (kbRetrievalCollections && kbRetrievalCollections.length > 0
+        ? kbRetrievalCollections
+        : [qdrantConfig.collectionName || 'orangesidebar-knowledge']
+      ).filter(Boolean);
 
     const embeddingModel = qdrantConfig.embeddingModel || 'BAAI/bge-m3';
     const dimensions = qdrantConfig.vectorDimensions;
@@ -4198,32 +4351,35 @@ async function buildKbAugmentedPrompt(userQuestion) {
     const kb = new QdrantKnowledgeBase();
     await kb.initialize();
 
-    const results =
-      (await kb.searchSimilar(
-        queryEmbedding,
-        KB_TOP_K,
-        null,
-        collectionName,
-        { scoreThreshold }
-      )) ||
-      [];
+    const allResults = [];
+    for (const collectionName of collections) {
+      const res =
+        (await kb.searchSimilar(
+          queryEmbedding,
+          KB_TOP_K,
+          null,
+          collectionName,
+          { scoreThreshold }
+        )) || [];
+      res.forEach(r => allResults.push({ ...r, collectionName }));
+    }
 
-    if (results.length === 0) {
+    if (allResults.length === 0) {
       return { text: userQuestion, sources: [] };
     }
 
-    const context = results
+    const context = allResults
       .map(
         (hit, idx) =>
-          `【${idx + 1}】标题：${hit.title || '无标题'}\nURL：${
+          `【${idx + 1}】[${hit.collectionName || '默认'}] 标题：${hit.title || '无标题'}\nURL：${
             hit.url || ''
           }\n内容：${hit.content}`
       )
       .join('\n\n');
 
-    const augmented = `你是一个基于知识库的助手。请优先使用下列知识库片段回答用户问题，如信息不足请直说，勿编造。\n知识库集合：${collectionName}\n知识库片段：\n${context}\n\n用户问题：${userQuestion}`;
+    const augmented = `你是一个基于知识库的助手。请优先使用下列知识库片段回答用户问题，如信息不足请直说，勿编造。\n知识库集合：${collections.join(', ')}\n知识库片段：\n${context}\n\n用户问题：${userQuestion}`;
 
-    return { text: augmented, sources: results };
+    return { text: augmented, sources: allResults };
   } catch (error) {
     console.warn('Knowledge base retrieval failed:', error);
     return { text: userQuestion, sources: [] };
@@ -4235,10 +4391,10 @@ async function buildKbAugmentedPrompt(userQuestion) {
  */
 async function initKnowledgeBaseRetrievalUI() {
   const toggle = document.getElementById('kb-retrieval-toggle');
-  const select = document.getElementById('kb-collection-select');
+  const picker = document.getElementById('kb-collection-picker');
   const status = document.getElementById('kb-retrieval-status');
 
-  if (!toggle || !select) return;
+  if (!toggle || !picker) return;
 
   // 读取存储
   const stored = await new Promise(resolve => {
@@ -4246,7 +4402,9 @@ async function initKnowledgeBaseRetrievalUI() {
   });
   const saved = stored.kbRetrieval || {};
   kbRetrievalEnabled = !!saved.enabled;
-  kbRetrievalCollection = saved.collection || '';
+  kbRetrievalCollections = Array.isArray(saved.collections)
+    ? saved.collections
+    : (saved.collection ? [saved.collection] : []);
 
   toggle.checked = kbRetrievalEnabled;
   if (status) {
@@ -4258,7 +4416,7 @@ async function initKnowledgeBaseRetrievalUI() {
     chrome.storage.local.set({
       kbRetrieval: {
         enabled: kbRetrievalEnabled,
-        collection: kbRetrievalCollection
+        collections: kbRetrievalCollections
       }
     });
     if (status) {
@@ -4266,73 +4424,160 @@ async function initKnowledgeBaseRetrievalUI() {
     }
   });
 
-  select.addEventListener('change', () => {
-    kbRetrievalCollection = select.value;
-    chrome.storage.local.set({
-      kbRetrieval: {
-        enabled: kbRetrievalEnabled,
-        collection: kbRetrievalCollection
-      }
-    });
+  picker.addEventListener('click', async () => {
+    const selected = await openKbRetrievalCollectionModal(kbRetrievalCollections);
+    if (selected) {
+      kbRetrievalCollections = selected;
+      chrome.storage.local.set({
+        kbRetrieval: {
+          enabled: kbRetrievalEnabled,
+          collections: kbRetrievalCollections
+        }
+      });
+      picker.textContent = kbRetrievalCollections.length > 0
+        ? `已选 ${kbRetrievalCollections.length} 个`
+        : '选择集合';
+    }
   });
 
-  await refreshKbCollectionsSelect(kbRetrievalCollection);
+  // 初始化按钮显示
+  picker.textContent = kbRetrievalCollections.length > 0
+    ? `已选 ${kbRetrievalCollections.length} 个`
+    : '选择集合';
 }
 
 /**
- * 刷新集合下拉列表
- * @param {string} preferredCollection
+ * 打开知识库集合勾选弹窗
+ * @param {string[]} currentSelections
+ * @returns {Promise<string[]|null>}
  */
-async function refreshKbCollectionsSelect(preferredCollection = '') {
-  const select = document.getElementById('kb-collection-select');
-  const status = document.getElementById('kb-retrieval-status');
-  if (!select) return;
-
-  select.innerHTML = '';
-  const defaultOption = document.createElement('option');
-  defaultOption.value = '';
-  defaultOption.textContent = '默认集合';
-  select.appendChild(defaultOption);
-
-  try {
+async function openKbRetrievalCollectionModal(currentSelections = []) {
+  return new Promise(async resolve => {
     const qdrantConfig = await getValueFromChromeStorage('qdrant');
     if (!qdrantConfig || !qdrantConfig.enabled || !qdrantConfig.serverUrl) {
-      if (status) {
-        status.textContent = '未配置 Qdrant';
-      }
+      showToast('请先在设置页配置 Qdrant', 'warning');
+      resolve(null);
       return;
     }
 
-    const kb = new QdrantKnowledgeBase();
-    await kb.initialize();
-    const collections = await kb.listCollections();
+    let collections = [];
+    try {
+      const kb = new QdrantKnowledgeBase();
+      await kb.initialize();
+      collections = await kb.listCollections();
+    } catch (e) {
+      console.error('加载集合失败:', e);
+      showToast('加载集合失败', 'error');
+      resolve(null);
+      return;
+    }
 
-    collections.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      select.appendChild(opt);
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.background = 'rgba(0,0,0,0.35)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '12000';
+
+    const modal = document.createElement('div');
+    modal.style.background = 'var(--bg-secondary)';
+    modal.style.color = 'var(--text-primary)';
+    modal.style.padding = '18px';
+    modal.style.borderRadius = '10px';
+    modal.style.minWidth = '320px';
+    modal.style.maxHeight = '70vh';
+    modal.style.overflowY = 'auto';
+    modal.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
+
+    const title = document.createElement('div');
+    title.textContent = '选择知识库集合（可多选）';
+    title.style.fontWeight = '600';
+    title.style.marginBottom = '10px';
+    modal.appendChild(title);
+
+    const list = document.createElement('div');
+    list.style.display = 'flex';
+    list.style.flexDirection = 'column';
+    list.style.gap = '8px';
+
+    const uniqueCollections = Array.from(new Set(collections.filter(Boolean)));
+    const selectedSet = new Set(currentSelections);
+    uniqueCollections.forEach(name => {
+      const row = document.createElement('label');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.gap = '8px';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = name;
+      checkbox.checked = selectedSet.has(name);
+
+      const text = document.createElement('span');
+      text.textContent = name;
+
+      row.appendChild(checkbox);
+      row.appendChild(text);
+      list.appendChild(row);
     });
 
-    const target =
-      preferredCollection ||
-      kbRetrievalCollection ||
-      qdrantConfig.collectionName ||
-      '';
-    if (target) {
-      select.value = target;
-      kbRetrievalCollection = target;
-    }
+    modal.appendChild(list);
 
-    if (status) {
-      status.textContent = `已加载 ${collections.length} 个集合`;
-    }
-  } catch (error) {
-    console.error('Failed to load collections:', error);
-    if (status) {
-      status.textContent = '加载集合失败';
-    }
-  }
+    const btnRow = document.createElement('div');
+    btnRow.style.display = 'flex';
+    btnRow.style.justifyContent = 'flex-end';
+    btnRow.style.gap = '10px';
+    btnRow.style.marginTop = '14px';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '取消';
+    cancelBtn.style.padding = '8px 12px';
+    cancelBtn.style.borderRadius = '8px';
+    cancelBtn.style.border = '1px solid var(--border-color)';
+    cancelBtn.style.background = 'var(--bg-primary)';
+    cancelBtn.style.color = 'var(--text-primary)';
+    cancelBtn.style.cursor = 'pointer';
+
+    const okBtn = document.createElement('button');
+    okBtn.textContent = '确定';
+    okBtn.style.padding = '8px 12px';
+    okBtn.style.borderRadius = '8px';
+    okBtn.style.border = 'none';
+    okBtn.style.background = 'var(--accent-color)';
+    okBtn.style.color = '#fff';
+    okBtn.style.cursor = 'pointer';
+
+    btnRow.appendChild(cancelBtn);
+    btnRow.appendChild(okBtn);
+
+    modal.appendChild(btnRow);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const cleanup = () => {
+      document.body.removeChild(overlay);
+    };
+
+    cancelBtn.onclick = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    okBtn.onclick = () => {
+      const selected = Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
+      cleanup();
+      resolve(selected);
+    };
+
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        cleanup();
+        resolve(null);
+      }
+    };
+  });
 }
 
 document.addEventListener('DOMContentLoaded', async function () {

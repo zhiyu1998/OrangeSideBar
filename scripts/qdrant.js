@@ -198,20 +198,21 @@ class QdrantKnowledgeBase {
    * @param {string} params.model - 使用的LLM模型
    * @param {string} params.contentType - 内容类型 (summary/paper/learning)
    * @param {number[]} params.embedding - 嵌入向量
+   * @param {string} [params.collectionName] - 可选集合名（不传则使用配置）
    * @returns {Promise<{success: boolean, pointId?: number, message?: string}>}
    */
-  async saveToKnowledgeBase({ content, url, title, model, contentType, embedding }) {
+  async saveToKnowledgeBase({ content, url, title, model, contentType, embedding, collectionName }) {
     try {
       if (!this.client) {
         await this.initialize();
       }
 
-      const collectionName = this.config.collectionName || 'orangesidebar-knowledge';
+      const targetCollection = collectionName || this.config.collectionName || 'orangesidebar-knowledge';
 
       // 1. 确保集合存在
-      const exists = await this.collectionExists(collectionName);
+      const exists = await this.collectionExists(targetCollection);
       if (!exists) {
-        const createResult = await this.createCollection(collectionName, embedding.length);
+        const createResult = await this.createCollection(targetCollection, embedding.length);
         if (!createResult.success) {
           throw new Error(`Failed to create collection: ${createResult.message}`);
         }
@@ -234,7 +235,7 @@ class QdrantKnowledgeBase {
       };
 
       // 4. 插入向量点
-      await this.client.upsert(collectionName, {
+      await this.client.upsert(targetCollection, {
         wait: true,
         points: [
           {
@@ -251,8 +252,8 @@ class QdrantKnowledgeBase {
       const isMissingCollection = error?.status === 404 || /not found/i.test(error?.message || '');
       if (isMissingCollection) {
         try {
-          await this.createCollection(this.config.collectionName || 'orangesidebar-knowledge', embedding.length);
-          await this.client.upsert(this.config.collectionName || 'orangesidebar-knowledge', {
+          await this.createCollection(targetCollection, embedding.length);
+          await this.client.upsert(targetCollection, {
             wait: true,
             points: [
               {
@@ -295,7 +296,7 @@ class QdrantKnowledgeBase {
    * @param {number[][]} params.embeddings - 对应的嵌入向量数组
    * @returns {Promise<{success: boolean, pointIds?: number[], message?: string}>}
    */
-  async saveBatchToKnowledgeBase({ content, url, title, model, contentType, chunks, embeddings }) {
+  async saveBatchToKnowledgeBase({ content, url, title, model, contentType, chunks, embeddings, collectionName }) {
     try {
       if (!this.client) {
         await this.initialize();
@@ -305,12 +306,12 @@ class QdrantKnowledgeBase {
         throw new Error('Chunks and embeddings length mismatch');
       }
 
-      const collectionName = this.config.collectionName || 'orangesidebar-knowledge';
+      const targetCollection = collectionName || this.config.collectionName || 'orangesidebar-knowledge';
 
       // 确保集合存在
-      const exists = await this.collectionExists(collectionName);
+      const exists = await this.collectionExists(targetCollection);
       if (!exists) {
-        const createResult = await this.createCollection(collectionName, embeddings[0].length);
+        const createResult = await this.createCollection(targetCollection, embeddings[0].length);
         if (!createResult.success) {
           throw new Error(`Failed to create collection: ${createResult.message}`);
         }
@@ -345,7 +346,7 @@ class QdrantKnowledgeBase {
       }
 
       // 批量插入
-      await this.client.upsert(collectionName, {
+      await this.client.upsert(targetCollection, {
         wait: true,
         points: points
       });
@@ -355,7 +356,7 @@ class QdrantKnowledgeBase {
       const isMissingCollection = error?.status === 404 || /not found/i.test(error?.message || '');
       if (isMissingCollection && embeddings?.[0]) {
         try {
-          await this.createCollection(this.config.collectionName || 'orangesidebar-knowledge', embeddings[0].length);
+          await this.createCollection(targetCollection, embeddings[0].length);
 
           // 重试一次
           const baseTimestamp = Date.now();
@@ -380,7 +381,7 @@ class QdrantKnowledgeBase {
             });
           }
 
-          await this.client.upsert(this.config.collectionName || 'orangesidebar-knowledge', {
+          await this.client.upsert(targetCollection, {
             wait: true,
             points: retryPoints
           });
