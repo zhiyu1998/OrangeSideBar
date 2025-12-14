@@ -1,5 +1,5 @@
 <div align="center">
-<a href="https://v2.nonebot.dev/store"><img src="https://s2.loli.net/2025/01/05/XYGifeDpurHO7mV.png" width="180" height="180" alt="NoneBotPluginLogo"></a>
+<a href="https://v2.nonebot.dev/store"><img src="https://s2.loli.net/2025/12/14/eTM6BG78Q2kRujH.png" width="180" height="180" alt="NoneBotPluginLogo"></a>
 
 # OrangeSideBar - 网页总结助手
 
