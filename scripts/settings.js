@@ -1718,6 +1718,9 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('kb-score-threshold').value = typeof qdrantConfig.scoreThreshold === 'number'
         ? qdrantConfig.scoreThreshold
         : 0.5;
+      document.getElementById('kb-search-limit').value = typeof qdrantConfig.searchLimit === 'number'
+        ? qdrantConfig.searchLimit
+        : 5;
 
       // 加载 SiliconFlow API Key（优先使用 qdrant 配置中的，否则使用 siliconflow 配置）
       const apiKey = qdrantConfig.siliconflowApiKey || siliconflowConfig.apiKey || '';
@@ -1767,12 +1770,16 @@ document.addEventListener('DOMContentLoaded', function () {
       vectorDimensions: parseInt(document.getElementById('vector-dimensions').value),
       siliconflowApiKey: document.getElementById('kb-siliconflow-api-key').value.trim(),
       scoreThreshold: parseFloat(document.getElementById('kb-score-threshold').value) || 0.5,
+      searchLimit: parseInt(document.getElementById('kb-search-limit').value) || 5,
       autoSave: document.getElementById('auto-save-summaries').checked
     };
 
     // 约束阈值范围
     if (config.scoreThreshold < 0) config.scoreThreshold = 0;
     if (config.scoreThreshold > 1) config.scoreThreshold = 1;
+    // 约束 limit 范围
+    if (config.searchLimit < 1) config.searchLimit = 1;
+    if (config.searchLimit > 50) config.searchLimit = 50;
 
     // 验证必填字段
     if (config.enabled) {

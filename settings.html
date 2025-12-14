@@ -1798,6 +1798,12 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="kb-search-limit">知识库检索数量（limit）</label>
+                    <input type="number" id="kb-search-limit" class="input-field" min="1" max="20" step="1" value="5">
+                    <small>每次回答最多引用的知识库片段数量，默认 5</small>
+                </div>
+
+                <div class="form-group">
                     <label for="kb-siliconflow-api-key">硅基流动 API Key</label>
                     <input type="password" id="kb-siliconflow-api-key" class="input-field"
                            placeholder="sk-xxxxxxxxx">

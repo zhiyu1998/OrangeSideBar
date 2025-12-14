@@ -4416,6 +4416,11 @@ async function buildKbAugmentedPrompt(userQuestion) {
       typeof qdrantConfig.scoreThreshold === 'number'
         ? qdrantConfig.scoreThreshold
         : 0.5;
+    const limitRaw =
+      typeof qdrantConfig.searchLimit === 'number'
+        ? qdrantConfig.searchLimit
+        : KB_TOP_K;
+    const searchLimit = Math.max(1, Math.min(50, Math.floor(limitRaw)));
 
     const queryEmbedding = await generateEmbedding(
       userQuestion,
@@ -4427,11 +4432,12 @@ async function buildKbAugmentedPrompt(userQuestion) {
     await kb.initialize();
 
     const allResults = [];
+    const perCollectionLimit = Math.max(1, Math.ceil(searchLimit / collections.length));
     for (const collectionName of collections) {
       const res =
         (await kb.searchSimilar(
           queryEmbedding,
-          KB_TOP_K,
+          perCollectionLimit,
           null,
           collectionName,
           { scoreThreshold }
@@ -4443,7 +4449,10 @@ async function buildKbAugmentedPrompt(userQuestion) {
       return { text: userQuestion, sources: [] };
     }
 
-    const context = allResults
+    allResults.sort((a, b) => (b.score || 0) - (a.score || 0));
+    const topResults = allResults.slice(0, searchLimit);
+
+    const context = topResults
       .map(
         (hit, idx) =>
           `【${idx + 1}】[${hit.collectionName || '默认'}] 标题：${hit.title || '无标题'}\nURL：${
@@ -4454,7 +4463,7 @@ async function buildKbAugmentedPrompt(userQuestion) {
 
     const augmented = `你是一个基于知识库的助手。请优先使用下列知识库片段回答用户问题，如信息不足请直说，勿编造。\n知识库集合：${collections.join(', ')}\n知识库片段：\n${context}\n\n用户问题：${userQuestion}`;
 
-    return { text: augmented, sources: allResults };
+    return { text: augmented, sources: topResults };
   } catch (error) {
     console.warn('Knowledge base retrieval failed:', error);
     return { text: userQuestion, sources: [] };
