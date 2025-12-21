@@ -2444,7 +2444,7 @@ async function handleDualColumnSummary() {
       systemPromptToUse = result.systemPrompt || SYSTEM_PROMPT;
     }
 
-    const fullPrompt = promptToUse + inputText;
+    const fullPrompt = `当前页面URL: ${currentURL}\n\n` + promptToUse + inputText;
 
     // 清空聊天内容并开始双栏摘要
     document.getElementById('left-chat-content').innerHTML = '';
@@ -3057,7 +3057,7 @@ function initResultPage() {
         displayMessage = "对当前页面内容进行摘要";
       }
 
-      const fullPrompt = promptToUse + inputText;
+      const fullPrompt = `当前页面URL: ${currentURL}\n\n` + promptToUse + inputText;
 
       // 隐藏初始推荐内容
       hideRecommandContent();
