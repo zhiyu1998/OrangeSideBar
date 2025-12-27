@@ -40,6 +40,7 @@ export default defineManifest({
     service_worker: 'src/background/index.ts',
     type: 'module',
   },
+  options_page: 'src/settings/index.html',
   web_accessible_resources: [
     {
       resources: ['src/content/youtube-injector.ts'],
