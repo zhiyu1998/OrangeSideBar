@@ -16,7 +16,7 @@ export default defineManifest({
     default_icon: {
       48: 'public/logo_48.png',
     },
-    default_popup: 'src/popup/index.html',
+    // No popup - clicking icon opens side panel via background.js
   },
   content_scripts: [
     {
