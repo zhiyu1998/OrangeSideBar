@@ -1,0 +1,297 @@
+/**
+ * OpenAI Provider Implementation
+ * Supports OpenAI API and compatible endpoints (DeepSeek, Moonshot, etc.)
+ */
+
+import OpenAI from 'openai'
+import { BaseLLMProvider } from './base'
+import type {
+  ChatParams,
+  StreamChunk,
+  ModelInfo,
+  ChatCompletionResult,
+  ChatMessage,
+  ContentPart,
+} from './types'
+import type { ProviderId } from '@/types/provider'
+
+// Models that support vision
+const VISION_MODELS = [
+  'gpt-4o',
+  'gpt-4o-mini',
+  'gpt-4-turbo',
+  'gpt-4-vision-preview',
+  'o1',
+  'o1-mini',
+  'o3-mini',
+]
+
+// Models that support thinking/reasoning
+const THINKING_MODELS = [
+  'o1',
+  'o1-mini',
+  'o1-preview',
+  'o3-mini',
+  'deepseek-reasoner',
+  'deepseek-r1',
+]
+
+export class OpenAIProvider extends BaseLLMProvider {
+  readonly providerId: ProviderId = 'openai'
+  readonly providerName = 'OpenAI'
+
+  private client: OpenAI | null = null
+
+  /**
+   * Get or create OpenAI client
+   */
+  private getClient(): OpenAI {
+    this.ensureConfigured()
+
+    if (!this.client) {
+      this.client = new OpenAI({
+        apiKey: this.config!.apiKey,
+        baseURL: this.config!.baseUrl,
+        dangerouslyAllowBrowser: true, // Required for browser extension
+      })
+    }
+
+    return this.client
+  }
+
+  /**
+   * Reset client when configuration changes
+   */
+  configure(config: { apiKey: string; baseUrl: string }): void {
+    super.configure(config)
+    this.client = null
+  }
+
+  /**
+   * Convert our message format to OpenAI format
+   */
+  private convertMessages(
+    messages: ChatMessage[],
+    systemPrompt?: string
+  ): OpenAI.ChatCompletionMessageParam[] {
+    const result: OpenAI.ChatCompletionMessageParam[] = []
+
+    // Add system prompt if provided
+    if (systemPrompt) {
+      result.push({ role: 'system', content: systemPrompt })
+    }
+
+    for (const msg of messages) {
+      if (typeof msg.content === 'string') {
+        result.push({
+          role: msg.role as 'user' | 'assistant' | 'system',
+          content: msg.content,
+        })
+      } else {
+        // Multimodal content - only user messages can have image content
+        const parts: OpenAI.ChatCompletionContentPart[] = msg.content.map((part: ContentPart) => {
+          if (part.type === 'text') {
+            return { type: 'text' as const, text: part.text }
+          } else {
+            return {
+              type: 'image_url' as const,
+              image_url: {
+                url: `data:${part.source.media_type};base64,${part.source.data}`,
+              },
+            }
+          }
+        })
+        // Cast to user message since only user can have multimodal content
+        result.push({
+          role: 'user' as const,
+          content: parts,
+        })
+      }
+    }
+
+    return result
+  }
+
+  /**
+   * Streaming chat completion
+   */
+  async *chatStream(params: ChatParams): AsyncGenerator<StreamChunk, void, unknown> {
+    const client = this.getClient()
+    const messages = this.convertMessages(params.messages, params.systemPrompt)
+
+    try {
+      const stream = await client.chat.completions.create({
+        model: params.model,
+        messages,
+        temperature: params.temperature,
+        top_p: params.topP,
+        max_tokens: params.maxTokens,
+        frequency_penalty: params.frequencyPenalty,
+        presence_penalty: params.presencePenalty,
+        stream: true,
+      }, {
+        signal: params.signal,
+      })
+
+      let isThinking = false
+
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta
+
+        if (!delta) continue
+
+        // Check for reasoning/thinking content (for o1/o3 models)
+        // OpenAI uses a different field for reasoning tokens
+        const content = delta.content || ''
+
+        if (content) {
+          // Detect thinking blocks (DeepSeek style)
+          if (content.includes('<think>')) {
+            isThinking = true
+            yield { type: 'thinking', content: content.replace('<think>', '') }
+          } else if (content.includes('</think>')) {
+            isThinking = false
+            yield { type: 'thinking', content: content.replace('</think>', '') }
+          } else if (isThinking) {
+            yield { type: 'thinking', content }
+          } else {
+            yield { type: 'text', content }
+          }
+        }
+
+        // Check for finish reason
+        if (chunk.choices[0]?.finish_reason) {
+          yield { type: 'done', content: '' }
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          yield { type: 'done', content: '' }
+          return
+        }
+        yield { type: 'error', content: error.message }
+      } else {
+        yield { type: 'error', content: 'Unknown error occurred' }
+      }
+    }
+  }
+
+  /**
+   * Non-streaming chat completion
+   */
+  async chat(params: ChatParams): Promise<ChatCompletionResult> {
+    const client = this.getClient()
+    const messages = this.convertMessages(params.messages, params.systemPrompt)
+
+    const response = await client.chat.completions.create({
+      model: params.model,
+      messages,
+      temperature: params.temperature,
+      top_p: params.topP,
+      max_tokens: params.maxTokens,
+      frequency_penalty: params.frequencyPenalty,
+      presence_penalty: params.presencePenalty,
+      stream: false,
+    }, {
+      signal: params.signal,
+    })
+
+    const choice = response.choices[0]
+
+    return {
+      content: choice?.message?.content || '',
+      finishReason: (choice?.finish_reason as 'stop' | 'length' | 'content_filter' | 'tool_calls') || null,
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
+    }
+  }
+
+  /**
+   * Fetch available models
+   */
+  async getModels(): Promise<ModelInfo[]> {
+    const client = this.getClient()
+
+    try {
+      const response = await client.models.list()
+      const models: ModelInfo[] = []
+
+      for (const model of response.data) {
+        // Filter for chat models
+        if (
+          model.id.includes('gpt') ||
+          model.id.includes('o1') ||
+          model.id.includes('o3') ||
+          model.id.includes('chatgpt')
+        ) {
+          models.push({
+            id: model.id,
+            name: model.id,
+            providerId: this.providerId,
+            supportsVision: this.supportsVision(model.id),
+            isThinkingModel: this.supportsThinking(model.id),
+          })
+        }
+      }
+
+      return models.sort((a, b) => a.id.localeCompare(b.id))
+    } catch (error) {
+      console.error('Failed to fetch models:', error)
+      // Return default models if API call fails
+      return this.getDefaultModels()
+    }
+  }
+
+  /**
+   * Get default models list
+   */
+  private getDefaultModels(): ModelInfo[] {
+    return [
+      { id: 'gpt-4o', name: 'GPT-4o', providerId: this.providerId, supportsVision: true },
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', providerId: this.providerId, supportsVision: true },
+      { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', providerId: this.providerId, supportsVision: true },
+      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', providerId: this.providerId },
+      { id: 'o1', name: 'O1', providerId: this.providerId, isThinkingModel: true, supportsVision: true },
+      { id: 'o1-mini', name: 'O1 Mini', providerId: this.providerId, isThinkingModel: true },
+      { id: 'o3-mini', name: 'O3 Mini', providerId: this.providerId, isThinkingModel: true },
+    ]
+  }
+
+  /**
+   * Check if model is supported
+   */
+  supportsModel(modelId: string): boolean {
+    const lowerModelId = modelId.toLowerCase()
+    return (
+      lowerModelId.startsWith('gpt-') ||
+      lowerModelId.startsWith('o1') ||
+      lowerModelId.startsWith('o3') ||
+      lowerModelId.startsWith('chatgpt')
+    )
+  }
+
+  /**
+   * Check vision support
+   */
+  supportsVision(modelId: string): boolean {
+    return VISION_MODELS.some((m) => modelId.includes(m))
+  }
+
+  /**
+   * Check thinking/reasoning support
+   */
+  supportsThinking(modelId: string): boolean {
+    return THINKING_MODELS.some((m) => modelId.includes(m))
+  }
+}
+
+/**
+ * Singleton instance
+ */
+export const openaiProvider = new OpenAIProvider()
