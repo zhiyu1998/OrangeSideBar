@@ -16,6 +16,7 @@
         "marked": "^17.0.1",
         "mermaid": "^11.12.2",
         "openai": "^6.15.0",
+        "pdfjs-dist": "^5.4.449",
         "pinia": "^3.0.4",
         "reka-ui": "^2.7.0",
         "tailwind-merge": "^3.4.0",
@@ -149,6 +150,30 @@
     "@mermaid-js/parser": ["@mermaid-js/parser@0.6.3", "https://registry.npmmirror.com/@mermaid-js/parser/-/parser-0.6.3.tgz", { "dependencies": { "langium": "3.3.1" } }, "sha512-lnjOhe7zyHjc+If7yT4zoedx2vo4sHaTmtkl1+or8BRTnCtDmcTpAjpzDSfCZrshM5bCoz0GyidzadJAH1xobA=="],
 
     "@mozilla/readability": ["@mozilla/readability@0.6.0", "https://registry.npmmirror.com/@mozilla/readability/-/readability-0.6.0.tgz", {}, "sha512-juG5VWh4qAivzTAeMzvY9xs9HY5rAcr2E4I7tiSSCokRFi7XIZCAu92ZkSTsIj1OPceCifL3cpfteP3pDT9/QQ=="],
+
+    "@napi-rs/canvas": ["@napi-rs/canvas@0.1.87", "https://registry.npmmirror.com/@napi-rs/canvas/-/canvas-0.1.87.tgz", { "optionalDependencies": { "@napi-rs/canvas-android-arm64": "0.1.87", "@napi-rs/canvas-darwin-arm64": "0.1.87", "@napi-rs/canvas-darwin-x64": "0.1.87", "@napi-rs/canvas-linux-arm-gnueabihf": "0.1.87", "@napi-rs/canvas-linux-arm64-gnu": "0.1.87", "@napi-rs/canvas-linux-arm64-musl": "0.1.87", "@napi-rs/canvas-linux-riscv64-gnu": "0.1.87", "@napi-rs/canvas-linux-x64-gnu": "0.1.87", "@napi-rs/canvas-linux-x64-musl": "0.1.87", "@napi-rs/canvas-win32-arm64-msvc": "0.1.87", "@napi-rs/canvas-win32-x64-msvc": "0.1.87" } }, "sha512-Zb5tePmPMOYBcuNW3NQaVM1sIkvIfel39euiOab/XMjC5Oc/AnPJLa/BacJcToGyIvehecS6eqcsF7i0Wqe1Sw=="],
+
+    "@napi-rs/canvas-android-arm64": ["@napi-rs/canvas-android-arm64@0.1.87", "https://registry.npmmirror.com/@napi-rs/canvas-android-arm64/-/canvas-android-arm64-0.1.87.tgz", { "os": "android", "cpu": "arm64" }, "sha512-uW7NxJXPvZft9fers4oBhdCsBRVe77DLQS3eXEOxndFzGKiwmjIbZpQqj4QPvrg3I0FM3UfHatz1+17P5SeCOQ=="],
+
+    "@napi-rs/canvas-darwin-arm64": ["@napi-rs/canvas-darwin-arm64@0.1.87", "https://registry.npmmirror.com/@napi-rs/canvas-darwin-arm64/-/canvas-darwin-arm64-0.1.87.tgz", { "os": "darwin", "cpu": "arm64" }, "sha512-S6YbpXwajDKLTsYftEqR+Ne1lHpeC78okI3IqctVdFexN31Taprn6mdV4CkPY/4S8eGNuReBHvXNyWbGqBZ1eQ=="],
+
+    "@napi-rs/canvas-darwin-x64": ["@napi-rs/canvas-darwin-x64@0.1.87", "https://registry.npmmirror.com/@napi-rs/canvas-darwin-x64/-/canvas-darwin-x64-0.1.87.tgz", { "os": "darwin", "cpu": "x64" }, "sha512-OJLwP2WIUmRSqWTyV/NZ2TnvBzUsbNqQu6IL7oshwfxYg4BELPV279wrfQ/xZFqzr7wybfIzKaPF4du5ZdA2Cg=="],
+
+    "@napi-rs/canvas-linux-arm-gnueabihf": ["@napi-rs/canvas-linux-arm-gnueabihf@0.1.87", "https://registry.npmmirror.com/@napi-rs/canvas-linux-arm-gnueabihf/-/canvas-linux-arm-gnueabihf-0.1.87.tgz", { "os": "linux", "cpu": "arm" }, "sha512-Io3tY6ogc+oyvIGK9rQlnfH4gKiS35P7W6s22x3WCrLFR0dXzZP2IBBoEFEHd6FY6FR1ky5u9cRmADaiLRdX3g=="],
+
+    "@napi-rs/canvas-linux-arm64-gnu": ["@napi-rs/canvas-linux-arm64-gnu@0.1.87", "https://registry.npmmirror.com/@napi-rs/canvas-linux-arm64-gnu/-/canvas-linux-arm64-gnu-0.1.87.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-Zq7h/PQzs37gaSR/gNRZOAaCC1kGt6NmDjA1PcqpONITh/rAfAwAeP98emrbBJ4FDoPkYRkxmxHlmXNLlsQIBw=="],
+
+    "@napi-rs/canvas-linux-arm64-musl": ["@napi-rs/canvas-linux-arm64-musl@0.1.87", "https://registry.npmmirror.com/@napi-rs/canvas-linux-arm64-musl/-/canvas-linux-arm64-musl-0.1.87.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-CUa5YJjpsFcUxJbtfoQ4bqO/Rq+JU/2RfTNFxx07q1AjuDjCM8+MOOLCvVOV1z3qhl6nKAtjJT0pA0J8EbnK8Q=="],
+
+    "@napi-rs/canvas-linux-riscv64-gnu": ["@napi-rs/canvas-linux-riscv64-gnu@0.1.87", "https://registry.npmmirror.com/@napi-rs/canvas-linux-riscv64-gnu/-/canvas-linux-riscv64-gnu-0.1.87.tgz", { "os": "linux", "cpu": "none" }, "sha512-5KM4dBFEzFMNkJV2rheIQWpd+mRZA7VNDnxTT7nsCEf6DUjUnf6Hssq9bAwjVYTe4jqraDHbWRbF4uXLBLRFJg=="],
+
+    "@napi-rs/canvas-linux-x64-gnu": ["@napi-rs/canvas-linux-x64-gnu@0.1.87", "https://registry.npmmirror.com/@napi-rs/canvas-linux-x64-gnu/-/canvas-linux-x64-gnu-0.1.87.tgz", { "os": "linux", "cpu": "x64" }, "sha512-zSv+ozz9elT5YhocyogX5LwVYURChO4QGD6CQIW6OnuNA0UOMDD/b4wDzlJiMphISy3EVTntlKFhe4W3EuKcxw=="],
+
+    "@napi-rs/canvas-linux-x64-musl": ["@napi-rs/canvas-linux-x64-musl@0.1.87", "https://registry.npmmirror.com/@napi-rs/canvas-linux-x64-musl/-/canvas-linux-x64-musl-0.1.87.tgz", { "os": "linux", "cpu": "x64" }, "sha512-jTNmicAZQ70X+cbjZz6G6w8lmORwxRBmj/U20ECNYvcWVLshgyCKWPFL2I0Z6pkJve0vZWls6oZ15iccm1sv8w=="],
+
+    "@napi-rs/canvas-win32-arm64-msvc": ["@napi-rs/canvas-win32-arm64-msvc@0.1.87", "https://registry.npmmirror.com/@napi-rs/canvas-win32-arm64-msvc/-/canvas-win32-arm64-msvc-0.1.87.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-p6J7UNAxKHYc7AL0glEtYuW/E0OLLUNnLti8dA2OT51p08Il4T7yZCl+iNo6f73HntFP+dgOHh2cTXUhmk8GuA=="],
+
+    "@napi-rs/canvas-win32-x64-msvc": ["@napi-rs/canvas-win32-x64-msvc@0.1.87", "https://registry.npmmirror.com/@napi-rs/canvas-win32-x64-msvc/-/canvas-win32-x64-msvc-0.1.87.tgz", { "os": "win32", "cpu": "x64" }, "sha512-WrwfETMLBRFWkGU8fXU50gCpA2eIjR4NE9JyTKl86Kz5g6SDp0CcuqS2phYtB66TI2HDUhTPbNrk4V7Qf1FOLA=="],
 
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "https://registry.npmmirror.com/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
 
@@ -645,6 +670,8 @@
     "path-data-parser": ["path-data-parser@0.1.0", "https://registry.npmmirror.com/path-data-parser/-/path-data-parser-0.1.0.tgz", {}, "sha512-NOnmBpt5Y2RWbuv0LMzsayp3lVylAHLPUTut412ZA3l+C4uw4ZVkQbjShYCQ8TCpUMdPapr4YjUqLYD6v68j+w=="],
 
     "pathe": ["pathe@2.0.3", "https://registry.npmmirror.com/pathe/-/pathe-2.0.3.tgz", {}, "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w=="],
+
+    "pdfjs-dist": ["pdfjs-dist@5.4.449", "https://registry.npmmirror.com/pdfjs-dist/-/pdfjs-dist-5.4.449.tgz", { "optionalDependencies": { "@napi-rs/canvas": "^0.1.81" } }, "sha512-CegnUaT0QwAyQMS+7o2POr4wWUNNe8VaKKlcuoRHeYo98cVnqPpwOXNSx6Trl6szH02JrRcsPgletV6GmF3LtQ=="],
 
     "perfect-debounce": ["perfect-debounce@1.0.0", "https://registry.npmmirror.com/perfect-debounce/-/perfect-debounce-1.0.0.tgz", {}, "sha512-xCy9V055GLEqoFaHoC1SoLIaLmWctgCUaBaWxDZ7/Zx4CTyX7cJQLJOok/orfjZAh9kEYpjJa4d0KcJmCbctZA=="],
 

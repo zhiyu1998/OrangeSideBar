@@ -21,6 +21,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleExecuteScript(message, sendResponse)
       return true
 
+    case 'getYouTubeSubtitles':
+      handleGetYouTubeSubtitles(sendResponse)
+      return true
+
+    case 'openSettings':
+      chrome.runtime.openOptionsPage()
+      return false
+
     default:
       console.log('Unknown action:', message.action)
   }
@@ -51,6 +59,30 @@ async function handleExecuteScript(
     // Note: In production, you'd need to execute actual functions
     // This is a placeholder for the scripting API usage
     sendResponse({ success: true, tabId })
+  } catch (error) {
+    sendResponse({ success: false, error: String(error) })
+  }
+}
+
+async function handleGetYouTubeSubtitles(sendResponse: (response: unknown) => void) {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+
+    if (!tab?.id) {
+      sendResponse({ success: false, error: 'No active tab' })
+      return
+    }
+
+    // Send message to content script to get cached subtitles
+    const response = await chrome.tabs.sendMessage(tab.id, {
+      action: 'GET_YOUTUBE_SUBTITLES',
+    })
+
+    if (response?.success) {
+      sendResponse({ success: true, data: response.data })
+    } else {
+      sendResponse({ success: false, error: response?.error || 'Failed to get subtitles' })
+    }
   } catch (error) {
     sendResponse({ success: false, error: String(error) })
   }

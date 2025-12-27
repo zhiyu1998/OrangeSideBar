@@ -40,4 +40,10 @@ export default defineManifest({
     service_worker: 'src/background/index.ts',
     type: 'module',
   },
+  web_accessible_resources: [
+    {
+      resources: ['src/content/youtube-injector.ts'],
+      matches: ['https://www.youtube.com/*', 'https://youtube.com/*', 'https://m.youtube.com/*'],
+    },
+  ],
 })
