@@ -1,0 +1,62 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: General coding standards and best practices
+globs: **/*
+alwaysApply: true
+---
+
+# Coding Standards
+
+## General Principles
+- Follow SOLID principles and DRY (Don't Repeat Yourself) patterns
+- Use clear, semantic naming conventions
+- Implement proper error handling with descriptive messages
+- Write comprehensive documentation for all components and functions
+- Ensure code is secure, performant, and accessible
+
+## Code Style
+- Use consistent indentation (2 spaces)
+- Prefer functional programming patterns where appropriate
+- Keep functions small and focused on a single responsibility
+- Add helpful comments for complex logic, but avoid obvious comments
+- Use meaningful variable and function names
+
+## Security Practices
+- Validate and sanitize all inputs
+- Never expose sensitive information in client-side code
+- Use prepared statements for database queries
+- Implement proper authentication and authorization
+- Follow OWASP security guidelines
+
+## Performance
+- Optimize database queries and data fetching
+- Implement appropriate caching strategies
+- Lazy load resources when possible
+- Minimize HTTP requests
+- Optimize asset delivery and loading
+
+## Testing
+- Write unit tests for all business logic
+- Implement integration tests for critical workflows
+- Aim for good test coverage for all components
+- Use TDD (Test-Driven Development) when appropriate
+- Test edge cases and error scenarios
+
+## Version Control
+- Write meaningful commit messages
+- Use feature branches for development
+- Perform code reviews for all changes
+- Keep commits focused and atomic
+- Follow conventional commit message format
+
+## Documentation
+- Document APIs with clear examples
+- Maintain up-to-date README files
+- Document setup instructions for new developers
+- Keep documentation in sync with code changes
+
+- Include usage examples for complex components

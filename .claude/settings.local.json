@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(node:*)",
+      "Read(c:\\Users\\Administrator\\Documents\\OrangeSideBar\\scripts/**)",
+      "Read(c:\\Users\\Administrator\\Documents\\OrangeSideBar\\scripts/**)",
+      "Bash(find:*)",
+      "Bash(git tag:*)",
+      "Bash(git fetch:*)",
+      "Bash(git rebase:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
