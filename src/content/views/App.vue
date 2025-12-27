@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Logo from '@/assets/crx.svg'
 import { ref } from 'vue'
 
 const show = ref(false)
@@ -13,13 +12,13 @@ const toggle = () => show.value = !show.value
       class="popup-content"
       :class="show ? 'opacity-100' : 'opacity-0'"
     >
-      <h1>HELLO CRXJS</h1>
+      <h1>OrangeSideBar Content Script</h1>
     </div>
     <button
       class="toggle-button"
       @click="toggle()"
     >
-      <img :src="Logo" alt="CRXJS logo" class="button-icon">
+      <span class="button-icon">🍊</span>
     </button>
   </div>
 </template>

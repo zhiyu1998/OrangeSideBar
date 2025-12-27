@@ -5,6 +5,7 @@ export default defineManifest({
   manifest_version: 3,
   name: pkg.name,
   version: pkg.version,
+  description: '✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 OpenAI、Gemini、Anthropic 规范的 API，支持自动摘要、网页及视频翻译、多轮对话等功能✨',
   icons: {
     16: 'public/logo_16.png',
     32: 'public/logo_32.png',
@@ -17,15 +18,26 @@ export default defineManifest({
     },
     default_popup: 'src/popup/index.html',
   },
-  content_scripts: [{
-    js: ['src/content/main.ts'],
-    matches: ['https://*/*'],
-  }],
+  content_scripts: [
+    {
+      js: ['src/content/main.ts'],
+      matches: ['https://*/*', 'http://*/*'],
+    },
+  ],
   permissions: [
     'sidePanel',
-    'contentSettings',
+    'storage',
+    'activeTab',
+    'tabs',
+    'scripting',
+    'clipboardWrite',
   ],
+  host_permissions: ['<all_urls>'],
   side_panel: {
     default_path: 'src/sidepanel/index.html',
+  },
+  background: {
+    service_worker: 'src/background/index.ts',
+    type: 'module',
   },
 })

@@ -1,36 +1,31 @@
 <script setup lang="ts">
-import HelloWorld from '@/components/HelloWorld.vue'
+import { Button } from '@/components/ui/button'
 </script>
 
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="@/assets/vite.svg" class="logo" alt="Vite logo">
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="@/assets/vue.svg" class="logo vue" alt="Vue logo">
-    </a>
-    <a href="https://crxjs.dev/vite-plugin" target="_blank">
-      <img src="@/assets/crx.svg" class="logo crx" alt="crx logo">
-    </a>
+  <div class="p-4 min-w-[200px]">
+    <div class="flex items-center gap-2 mb-4">
+      <img src="/logo_48.png" class="w-8 h-8" alt="OrangeSideBar">
+      <h1 class="text-lg font-semibold">OrangeSideBar</h1>
+    </div>
+    <p class="text-sm text-muted-foreground mb-4">
+      AI-powered sidebar for webpage summarization
+    </p>
+    <Button class="w-full" @click="openSidePanel">
+      Open Side Panel
+    </Button>
   </div>
-  <HelloWorld msg="Vite + Vue + CRXJS" />
 </template>
 
+<script lang="ts">
+function openSidePanel() {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]?.id) {
+      chrome.sidePanel.open({ tabId: tabs[0].id })
+    }
+  })
+}
+</script>
+
 <style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-.logo.crx:hover {
-  filter: drop-shadow(0 0 2em #f2bae4aa);
-}
 </style>

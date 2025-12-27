@@ -10,7 +10,11 @@
       "Bash(find:*)",
       "Bash(git tag:*)",
       "Bash(git fetch:*)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(git checkout:*)",
+      "Bash(tree:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(bun run build:*)"
     ],
     "deny": [],
     "ask": []
