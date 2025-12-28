@@ -19,7 +19,7 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   copy: [content: string]
-  regenerate: []
+  regenerate: [messageId: string]
 }>()
 
 const showThinking = ref(false)
@@ -32,7 +32,7 @@ function copyContent() {
 }
 
 function regenerate() {
-  emit('regenerate')
+  emit('regenerate', props.id)
 }
 
 function toggleThinking() {

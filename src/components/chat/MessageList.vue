@@ -13,7 +13,7 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   copy: [content: string]
-  regenerate: []
+  regenerate: [messageId: string]
 }>()
 
 const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null)
@@ -51,8 +51,8 @@ function handleCopy(content: string) {
   emit('copy', content)
 }
 
-function handleRegenerate() {
-  emit('regenerate')
+function handleRegenerate(messageId: string) {
+  emit('regenerate', messageId)
 }
 </script>
 

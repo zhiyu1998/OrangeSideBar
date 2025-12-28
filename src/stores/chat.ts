@@ -97,6 +97,29 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  function deleteMessage(messageId: string) {
+    if (!currentSession.value) return
+
+    const index = currentSession.value.messages.findIndex((m) => m.id === messageId)
+    if (index !== -1) {
+      currentSession.value.messages.splice(index, 1)
+      currentSession.value.updatedAt = Date.now()
+    }
+  }
+
+  function removeMessagesAfter(messageId: string) {
+    if (!currentSession.value) return
+
+    const index = currentSession.value.messages.findIndex((m) => m.id === messageId)
+    if (index === -1) return
+
+    const keepCount = index + 1
+    if (currentSession.value.messages.length > keepCount) {
+      currentSession.value.messages.splice(keepCount)
+      currentSession.value.updatedAt = Date.now()
+    }
+  }
+
   function clearCurrentSession() {
     if (currentSession.value) {
       currentSession.value.messages = []
@@ -156,6 +179,8 @@ export const useChatStore = defineStore('chat', () => {
     addMessage,
     updateMessage,
     appendToMessage,
+    deleteMessage,
+    removeMessagesAfter,
     clearCurrentSession,
     setStreaming,
     setAbortController,

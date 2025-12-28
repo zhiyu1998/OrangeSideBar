@@ -91,6 +91,91 @@ export function useChat(options: UseChatOptions = {}) {
     return null
   }
 
+  function buildApiMessages(excludeMessageId: string): ChatMessage[] {
+    return messages.value
+      .filter((m) => m.id !== excludeMessageId)
+      .map((m) => ({
+        role: m.role as 'user' | 'assistant' | 'system',
+        content: m.llmContent || m.content,
+      }))
+  }
+
+  async function streamAssistantResponse(assistantMessageId: string): Promise<void> {
+    // Get provider for the model
+    const provider = resolveProviderForModel(modelId.value)
+
+    if (!provider) {
+      const disabledProvider = getDisabledProviderForModel(modelId.value)
+      error.value = disabledProvider
+        ? `Provider "${disabledProvider}" is disabled. Please enable it in settings or choose another model.`
+        : `No provider found for model: ${modelId.value}`
+      chatStore.updateMessage(assistantMessageId, { error: error.value })
+      return
+    }
+
+    if (!provider.isConfigured()) {
+      error.value = `Provider "${provider.providerName}" is not configured. Please set API key in settings.`
+      chatStore.updateMessage(assistantMessageId, { error: error.value })
+      return
+    }
+
+    const apiMessages = buildApiMessages(assistantMessageId)
+
+    // Create abort controller
+    const abortController = new AbortController()
+    chatStore.setAbortController(abortController)
+    chatStore.setStreaming(true)
+    isLoading.value = true
+
+    try {
+      // Get system prompt
+      const systemPrompt = getSystemPrompt(settingsStore.currentSystemPrompt)
+
+      // Stream response
+      const stream = provider.chatStream({
+        model: modelId.value,
+        messages: apiMessages,
+        systemPrompt,
+        temperature: settingsStore.modelParameters.temperature,
+        topP: settingsStore.modelParameters.topP,
+        maxTokens: settingsStore.modelParameters.maxTokens,
+        frequencyPenalty: settingsStore.modelParameters.frequencyPenalty,
+        presencePenalty: settingsStore.modelParameters.presencePenalty,
+        signal: abortController.signal,
+      })
+
+      for await (const chunk of stream) {
+        // Check if streaming was aborted
+        if (!chatStore.isStreaming) {
+          break
+        }
+        handleStreamChunk(chunk, assistantMessageId)
+      }
+    } catch (err) {
+      console.error('[useChat] Stream error:', err)
+      if (err instanceof Error) {
+        if (err.name !== 'AbortError') {
+          error.value = err.message
+          chatStore.updateMessage(assistantMessageId, { error: err.message })
+        }
+      } else {
+        error.value = 'Unknown error occurred'
+        chatStore.updateMessage(assistantMessageId, { error: 'Unknown error occurred' })
+      }
+    } finally {
+      // Always reset streaming state
+      isLoading.value = false
+      chatStore.setStreaming(false)
+      chatStore.setAbortController(null)
+
+      // Update message with thinking content if any
+      if (currentThinking.value) {
+        chatStore.updateMessage(assistantMessageId, { thinking: currentThinking.value })
+        currentThinking.value = ''
+      }
+    }
+  }
+
   /**
    * Send a message and get streaming response
    * @param content - Display content for UI (may be placeholder)
@@ -128,85 +213,7 @@ export function useChat(options: UseChatOptions = {}) {
       content: '',
     })
 
-    // Get provider for the model
-    const provider = resolveProviderForModel(modelId.value)
-
-    if (!provider) {
-      const disabledProvider = getDisabledProviderForModel(modelId.value)
-      error.value = disabledProvider
-        ? `Provider "${disabledProvider}" is disabled. Please enable it in settings or choose another model.`
-        : `No provider found for model: ${modelId.value}`
-      chatStore.updateMessage(assistantMessage.id, { error: error.value })
-      return
-    }
-
-    if (!provider.isConfigured()) {
-      error.value = `Provider "${provider.providerName}" is not configured. Please set API key in settings.`
-      chatStore.updateMessage(assistantMessage.id, { error: error.value })
-      return
-    }
-
-    // Prepare messages for API (use llmContent if available, otherwise content)
-    const apiMessages: ChatMessage[] = messages.value
-      .filter((m) => m.id !== assistantMessage.id)
-      .map((m) => ({
-        role: m.role as 'user' | 'assistant' | 'system',
-        content: m.llmContent || m.content,
-      }))
-
-    // Create abort controller
-    const abortController = new AbortController()
-    chatStore.setAbortController(abortController)
-    chatStore.setStreaming(true)
-    isLoading.value = true
-
-    try {
-      // Get system prompt
-      const systemPrompt = getSystemPrompt(settingsStore.currentSystemPrompt)
-
-      // Stream response
-      const stream = provider.chatStream({
-        model: modelId.value,
-        messages: apiMessages,
-        systemPrompt,
-        temperature: settingsStore.modelParameters.temperature,
-        topP: settingsStore.modelParameters.topP,
-        maxTokens: settingsStore.modelParameters.maxTokens,
-        frequencyPenalty: settingsStore.modelParameters.frequencyPenalty,
-        presencePenalty: settingsStore.modelParameters.presencePenalty,
-        signal: abortController.signal,
-      })
-
-      for await (const chunk of stream) {
-        // Check if streaming was aborted
-        if (!chatStore.isStreaming) {
-          break
-        }
-        handleStreamChunk(chunk, assistantMessage.id)
-      }
-    } catch (err) {
-      console.error('[useChat] Stream error:', err)
-      if (err instanceof Error) {
-        if (err.name !== 'AbortError') {
-          error.value = err.message
-          chatStore.updateMessage(assistantMessage.id, { error: err.message })
-        }
-      } else {
-        error.value = 'Unknown error occurred'
-        chatStore.updateMessage(assistantMessage.id, { error: 'Unknown error occurred' })
-      }
-    } finally {
-      // Always reset streaming state
-      isLoading.value = false
-      chatStore.setStreaming(false)
-      chatStore.setAbortController(null)
-
-      // Update message with thinking content if any
-      if (currentThinking.value) {
-        chatStore.updateMessage(assistantMessage.id, { thinking: currentThinking.value })
-        currentThinking.value = ''
-      }
-    }
+    await streamAssistantResponse(assistantMessage.id)
   }
 
   /**
@@ -249,21 +256,51 @@ export function useChat(options: UseChatOptions = {}) {
   /**
    * Regenerate last response
    */
-  async function regenerate() {
-    const lastUserMessage = [...messages.value]
-      .reverse()
-      .find((m) => m.role === 'user')
+  async function regenerate(targetAssistantMessageId?: string) {
+    if (!chatStore.hasActiveSession) return
 
-    if (!lastUserMessage) return
-
-    // Remove last assistant message
-    const lastAssistantIndex = messages.value.length - 1
-    if (messages.value[lastAssistantIndex]?.role === 'assistant') {
-      // We need to implement delete message in store
+    // Stop any ongoing stream before regenerating
+    if (chatStore.isStreaming) {
+      chatStore.stopStreaming()
     }
 
-    // Resend the message
-    await sendMessage(lastUserMessage.content, lastUserMessage.images)
+    error.value = null
+    currentThinking.value = ''
+
+    const snapshot = messages.value.slice()
+
+    // Resolve which assistant message to regenerate
+    let assistantIndex = -1
+    if (targetAssistantMessageId) {
+      assistantIndex = snapshot.findIndex((m) => m.id === targetAssistantMessageId)
+    }
+    if (assistantIndex === -1) {
+      assistantIndex = snapshot.map((m) => m.role).lastIndexOf('assistant')
+    }
+    if (assistantIndex === -1) return
+
+    // Find the user message immediately before that assistant message
+    let userIndex = -1
+    for (let i = assistantIndex - 1; i >= 0; i -= 1) {
+      if (snapshot[i]?.role === 'user') {
+        userIndex = i
+        break
+      }
+    }
+    if (userIndex === -1) return
+
+    const userMessageId = snapshot[userIndex].id
+
+    // Truncate conversation to that user message (drops the selected assistant and any later messages)
+    chatStore.removeMessagesAfter(userMessageId)
+
+    // Create a new assistant placeholder and stream into it
+    const assistantMessage = chatStore.addMessage({
+      role: 'assistant',
+      content: '',
+    })
+
+    await streamAssistantResponse(assistantMessage.id)
   }
 
   return {

@@ -8,7 +8,7 @@ import { MessageList, InputGroup } from '@/components/chat'
 import { SUMMARY_PROMPT, YOUTUBE_SUBTITLE_SUMMARY_PROMPT, BILIBILI_SUBTITLE_SUMMARY_PROMPT } from '@/constants/prompts'
 
 const settingsStore = useSettingsStore()
-const { sendMessage, stopStreaming, clearConversation, isStreaming, messages } = useChat()
+const { sendMessage, stopStreaming, clearConversation, regenerate, isStreaming, messages } = useChat()
 const { extractCurrentTabText, extractSubtitles, getCurrentUrl, isLoading: isContentLoading, error: contentError } = useContent()
 
 // Feature handlers
@@ -88,11 +88,24 @@ function handleStop() {
 }
 
 function handleCopy(content: string) {
-  navigator.clipboard.writeText(content)
+  navigator.clipboard.writeText(content).catch(() => {
+    const textarea = document.createElement('textarea')
+    textarea.value = content
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    try {
+      document.execCommand('copy')
+    } finally {
+      document.body.removeChild(textarea)
+    }
+  })
 }
 
-function handleRegenerate() {
-  // TODO: Implement regenerate
+function handleRegenerate(messageId: string) {
+  regenerate(messageId)
 }
 
 function handleClearConversation() {
