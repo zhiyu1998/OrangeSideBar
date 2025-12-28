@@ -55,17 +55,16 @@ function setTheme(theme: Theme) {
       <CardHeader>
         <CardTitle>About</CardTitle>
         <CardDescription>
-          OrangeSideBar - AI-powered sidebar for webpage summarization
+          OrangeSideBar - 网页总结助手
         </CardDescription>
       </CardHeader>
       <CardContent class="space-y-4">
         <div class="text-sm text-muted-foreground">
           <p class="mb-2">
-            An open-source Chrome extension for AI conversations, page summarization,
-            translation, and more.
+            大橘侧边栏：一个开源的网页侧边栏 AI 对话总结工具
           </p>
           <p>
-            Supports multiple LLM providers: OpenAI, Anthropic, DeepSeek, Moonshot, and more.
+            支持 OpenAI、Gemini、Anthropic 规范的 API，支持自动摘要、联网搜索、多轮对话、视频字幕总结、知识库对话、论文模式等功能
           </p>
         </div>
         <div class="flex gap-2">
@@ -73,7 +72,7 @@ function setTheme(theme: Theme) {
             variant="outline"
             size="sm"
             as="a"
-            href="https://github.com/nicepkg/OrangeSideBar"
+            href="https://github.com/zhiyu1998/OrangeSideBar"
             target="_blank"
           >
             GitHub
