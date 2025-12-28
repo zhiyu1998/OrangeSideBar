@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
+import mermaid from 'mermaid'
 
 interface Props {
   content: string
@@ -12,6 +13,45 @@ interface Props {
 const props = defineProps<Props>()
 
 const renderedContent = ref('')
+const containerRef = ref<HTMLElement | null>(null)
+
+function escapeHtml(text: string): string {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+function getMermaidTheme(): 'default' | 'dark' {
+  return document.documentElement.classList.contains('dark') ? 'dark' : 'default'
+}
+
+async function renderMermaid() {
+  await nextTick()
+  const container = containerRef.value
+  if (!container) return
+
+  const nodes = Array.from(container.querySelectorAll<HTMLElement>('.mermaid'))
+  if (nodes.length === 0) return
+
+  try {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: getMermaidTheme(),
+      securityLevel: 'strict',
+    })
+
+    for (const node of nodes) {
+      node.removeAttribute('data-processed')
+    }
+
+    await mermaid.run({ nodes })
+  } catch (error) {
+    console.warn('[MarkdownRenderer] Mermaid render failed:', error)
+  }
+}
 
 // Configure marked with syntax highlighting
 marked.setOptions({
@@ -23,13 +63,20 @@ marked.setOptions({
 const renderer = new marked.Renderer()
 
 renderer.code = ({ text, lang }) => {
-  const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext'
+  const rawLang = (lang || '').trim().toLowerCase()
+
+  if (rawLang === 'mermaid' || rawLang === 'mindmap') {
+    const diagram = rawLang === 'mindmap' ? `mindmap\n${text}` : text
+    return `<div class="mermaid">${escapeHtml(diagram)}</div>`
+  }
+
+  const language = rawLang && hljs.getLanguage(rawLang) ? rawLang : 'plaintext'
   const highlighted = hljs.highlight(text, { language }).value
   return `<pre class="hljs"><code class="language-${language}">${highlighted}</code></pre>`
 }
 
 renderer.codespan = ({ text }) => {
-  return `<code class="inline-code">${text}</code>`
+  return `<code class="inline-code">${escapeHtml(text)}</code>`
 }
 
 marked.use({ renderer })
@@ -47,6 +94,7 @@ async function renderContent(content: string) {
       ADD_TAGS: ['iframe'],
       ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling'],
     })
+    await renderMermaid()
   } catch (error) {
     console.error('Markdown render error:', error)
     renderedContent.value = content
@@ -61,10 +109,20 @@ watch(
   },
   { immediate: true }
 )
+
+watch(
+  () => props.isStreaming,
+  (streaming) => {
+    if (!streaming) {
+      renderMermaid()
+    }
+  }
+)
 </script>
 
 <template>
   <div
+    ref="containerRef"
     class="markdown-body prose prose-sm dark:prose-invert max-w-none"
     v-html="renderedContent"
   />
@@ -131,6 +189,16 @@ watch(
 .markdown-body pre code {
   font-size: 0.8em;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.markdown-body .mermaid {
+  margin: 0.75em 0;
+  overflow-x: auto;
+}
+
+.markdown-body .mermaid svg {
+  max-width: 100%;
+  height: auto;
 }
 
 .markdown-body .inline-code {
