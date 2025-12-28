@@ -118,10 +118,9 @@ export function formatYouTubeSubtitles(
       index++
     } else if (format === 'text_with_timestamps') {
       const startMs = event.tStartMs || 0
-      const endMs = startMs + (event.dDurationMs || 2000)
-      const startTime = msToSrtTime(startMs)
-      const endTime = msToSrtTime(endMs)
-      result.push(`[${startTime}-${endTime}] ${text}`)
+      // Use simple MM:SS format for LLM-friendly timestamps
+      const startTime = msToSimpleTime(startMs)
+      result.push(`[${startTime}] ${text}`)
     } else {
       result.push(text)
     }
@@ -166,9 +165,9 @@ export function formatBilibiliSubtitles(
         const endTime = secondsToSrtTime(sub.to)
         return `${index + 1}\n${startTime} --> ${endTime}\n${sub.content}\n`
       } else if (format === 'text_with_timestamps') {
-        const startTime = secondsToSrtTime(sub.from)
-        const endTime = secondsToSrtTime(sub.to)
-        return `[${startTime}-${endTime}] ${sub.content}`
+        // Use simple MM:SS format for LLM-friendly timestamps
+        const startTime = secondsToSimpleTime(sub.from)
+        return `[${startTime}] ${sub.content}`
       } else {
         return sub.content
       }
@@ -188,6 +187,22 @@ function msToSrtTime(ms: number): string {
 }
 
 /**
+ * Convert milliseconds to simple time format (MM:SS or HH:MM:SS)
+ * This format is more LLM-friendly for video timestamps
+ */
+function msToSimpleTime(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+}
+
+/**
  * Convert seconds to SRT time format (HH:MM:SS,mmm)
  */
 function secondsToSrtTime(seconds: number): string {
@@ -197,6 +212,22 @@ function secondsToSrtTime(seconds: number): string {
   const ss = String(date.getUTCSeconds()).padStart(2, '0')
   const ms = String(date.getUTCMilliseconds()).padStart(3, '0')
   return `${hh}:${mm}:${ss},${ms}`
+}
+
+/**
+ * Convert seconds to simple time format (MM:SS or HH:MM:SS)
+ * This format is more LLM-friendly for video timestamps
+ */
+function secondsToSimpleTime(seconds: number): string {
+  const totalSeconds = Math.floor(seconds)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const secs = totalSeconds % 60
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+  return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
 /**
