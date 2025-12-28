@@ -172,7 +172,7 @@ onMounted(() => {
           v-for="model in models"
           :key="model.id"
           class="flex items-center justify-between cursor-pointer"
-          @click="selectModel(model.id)"
+          @select="selectModel(model.id)"
         >
           <span class="truncate text-sm">{{ model.name }}</span>
           <Check

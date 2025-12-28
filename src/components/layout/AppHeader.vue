@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Button } from '@/components/ui/button'
-import { Settings, Moon, Sun, Monitor, Trash2 } from 'lucide-vue-next'
+import { Settings, Moon, Sun, Monitor, Trash2, MessageSquare, BookOpen, GraduationCap } from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
+import type { PromptMode } from '@/types/settings'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,12 +23,24 @@ const emit = defineEmits<{
 
 const settingsStore = useSettingsStore()
 
+const promptModeConfig = {
+  default: { label: 'Default', icon: MessageSquare },
+  paper: { label: 'Paper', icon: BookOpen },
+  learning: { label: 'Learning', icon: GraduationCap },
+}
+
+const currentPromptIcon = computed(() => promptModeConfig[settingsStore.currentPromptMode].icon)
+
 function openSettings() {
   chrome.runtime.openOptionsPage()
 }
 
 function setTheme(theme: 'light' | 'dark' | 'system') {
   settingsStore.setTheme(theme)
+}
+
+function setPromptMode(mode: PromptMode) {
+  settingsStore.setPromptMode(mode)
 }
 
 function handleClear() {
@@ -54,6 +68,26 @@ function handleClear() {
         <Trash2 class="h-4 w-4" />
       </Button>
 
+      <!-- Prompt Mode Toggle -->
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <Button variant="ghost" size="icon" class="h-8 w-8" title="Prompt Mode">
+            <component :is="currentPromptIcon" class="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            v-for="(config, mode) in promptModeConfig"
+            :key="mode"
+            :class="{ 'bg-accent': settingsStore.currentPromptMode === mode }"
+            @select="setPromptMode(mode as PromptMode)"
+          >
+            <component :is="config.icon" class="mr-2 h-4 w-4" />
+            {{ config.label }}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       <!-- Theme Toggle -->
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
@@ -64,15 +98,15 @@ function handleClear() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem @click="setTheme('light')">
+          <DropdownMenuItem @select="setTheme('light')">
             <Sun class="mr-2 h-4 w-4" />
             Light
           </DropdownMenuItem>
-          <DropdownMenuItem @click="setTheme('dark')">
+          <DropdownMenuItem @select="setTheme('dark')">
             <Moon class="mr-2 h-4 w-4" />
             Dark
           </DropdownMenuItem>
-          <DropdownMenuItem @click="setTheme('system')">
+          <DropdownMenuItem @select="setTheme('system')">
             <Monitor class="mr-2 h-4 w-4" />
             System
           </DropdownMenuItem>
