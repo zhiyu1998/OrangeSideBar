@@ -5,11 +5,11 @@ import { useChat } from '@/composables/useChat'
 import { useContent } from '@/composables/useContent'
 import { AppHeader, FeatureGrid } from '@/components/layout'
 import { MessageList, InputGroup } from '@/components/chat'
-import { SUMMARY_PROMPT } from '@/constants/prompts'
+import { SUMMARY_PROMPT, YOUTUBE_SUBTITLE_SUMMARY_PROMPT, BILIBILI_SUBTITLE_SUMMARY_PROMPT } from '@/constants/prompts'
 
 const settingsStore = useSettingsStore()
 const { sendMessage, stopStreaming, clearConversation, isStreaming, messages } = useChat()
-const { extractCurrentTabText, extractSubtitles, isLoading: isContentLoading, error: contentError } = useContent()
+const { extractCurrentTabText, extractSubtitles, getCurrentUrl, isLoading: isContentLoading, error: contentError } = useContent()
 
 // Feature handlers
 async function handleSummary() {
@@ -62,9 +62,17 @@ async function handleSubtitles() {
     const truncatedSubtitles = subtitles.length > 20000
       ? subtitles.slice(0, 20000) + '\n\n[Subtitles truncated...]'
       : subtitles
-    // Use SUMMARY_PROMPT for video subtitles
-    const llmContent = `${SUMMARY_PROMPT}${truncatedSubtitles}`
-    const displayContent = `请帮我分析视频字幕 [已提取 ${truncatedSubtitles.length.toLocaleString()} 字符]`
+
+    // Detect platform and use appropriate prompt
+    const url = await getCurrentUrl()
+    const isBilibili = url?.includes('bilibili.com')
+    const subtitlePrompt = isBilibili
+      ? BILIBILI_SUBTITLE_SUMMARY_PROMPT
+      : YOUTUBE_SUBTITLE_SUMMARY_PROMPT
+
+    const llmContent = `${subtitlePrompt}${truncatedSubtitles}`
+    const platformName = isBilibili ? 'Bilibili' : 'YouTube'
+    const displayContent = `请帮我总结 ${platformName} 视频字幕 [已提取 ${truncatedSubtitles.length.toLocaleString()} 字符]`
     sendMessage(displayContent, undefined, llmContent)
   } else {
     sendMessage(`无法提取字幕${contentError.value ? `：${contentError.value}` : '，请确保视频正在播放或已开启字幕。'}`)
