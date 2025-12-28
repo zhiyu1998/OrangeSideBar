@@ -5,7 +5,8 @@
 export interface Message {
   id: string
   role: 'system' | 'user' | 'assistant'
-  content: string
+  content: string // UI display content (may be placeholder for extracted content)
+  llmContent?: string // Optional full content for LLM API (if different from display)
   images?: string[] // Base64 encoded images
   thinking?: string // Reasoning content for thinking models
   timestamp: number

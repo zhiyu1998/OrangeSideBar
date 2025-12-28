@@ -14,6 +14,14 @@ console.log('[OrangeSideBar] Content script loaded')
 function extractContent(): ExtractedContent | null {
   try {
     const documentClone = document.cloneNode(true) as Document
+
+    // Pre-strip scripts before Readability to avoid parsing issues
+    const docBody = documentClone.body
+    if (docBody) {
+      const unwantedElements = docBody.querySelectorAll('script, style, noscript')
+      unwantedElements.forEach((el) => el.remove())
+    }
+
     const reader = new Readability(documentClone, {
       charThreshold: 20,
       keepClasses: false,
@@ -43,11 +51,34 @@ function extractContent(): ExtractedContent | null {
 }
 
 /**
+ * Remove script, style, noscript elements from a cloned element
+ */
+function removeScriptElements(element: HTMLElement): void {
+  const unwantedElements = element.querySelectorAll('script, style, noscript, svg, iframe')
+  unwantedElements.forEach((el) => el.remove())
+}
+
+/**
+ * Get clean text content from an element (with scripts removed)
+ */
+function getCleanTextFromElement(element: HTMLElement): string {
+  const clone = element.cloneNode(true) as HTMLElement
+  removeScriptElements(clone)
+  return clone.textContent?.trim() || ''
+}
+
+/**
  * Get plain text content from page
  */
 function getTextContent(): string {
   try {
+    // Clone document and pre-strip scripts before Readability
     const documentClone = document.cloneNode(true) as Document
+    const docBody = documentClone.body
+    if (docBody) {
+      removeScriptElements(docBody)
+    }
+
     const reader = new Readability(documentClone)
     const article = reader.parse()
 
@@ -55,13 +86,11 @@ function getTextContent(): string {
       return `${article.title}\n\n${article.textContent}`
     }
 
-    // Fallback to body text
-    const clone = document.body.cloneNode(true) as HTMLElement
-    const scripts = clone.querySelectorAll('script, style, noscript')
-    scripts.forEach((el) => el.remove())
-    return clone.textContent?.trim() || ''
+    // Fallback: use cleaned body text
+    return getCleanTextFromElement(document.body)
   } catch {
-    return document.body.textContent?.trim() || ''
+    // Even on error, return cleaned body text (not raw textContent)
+    return getCleanTextFromElement(document.body)
   }
 }
 
@@ -134,6 +163,12 @@ chrome.runtime.onMessage.addListener(
     sendResponse: (response: ContentResponse) => void
   ) => {
     switch (message.action) {
+      case 'PING': {
+        // Used to check if content script is loaded
+        sendResponse({ success: true, data: 'pong' })
+        break
+      }
+
       case 'FETCH_PAGE_CONTENT': {
         const content = extractContent()
         if (content) {

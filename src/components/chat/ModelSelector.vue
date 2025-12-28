@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { ChevronDown, Check, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,57 +13,54 @@ import {
 import { useSettingsStore } from '@/stores/settings'
 import { llmFactory } from '@/lib/llm/factory'
 import type { ModelInfo } from '@/lib/llm/types'
+import type { ProviderId } from '@/types/provider'
 
 const settingsStore = useSettingsStore()
 
 const isLoading = ref(false)
-const availableModels = ref<ModelInfo[]>([])
 
 const currentModel = computed(() => settingsStore.defaultModel)
+
+// Use cached models from store, fallback to defaults
+const availableModels = computed(() => {
+  const cached = settingsStore.allCachedModels
+  return cached.length > 0 ? cached : getDefaultModels()
+})
+
 const currentModelName = computed(() => {
   const model = availableModels.value.find(m => m.id === currentModel.value)
   return model?.name || currentModel.value || 'Select Model'
 })
 
-// Fetch models from configured providers
+// Fetch models from all enabled providers
 async function fetchModels() {
   isLoading.value = true
-  const models: ModelInfo[] = []
 
   try {
-    // Get OpenAI models if configured
-    const openaiConfig = settingsStore.getProviderConfig('openai')
-    if (openaiConfig?.apiKey && typeof openaiConfig.apiKey === 'string') {
-      llmFactory.configureProvider('openai', {
-        apiKey: openaiConfig.apiKey,
-        baseUrl: openaiConfig.baseUrl,
-      })
-      const provider = llmFactory.getProvider('openai')
-      if (provider) {
-        const providerModels = await provider.getModels()
-        models.push(...providerModels)
+    const enabledProviders = settingsStore.enabledProviders
+
+    for (const providerId of enabledProviders) {
+      const config = settingsStore.getProviderConfig(providerId)
+      if (!config.apiKey) continue
+
+      // Skip if already cached
+      if (settingsStore.getProviderModels(providerId).length > 0) continue
+
+      try {
+        llmFactory.configureProvider(providerId, {
+          apiKey: typeof config.apiKey === 'string' ? config.apiKey : config.apiKey[0],
+          baseUrl: config.baseUrl,
+        })
+
+        const provider = llmFactory.getProvider(providerId)
+        if (provider) {
+          const models = await provider.getModels()
+          settingsStore.setProviderModels(providerId, models)
+        }
+      } catch (error) {
+        console.error(`Failed to fetch models for ${providerId}:`, error)
       }
     }
-
-    // Get Anthropic models if configured
-    const anthropicConfig = settingsStore.getProviderConfig('anthropic')
-    if (anthropicConfig?.apiKey && typeof anthropicConfig.apiKey === 'string') {
-      llmFactory.configureProvider('anthropic', {
-        apiKey: anthropicConfig.apiKey,
-        baseUrl: anthropicConfig.baseUrl,
-      })
-      const provider = llmFactory.getProvider('anthropic')
-      if (provider) {
-        const providerModels = await provider.getModels()
-        models.push(...providerModels)
-      }
-    }
-
-    availableModels.value = models
-  } catch (error) {
-    console.error('Failed to fetch models:', error)
-    // Use default models
-    availableModels.value = getDefaultModels()
   } finally {
     isLoading.value = false
   }
@@ -85,12 +82,21 @@ function selectModel(modelId: string) {
   settingsStore.setDefaultModel(modelId)
 }
 
+const providerNames: Record<ProviderId, string> = {
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  deepseek: 'DeepSeek',
+  moonshot: 'Moonshot',
+  siliconflow: 'SiliconFlow',
+  openrouter: 'OpenRouter',
+  groq: 'Groq',
+  grok: 'Grok',
+  mistral: 'Mistral',
+  ollama: 'Ollama',
+}
+
 function getProviderLabel(providerId: string): string {
-  switch (providerId) {
-    case 'openai': return 'OpenAI'
-    case 'anthropic': return 'Anthropic'
-    default: return providerId
-  }
+  return providerNames[providerId as ProviderId] || providerId
 }
 
 // Group models by provider
@@ -106,10 +112,16 @@ const groupedModels = computed(() => {
   return groups
 })
 
+// Watch for changes in cached models
+watch(() => settingsStore.allCachedModels, () => {
+  // Models updated from settings page
+}, { deep: true })
+
 onMounted(() => {
-  // Load default models first, then fetch from API
-  availableModels.value = getDefaultModels()
-  fetchModels()
+  // Fetch models if not cached
+  if (settingsStore.allCachedModels.length === 0) {
+    fetchModels()
+  }
 })
 </script>
 

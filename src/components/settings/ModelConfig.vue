@@ -1,16 +1,35 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { RotateCcw } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { RotateCcw, RefreshCw, Loader2, Check } from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
+import { llmFactory } from '@/lib/llm/factory'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import type { ModelInfo } from '@/lib/llm/types'
+import type { ProviderId } from '@/types/provider'
 
 const settingsStore = useSettingsStore()
 
 const params = computed(() => settingsStore.modelParameters)
+const defaultModel = computed(() => settingsStore.defaultModel)
+
+// Model fetching state
+const isLoadingModels = ref(false)
+const availableModels = ref<ModelInfo[]>([])
+const modelsByProvider = ref<Record<string, ModelInfo[]>>({})
 
 interface ParamConfig {
   key: keyof typeof params.value
@@ -70,6 +89,19 @@ const paramConfigs: ParamConfig[] = [
   },
 ]
 
+const providerNames: Record<ProviderId, string> = {
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  deepseek: 'DeepSeek',
+  moonshot: 'Moonshot',
+  siliconflow: 'SiliconFlow',
+  openrouter: 'OpenRouter',
+  groq: 'Groq',
+  grok: 'Grok',
+  mistral: 'Mistral',
+  ollama: 'Ollama',
+}
+
 function updateParam(key: keyof typeof params.value, value: number) {
   settingsStore.updateModelParameters({ [key]: value })
 }
@@ -77,10 +109,137 @@ function updateParam(key: keyof typeof params.value, value: number) {
 function resetParams() {
   settingsStore.resetModelParameters()
 }
+
+function selectModel(value: string | number | bigint | Record<string, unknown> | null) {
+  if (typeof value === 'string') {
+    settingsStore.setDefaultModel(value)
+  }
+}
+
+async function fetchModels() {
+  isLoadingModels.value = true
+  const allModels: ModelInfo[] = []
+  const grouped: Record<string, ModelInfo[]> = {}
+
+  try {
+    const enabledProviders = settingsStore.enabledProviders
+
+    for (const providerId of enabledProviders) {
+      const config = settingsStore.getProviderConfig(providerId)
+      if (!config.apiKey) continue
+
+      try {
+        // Configure the provider
+        llmFactory.configureProvider(providerId, {
+          apiKey: typeof config.apiKey === 'string' ? config.apiKey : config.apiKey[0],
+          baseUrl: config.baseUrl,
+        })
+
+        const provider = llmFactory.getProvider(providerId)
+        if (provider) {
+          const models = await provider.getModels()
+          allModels.push(...models)
+          grouped[providerId] = models
+        }
+      } catch (error) {
+        console.error(`Failed to fetch models for ${providerId}:`, error)
+      }
+    }
+
+    availableModels.value = allModels
+    modelsByProvider.value = grouped
+  } finally {
+    isLoadingModels.value = false
+  }
+}
+
+function getSelectedModelInfo(): ModelInfo | undefined {
+  return availableModels.value.find((m) => m.id === defaultModel.value)
+}
+
+onMounted(() => {
+  fetchModels()
+})
 </script>
 
 <template>
   <div class="space-y-6">
+    <!-- Default Model Selection -->
+    <Card>
+      <CardHeader class="flex flex-row items-center justify-between space-y-0">
+        <div>
+          <CardTitle>Default Model</CardTitle>
+          <CardDescription>
+            Select the default model for conversations.
+          </CardDescription>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          :disabled="isLoadingModels"
+          @click="fetchModels"
+        >
+          <Loader2 v-if="isLoadingModels" class="mr-2 h-4 w-4 animate-spin" />
+          <RefreshCw v-else class="mr-2 h-4 w-4" />
+          Refresh Models
+        </Button>
+      </CardHeader>
+      <CardContent class="space-y-4">
+        <div class="space-y-2">
+          <Label>Selected Model</Label>
+          <Select :model-value="defaultModel" @update:model-value="selectModel">
+            <SelectTrigger>
+              <SelectValue placeholder="Select a model" />
+            </SelectTrigger>
+            <SelectContent>
+              <template v-if="Object.keys(modelsByProvider).length > 0">
+                <SelectGroup v-for="(models, providerId) in modelsByProvider" :key="providerId">
+                  <SelectLabel>{{ providerNames[providerId as ProviderId] || providerId }}</SelectLabel>
+                  <SelectItem
+                    v-for="model in models"
+                    :key="model.id"
+                    :value="model.id"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span>{{ model.name }}</span>
+                      <Badge v-if="model.supportsVision" variant="secondary" class="text-xs">Vision</Badge>
+                      <Badge v-if="model.isThinkingModel" variant="outline" class="text-xs">Thinking</Badge>
+                    </div>
+                  </SelectItem>
+                </SelectGroup>
+              </template>
+              <template v-else>
+                <SelectItem value="gpt-4o-mini">GPT-4o Mini (Default)</SelectItem>
+                <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                <SelectItem value="claude-sonnet-4-20250514">Claude Sonnet 4</SelectItem>
+              </template>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <!-- Current Model Info -->
+        <div v-if="getSelectedModelInfo()" class="rounded-lg border p-3 bg-muted/50">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-sm font-medium">{{ getSelectedModelInfo()?.name }}</span>
+            <Badge variant="secondary" class="text-xs">
+              {{ providerNames[getSelectedModelInfo()?.providerId as ProviderId] }}
+            </Badge>
+            <Badge v-if="getSelectedModelInfo()?.supportsVision" variant="outline" class="text-xs">
+              <Check class="mr-1 h-3 w-3" /> Vision
+            </Badge>
+            <Badge v-if="getSelectedModelInfo()?.isThinkingModel" variant="outline" class="text-xs">
+              <Check class="mr-1 h-3 w-3" /> Thinking
+            </Badge>
+          </div>
+        </div>
+
+        <p class="text-xs text-muted-foreground">
+          Configure API keys in the Providers tab to see available models from each provider.
+        </p>
+      </CardContent>
+    </Card>
+
+    <!-- Model Parameters -->
     <Card>
       <CardHeader class="flex flex-row items-center justify-between space-y-0">
         <div>

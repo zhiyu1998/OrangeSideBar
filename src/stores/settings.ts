@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Theme, PromptMode, SystemPrompts } from '@/types/settings'
 import type { ProviderId, ProviderConfig, ModelParameters } from '@/types/provider'
+import type { ModelInfo } from '@/lib/llm/types'
 import { DEFAULT_SYSTEM_PROMPT, PAPER_SYSTEM_PROMPT, LEARNING_MODE_PROMPT } from '@/constants/prompts'
 
 // Default provider configurations
@@ -81,6 +82,10 @@ export const useSettingsStore = defineStore('settings', () => {
     learning: LEARNING_MODE_PROMPT,
   })
 
+  // Cached models per provider
+  const cachedModels = ref<Record<ProviderId, ModelInfo[]>>({} as Record<ProviderId, ModelInfo[]>)
+  const isLoadingModels = ref<Record<ProviderId, boolean>>({} as Record<ProviderId, boolean>)
+
   // Getters
   const enabledProviders = computed(() =>
     (Object.keys(providers.value) as ProviderId[]).filter(
@@ -95,6 +100,15 @@ export const useSettingsStore = defineStore('settings', () => {
       return window.matchMedia('(prefers-color-scheme: dark)').matches
     }
     return theme.value === 'dark'
+  })
+
+  // Get all cached models across all providers
+  const allCachedModels = computed(() => {
+    const all: ModelInfo[] = []
+    for (const models of Object.values(cachedModels.value)) {
+      all.push(...models)
+    }
+    return all
   })
 
   // Actions
@@ -165,6 +179,27 @@ export const useSettingsStore = defineStore('settings', () => {
     return config.apiKey
   }
 
+  // Model cache actions
+  function setProviderModels(providerId: ProviderId, models: ModelInfo[]) {
+    cachedModels.value[providerId] = models
+  }
+
+  function getProviderModels(providerId: ProviderId): ModelInfo[] {
+    return cachedModels.value[providerId] || []
+  }
+
+  function setProviderLoadingModels(providerId: ProviderId, loading: boolean) {
+    isLoadingModels.value[providerId] = loading
+  }
+
+  function isProviderLoadingModels(providerId: ProviderId): boolean {
+    return isLoadingModels.value[providerId] || false
+  }
+
+  function clearProviderModels(providerId: ProviderId) {
+    delete cachedModels.value[providerId]
+  }
+
   return {
     // State
     theme,
@@ -173,10 +208,13 @@ export const useSettingsStore = defineStore('settings', () => {
     modelParameters,
     providers,
     systemPrompts,
+    cachedModels,
+    isLoadingModels,
     // Getters
     enabledProviders,
     currentSystemPrompt,
     isDarkMode,
+    allCachedModels,
     // Actions
     setTheme,
     applyTheme,
@@ -190,5 +228,11 @@ export const useSettingsStore = defineStore('settings', () => {
     updateSystemPrompt,
     resetSystemPrompt,
     getApiKey,
+    // Model cache actions
+    setProviderModels,
+    getProviderModels,
+    setProviderLoadingModels,
+    isProviderLoadingModels,
+    clearProviderModels,
   }
 })

@@ -1,7 +1,32 @@
-import type { PiniaPluginContext } from 'pinia'
+import type { PiniaPluginContext, StateTree } from 'pinia'
 import { watch } from 'vue'
 
 const STORAGE_PREFIX = 'orangesidebar_'
+
+/**
+ * Keys that should NOT be persisted (runtime-only state)
+ * These are transient states that shouldn't survive a page reload
+ */
+const EXCLUDED_KEYS: Record<string, string[]> = {
+  chat: ['isStreaming', 'abortController'],
+  settings: ['isLoadingModels'],
+}
+
+/**
+ * Filter out non-serializable or transient state
+ */
+function filterState(storeId: string, state: StateTree): Partial<StateTree> {
+  const excludedKeys = EXCLUDED_KEYS[storeId] || []
+  const filtered: Partial<StateTree> = {}
+
+  for (const key in state) {
+    if (!excludedKeys.includes(key)) {
+      filtered[key] = state[key]
+    }
+  }
+
+  return filtered
+}
 
 /**
  * Chrome Storage sync plugin for Pinia
@@ -15,7 +40,9 @@ export function chromeStoragePlugin({ store }: PiniaPluginContext) {
     chrome.storage.local.get(storageKey, (result) => {
       if (result[storageKey]) {
         try {
-          store.$patch(result[storageKey])
+          // Filter out excluded keys before patching
+          const filteredState = filterState(store.$id, result[storageKey] as StateTree)
+          store.$patch(filteredState)
         } catch (error) {
           console.warn(`Failed to restore state for store "${store.$id}":`, error)
         }
@@ -26,7 +53,13 @@ export function chromeStoragePlugin({ store }: PiniaPluginContext) {
     watch(
       () => store.$state,
       (state) => {
-        chrome.storage.local.set({ [storageKey]: JSON.parse(JSON.stringify(state)) })
+        // Filter out non-serializable and transient state before saving
+        const filteredState = filterState(store.$id, state)
+        try {
+          chrome.storage.local.set({ [storageKey]: JSON.parse(JSON.stringify(filteredState)) })
+        } catch (error) {
+          console.warn(`Failed to save state for store "${store.$id}":`, error)
+        }
       },
       { deep: true }
     )

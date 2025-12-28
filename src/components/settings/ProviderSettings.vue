@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Check, Eye, EyeOff, Loader2, X } from 'lucide-vue-next'
+import { Check, Eye, EyeOff, Loader2, X, RefreshCw } from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
+import { llmFactory } from '@/lib/llm/factory'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Accordion,
@@ -13,6 +14,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import type { ProviderId } from '@/types/provider'
 
 const settingsStore = useSettingsStore()
@@ -130,16 +133,17 @@ async function testConnection(providerId: ProviderId) {
   testResult.value[providerId] = null
 
   try {
-    // Simple connection test - try to fetch models
-    const baseUrl = config.baseUrl.replace(/\/$/, '')
-    const response = await fetch(`${baseUrl}/models`, {
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        'Content-Type': 'application/json',
-      },
+    // Configure the provider with current settings
+    llmFactory.configureProvider(providerId, {
+      apiKey: typeof config.apiKey === 'string' ? config.apiKey : config.apiKey[0],
+      baseUrl: config.baseUrl,
     })
 
-    if (response.ok) {
+    const provider = llmFactory.getProvider(providerId)
+    if (provider) {
+      // Fetch models - this also tests connection
+      const models = await provider.getModels()
+      settingsStore.setProviderModels(providerId, models)
       testResult.value[providerId] = 'success'
     } else {
       testResult.value[providerId] = 'error'
@@ -148,6 +152,30 @@ async function testConnection(providerId: ProviderId) {
     testResult.value[providerId] = 'error'
   } finally {
     testingProvider.value = null
+  }
+}
+
+async function refreshModels(providerId: ProviderId) {
+  const config = getProviderConfig(providerId)
+  if (!config.apiKey) return
+
+  settingsStore.setProviderLoadingModels(providerId, true)
+
+  try {
+    llmFactory.configureProvider(providerId, {
+      apiKey: typeof config.apiKey === 'string' ? config.apiKey : config.apiKey[0],
+      baseUrl: config.baseUrl,
+    })
+
+    const provider = llmFactory.getProvider(providerId)
+    if (provider) {
+      const models = await provider.getModels()
+      settingsStore.setProviderModels(providerId, models)
+    }
+  } catch (error) {
+    console.error(`Failed to refresh models for ${providerId}:`, error)
+  } finally {
+    settingsStore.setProviderLoadingModels(providerId, false)
   }
 }
 
@@ -258,6 +286,44 @@ function getTestButtonContent(providerId: ProviderId) {
                     />
                     {{ getTestButtonContent(provider.id).text }}
                   </Button>
+                </div>
+
+                <!-- Available Models -->
+                <div v-if="settingsStore.getProviderModels(provider.id).length > 0" class="space-y-3 pt-4 border-t">
+                  <div class="flex items-center justify-between">
+                    <Label>Available Models ({{ settingsStore.getProviderModels(provider.id).length }})</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      :disabled="settingsStore.isProviderLoadingModels(provider.id)"
+                      @click="refreshModels(provider.id)"
+                    >
+                      <RefreshCw
+                        :class="['h-4 w-4', settingsStore.isProviderLoadingModels(provider.id) ? 'animate-spin' : '']"
+                      />
+                    </Button>
+                  </div>
+                  <ScrollArea class="h-48">
+                    <div class="grid grid-cols-1 gap-2 pr-4">
+                      <div
+                        v-for="model in settingsStore.getProviderModels(provider.id)"
+                        :key="model.id"
+                        class="flex items-center justify-between p-2 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer transition-colors"
+                        :class="{ 'ring-2 ring-primary': settingsStore.defaultModel === model.id }"
+                        @click="settingsStore.setDefaultModel(model.id)"
+                      >
+                        <div class="flex-1 min-w-0">
+                          <div class="font-medium text-sm truncate">{{ model.name }}</div>
+                          <div class="text-xs text-muted-foreground truncate">{{ model.id }}</div>
+                        </div>
+                        <div class="flex items-center gap-1 ml-2 flex-shrink-0">
+                          <Badge v-if="model.supportsVision" variant="secondary" class="text-xs">Vision</Badge>
+                          <Badge v-if="model.isThinkingModel" variant="outline" class="text-xs">Thinking</Badge>
+                          <Check v-if="settingsStore.defaultModel === model.id" class="h-4 w-4 text-primary ml-1" />
+                        </div>
+                      </div>
+                    </div>
+                  </ScrollArea>
                 </div>
               </div>
             </AccordionContent>

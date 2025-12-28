@@ -44,10 +44,14 @@ export function useChat(options: UseChatOptions = {}) {
 
   /**
    * Send a message and get streaming response
+   * @param content - Display content for UI (may be placeholder)
+   * @param images - Optional images for multimodal
+   * @param llmContent - Optional full content for LLM API (if different from display)
    */
   async function sendMessage(
     content: string,
-    images?: string[]
+    images?: string[],
+    llmContent?: string
   ): Promise<void> {
     if (!content.trim() && (!images || images.length === 0)) {
       return
@@ -61,27 +65,11 @@ export function useChat(options: UseChatOptions = {}) {
       chatStore.createSession(modelId.value)
     }
 
-    // Build user message content
-    let messageContent: string | Array<{ type: 'text' | 'image'; text?: string; source?: any }> = content
-
-    if (images && images.length > 0) {
-      messageContent = [
-        { type: 'text' as const, text: content },
-        ...images.map((img) => ({
-          type: 'image' as const,
-          source: {
-            type: 'base64' as const,
-            media_type: 'image/png' as const,
-            data: img.replace(/^data:image\/\w+;base64,/, ''),
-          },
-        })),
-      ]
-    }
-
-    // Add user message
+    // Add user message (store display content and optionally llmContent)
     chatStore.addMessage({
       role: 'user',
-      content: typeof messageContent === 'string' ? messageContent : JSON.stringify(messageContent),
+      content, // UI display content
+      llmContent: llmContent || undefined, // Full LLM content if different
       images,
     })
 
@@ -109,12 +97,12 @@ export function useChat(options: UseChatOptions = {}) {
       return
     }
 
-    // Prepare messages for API
+    // Prepare messages for API (use llmContent if available, otherwise content)
     const apiMessages: ChatMessage[] = messages.value
       .filter((m) => m.id !== assistantMessage.id)
       .map((m) => ({
         role: m.role as 'user' | 'assistant' | 'system',
-        content: m.content,
+        content: m.llmContent || m.content,
       }))
 
     // Create abort controller
@@ -141,16 +129,25 @@ export function useChat(options: UseChatOptions = {}) {
       })
 
       for await (const chunk of stream) {
+        // Check if streaming was aborted
+        if (!chatStore.isStreaming) {
+          break
+        }
         handleStreamChunk(chunk, assistantMessage.id)
       }
     } catch (err) {
+      console.error('[useChat] Stream error:', err)
       if (err instanceof Error) {
         if (err.name !== 'AbortError') {
           error.value = err.message
           chatStore.updateMessage(assistantMessage.id, { error: err.message })
         }
+      } else {
+        error.value = 'Unknown error occurred'
+        chatStore.updateMessage(assistantMessage.id, { error: 'Unknown error occurred' })
       }
     } finally {
+      // Always reset streaming state
       isLoading.value = false
       chatStore.setStreaming(false)
       chatStore.setAbortController(null)

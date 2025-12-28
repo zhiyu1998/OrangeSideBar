@@ -29,7 +29,6 @@ export default defineManifest({
     'storage',
     'activeTab',
     'tabs',
-    'scripting',
     'clipboardWrite',
   ],
   host_permissions: ['<all_urls>'],

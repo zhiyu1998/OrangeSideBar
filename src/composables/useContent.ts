@@ -87,16 +87,21 @@ export function useContent() {
         }
       }
 
-      // For web pages, send message to content script
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        action: 'FETCH_PAGE_CONTENT',
-      })
+      // For web pages, send message to content script (injected via manifest)
+      try {
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          action: 'FETCH_PAGE_CONTENT',
+        })
 
-      if (!response?.success) {
-        throw new Error(response?.error || 'Failed to extract page content')
+        if (!response?.success) {
+          throw new Error(response?.error || 'Failed to extract page content')
+        }
+
+        return response.data
+      } catch (err) {
+        // Content script not loaded - likely a restricted page or needs refresh
+        throw new Error('Content script not available. Please refresh the page.')
       }
-
-      return response.data
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error'
       console.error('[useContent] extractCurrentTab error:', err)
@@ -126,15 +131,21 @@ export function useContent() {
         return pdfContent?.content || null
       }
 
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        action: 'FETCH_TEXT_CONTENT',
-      })
+      // For web pages, send message to content script (injected via manifest)
+      try {
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          action: 'FETCH_TEXT_CONTENT',
+        })
 
-      if (!response?.success) {
-        throw new Error(response?.error || 'Failed to extract text content')
+        if (!response?.success) {
+          throw new Error(response?.error || 'Failed to extract text content')
+        }
+
+        return response.data
+      } catch (err) {
+        // Content script not loaded - likely a restricted page or needs refresh
+        throw new Error('Content script not available. Please refresh the page.')
       }
-
-      return response.data
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error'
       console.error('[useContent] extractCurrentTabText error:', err)

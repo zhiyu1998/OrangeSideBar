@@ -14,7 +14,9 @@
       "Bash(git checkout:*)",
       "Bash(tree:*)",
       "Bash(git ls-tree:*)",
-      "Bash(bun run build:*)"
+      "Bash(bun run build:*)",
+      "Skill(codex-cli)",
+      "Skill(codex-cli:*)"
     ],
     "deny": [],
     "ask": []

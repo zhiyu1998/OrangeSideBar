@@ -113,11 +113,20 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function stopStreaming() {
+    // Always reset streaming state first
+    isStreaming.value = false
+
+    // Try to abort, but don't fail if controller is invalid
     if (abortController.value) {
-      abortController.value.abort()
+      try {
+        if (typeof abortController.value.abort === 'function') {
+          abortController.value.abort()
+        }
+      } catch (error) {
+        console.warn('[chat store] Failed to abort:', error)
+      }
       abortController.value = null
     }
-    isStreaming.value = false
   }
 
   function setLayoutMode(mode: LayoutMode) {

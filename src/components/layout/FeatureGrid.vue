@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-vue-next'
 
 type FeatureKey = 'summary' | 'translate' | 'pdf' | 'subtitles'
+
+interface Props {
+  loading?: boolean
+  disabled?: boolean
+}
+
+defineProps<Props>()
 
 // Use call signature syntax for defineEmits
 const emit = defineEmits<{
@@ -33,15 +41,17 @@ function handleFeatureClick(key: FeatureKey) {
 </script>
 
 <template>
-  <div class="grid grid-cols-4 gap-2 p-3">
+  <div class="grid grid-cols-4 gap-2 p-3 flex-shrink-0">
     <Button
       v-for="feature in features"
       :key="feature.key"
       variant="outline"
       class="h-auto py-2.5 flex-col gap-1.5 hover:bg-accent/50 transition-colors"
+      :disabled="loading || disabled"
       @click="handleFeatureClick(feature.key)"
     >
-      <img :src="feature.icon" :alt="feature.label" class="h-5 w-5 object-contain" />
+      <Loader2 v-if="loading" class="h-5 w-5 animate-spin" />
+      <img v-else :src="feature.icon" :alt="feature.label" class="h-5 w-5 object-contain" />
       <span class="text-xs font-medium">{{ feature.label }}</span>
     </Button>
   </div>
