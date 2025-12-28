@@ -49,17 +49,46 @@ export function useChat(options: UseChatOptions = {}) {
    * whose IDs don't match our prefix mapping), then fallback to prefix-based detection.
    */
   function resolveProviderForModel(model: string) {
-    const cached = settingsStore.allCachedModels.find((m) => m.id === model)
-    if (cached) {
-      configureProvider(cached.providerId)
-      return llmFactory.getProvider(cached.providerId) ?? llmFactory.getProviderForModel(model)
+    // Find provider from cached model lists (including disabled providers)
+    for (const [providerId, models] of Object.entries(settingsStore.cachedModels) as Array<
+      [ProviderId, { id: string }[]]
+    >) {
+      if (!models?.some((m) => m.id === model)) continue
+
+      const config = settingsStore.getProviderConfig(providerId)
+      if (!config.enabled) {
+        return null
+      }
+
+      configureProvider(providerId)
+      return llmFactory.getProvider(providerId) ?? llmFactory.getProviderForModel(model)
     }
 
     const detected = llmFactory.getProviderForModel(model)
     if (detected) {
+      const config = settingsStore.getProviderConfig(detected.providerId)
+      if (!config.enabled) {
+        return null
+      }
       configureProvider(detected.providerId)
     }
     return detected
+  }
+
+  function getDisabledProviderForModel(model: string): ProviderId | null {
+    for (const [providerId, models] of Object.entries(settingsStore.cachedModels) as Array<
+      [ProviderId, { id: string }[]]
+    >) {
+      if (!models?.some((m) => m.id === model)) continue
+      if (!settingsStore.getProviderConfig(providerId).enabled) return providerId
+    }
+
+    const detected = llmFactory.getProviderForModel(model)
+    if (detected && !settingsStore.getProviderConfig(detected.providerId).enabled) {
+      return detected.providerId
+    }
+
+    return null
   }
 
   /**
@@ -103,7 +132,10 @@ export function useChat(options: UseChatOptions = {}) {
     const provider = resolveProviderForModel(modelId.value)
 
     if (!provider) {
-      error.value = `No provider found for model: ${modelId.value}`
+      const disabledProvider = getDisabledProviderForModel(modelId.value)
+      error.value = disabledProvider
+        ? `Provider "${disabledProvider}" is disabled. Please enable it in settings or choose another model.`
+        : `No provider found for model: ${modelId.value}`
       chatStore.updateMessage(assistantMessage.id, { error: error.value })
       return
     }

@@ -212,9 +212,9 @@ function getTestButtonContent(providerId: ProviderId) {
             <AccordionTrigger class="hover:no-underline">
               <div class="flex items-center gap-3">
                 <Switch
-                  :checked="getProviderConfig(provider.id).enabled"
+                  :model-value="getProviderConfig(provider.id).enabled"
                   @click.stop
-                  @update:checked="(checked: boolean) => toggleEnabled(provider.id, checked)"
+                  @update:model-value="(enabled: boolean) => toggleEnabled(provider.id, enabled)"
                 />
                 <div class="text-left">
                   <div class="font-medium">{{ provider.name }}</div>

@@ -34,18 +34,48 @@ function filterState(storeId: string, state: StateTree): Partial<StateTree> {
  */
 export function chromeStoragePlugin({ store }: PiniaPluginContext) {
   const storageKey = `${STORAGE_PREFIX}${store.$id}`
+  let suppressSaves = 0
+
+  function withSuppressedSave(fn: () => void) {
+    suppressSaves += 1
+    try {
+      fn()
+    } finally {
+      // Ensure any reactive watchers triggered by $patch don't immediately write back to storage
+      setTimeout(() => {
+        suppressSaves = Math.max(0, suppressSaves - 1)
+      }, 0)
+    }
+  }
 
   // Load initial state from Chrome storage
   if (typeof chrome !== 'undefined' && chrome.storage?.local) {
     chrome.storage.local.get(storageKey, (result) => {
       if (result[storageKey]) {
         try {
-          // Filter out excluded keys before patching
-          const filteredState = filterState(store.$id, result[storageKey] as StateTree)
-          store.$patch(filteredState)
+          withSuppressedSave(() => {
+            const filteredState = filterState(store.$id, result[storageKey] as StateTree)
+            store.$patch(filteredState)
+          })
         } catch (error) {
           console.warn(`Failed to restore state for store "${store.$id}":`, error)
         }
+      }
+    })
+
+    // Sync updates across extension contexts (e.g. settings page <-> sidepanel)
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== 'local') return
+      const change = changes[storageKey]
+      if (!change?.newValue) return
+
+      try {
+        withSuppressedSave(() => {
+          const filteredState = filterState(store.$id, change.newValue as StateTree)
+          store.$patch(filteredState)
+        })
+      } catch (error) {
+        console.warn(`Failed to sync state for store "${store.$id}":`, error)
       }
     })
 
@@ -53,6 +83,7 @@ export function chromeStoragePlugin({ store }: PiniaPluginContext) {
     watch(
       () => store.$state,
       (state) => {
+        if (suppressSaves > 0) return
         // Filter out non-serializable and transient state before saving
         const filteredState = filterState(store.$id, state)
         try {

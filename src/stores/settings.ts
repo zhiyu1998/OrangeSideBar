@@ -155,6 +155,39 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function setProviderEnabled(providerId: ProviderId, enabled: boolean) {
     providers.value[providerId].enabled = enabled
+
+    if (!enabled) {
+      const disabledModelIds = new Set(
+        (cachedModels.value[providerId] || []).map((m) => m.id)
+      )
+
+      // Remove cached models so they don't keep appearing in selectors
+      clearProviderModels(providerId)
+
+      // If current default model belongs to the disabled provider, switch to an enabled model if possible
+      if (disabledModelIds.has(defaultModel.value)) {
+        let nextModel: string | null = null
+
+        for (const [pid, models] of Object.entries(cachedModels.value) as Array<
+          [ProviderId, ModelInfo[]]
+        >) {
+          if (!providers.value[pid]?.enabled) continue
+          const first = models[0]?.id
+          if (first) {
+            nextModel = first
+            break
+          }
+        }
+
+        if (!nextModel && providers.value.openai?.enabled) {
+          nextModel = 'gpt-4o-mini'
+        }
+
+        if (nextModel) {
+          defaultModel.value = nextModel
+        }
+      }
+    }
   }
 
   function updateSystemPrompt(mode: PromptMode, prompt: string) {

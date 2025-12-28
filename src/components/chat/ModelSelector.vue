@@ -23,8 +23,24 @@ const currentModel = computed(() => settingsStore.defaultModel)
 
 // Use cached models from store, fallback to defaults
 const availableModels = computed(() => {
-  const cached = settingsStore.allCachedModels
-  return cached.length > 0 ? cached : getDefaultModels()
+  const enabledProviders = settingsStore.enabledProviders
+  const enabled = new Set(enabledProviders)
+
+  const cached = settingsStore.allCachedModels.filter((m) => enabled.has(m.providerId))
+  const defaults = getDefaultModels().filter((m) => enabled.has(m.providerId))
+
+  // If some providers have cached models, still show defaults for other enabled providers
+  // (e.g. show Claude defaults even if only OpenAI models are cached).
+  const providersWithCachedModels = new Set(cached.map((m) => m.providerId))
+  const merged = [...cached]
+
+  for (const model of defaults) {
+    if (!providersWithCachedModels.has(model.providerId)) {
+      merged.push(model)
+    }
+  }
+
+  return merged.length > 0 ? merged : defaults
 })
 
 const currentModelName = computed(() => {
@@ -116,6 +132,14 @@ const groupedModels = computed(() => {
 watch(() => settingsStore.allCachedModels, () => {
   // Models updated from settings page
 }, { deep: true })
+
+// React to provider enable/disable changes
+watch(
+  () => settingsStore.enabledProviders,
+  () => {
+    fetchModels()
+  }
+)
 
 onMounted(() => {
   // Fetch models if not cached
