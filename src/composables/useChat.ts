@@ -9,6 +9,7 @@ import type { ChatMessage, StreamChunk } from '@/lib/llm/types'
 import { useChatStore } from '@/stores/chat'
 import { useSettingsStore } from '@/stores/settings'
 import { getSystemPrompt } from '@/constants/prompts'
+import type { ProviderId } from '@/types/provider'
 
 export interface UseChatOptions {
   modelId?: string
@@ -32,14 +33,33 @@ export function useChat(options: UseChatOptions = {}) {
   /**
    * Configure provider with current settings
    */
-  function configureProvider(providerId: string) {
-    const config = settingsStore.getProviderConfig(providerId as any)
+  function configureProvider(providerId: ProviderId) {
+    const config = settingsStore.getProviderConfig(providerId)
     if (config && config.apiKey) {
-      llmFactory.configureProvider(providerId as any, {
-        apiKey: settingsStore.getApiKey(providerId as any),
+      llmFactory.configureProvider(providerId, {
+        apiKey: settingsStore.getApiKey(providerId),
         baseUrl: config.baseUrl,
       })
     }
+  }
+
+  /**
+   * Resolve provider for a model ID.
+   * Prefer the provider captured in the cached model list (supports OpenAI-compatible 3rd-party models
+   * whose IDs don't match our prefix mapping), then fallback to prefix-based detection.
+   */
+  function resolveProviderForModel(model: string) {
+    const cached = settingsStore.allCachedModels.find((m) => m.id === model)
+    if (cached) {
+      configureProvider(cached.providerId)
+      return llmFactory.getProvider(cached.providerId) ?? llmFactory.getProviderForModel(model)
+    }
+
+    const detected = llmFactory.getProviderForModel(model)
+    if (detected) {
+      configureProvider(detected.providerId)
+    }
+    return detected
   }
 
   /**
@@ -80,16 +100,13 @@ export function useChat(options: UseChatOptions = {}) {
     })
 
     // Get provider for the model
-    const provider = llmFactory.getProviderForModel(modelId.value)
+    const provider = resolveProviderForModel(modelId.value)
 
     if (!provider) {
       error.value = `No provider found for model: ${modelId.value}`
       chatStore.updateMessage(assistantMessage.id, { error: error.value })
       return
     }
-
-    // Configure provider
-    configureProvider(provider.providerId)
 
     if (!provider.isConfigured()) {
       error.value = `Provider "${provider.providerName}" is not configured. Please set API key in settings.`

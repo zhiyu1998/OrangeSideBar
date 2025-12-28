@@ -9,6 +9,17 @@ import { OpenAIProvider } from './openai'
 import { AnthropicProvider } from './anthropic'
 import type { LLMProviderConfig } from './types'
 
+const OPENAI_COMPATIBLE_PROVIDERS: ProviderId[] = [
+  'deepseek',
+  'moonshot',
+  'siliconflow',
+  'openrouter',
+  'groq',
+  'grok',
+  'mistral',
+  'ollama',
+]
+
 /**
  * Model prefix to provider mapping
  */
@@ -111,7 +122,7 @@ class LLMProviderFactory {
     if (!provider) {
       // For OpenAI-compatible providers that aren't registered yet,
       // create an OpenAI provider instance
-      if (['deepseek', 'moonshot', 'siliconflow', 'groq', 'grok', 'mistral', 'ollama'].includes(providerId)) {
+      if (OPENAI_COMPATIBLE_PROVIDERS.includes(providerId)) {
         const openaiProvider = new OpenAIProvider()
         // Override provider ID for the clone
         Object.defineProperty(openaiProvider, 'providerId', {
@@ -137,7 +148,7 @@ class LLMProviderFactory {
 
     if (!provider) {
       // Create OpenAI-compatible provider for unregistered providers
-      if (['deepseek', 'moonshot', 'siliconflow', 'groq', 'grok', 'mistral', 'ollama'].includes(providerId)) {
+      if (OPENAI_COMPATIBLE_PROVIDERS.includes(providerId)) {
         provider = new OpenAIProvider()
         Object.defineProperty(provider, 'providerId', {
           value: providerId,

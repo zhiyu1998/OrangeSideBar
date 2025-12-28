@@ -214,6 +214,8 @@ export class OpenAIProvider extends BaseLLMProvider {
 
   /**
    * Fetch available models
+   * Note: No filtering applied - returns all chat-capable models from the API
+   * This allows third-party OpenAI-compatible providers to return their full model list
    */
   async getModels(): Promise<ModelInfo[]> {
     const client = this.getClient()
@@ -223,21 +225,15 @@ export class OpenAIProvider extends BaseLLMProvider {
       const models: ModelInfo[] = []
 
       for (const model of response.data) {
-        // Filter for chat models
-        if (
-          model.id.includes('gpt') ||
-          model.id.includes('o1') ||
-          model.id.includes('o3') ||
-          model.id.includes('chatgpt')
-        ) {
-          models.push({
-            id: model.id,
-            name: model.id,
-            providerId: this.providerId,
-            supportsVision: this.supportsVision(model.id),
-            isThinkingModel: this.supportsThinking(model.id),
-          })
-        }
+        // Include all models from the API response
+        // Third-party providers may have custom model names
+        models.push({
+          id: model.id,
+          name: model.id,
+          providerId: this.providerId,
+          supportsVision: this.supportsVision(model.id),
+          isThinkingModel: this.supportsThinking(model.id),
+        })
       }
 
       return models.sort((a, b) => a.id.localeCompare(b.id))

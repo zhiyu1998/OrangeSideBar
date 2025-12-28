@@ -97,10 +97,10 @@ function getCharCount(mode: PromptMode): number {
             </div>
 
             <Textarea
-              :value="prompts[info.mode]"
+              :model-value="prompts[info.mode]"
               :placeholder="`Enter ${info.label.toLowerCase()} system prompt...`"
               class="min-h-[300px] font-mono text-sm"
-              @input="(e: Event) => updatePrompt(info.mode, (e.target as HTMLTextAreaElement).value)"
+              @update:model-value="(v) => updatePrompt(info.mode, String(v ?? ''))"
             />
 
             <div class="flex justify-between items-center text-xs text-muted-foreground">
