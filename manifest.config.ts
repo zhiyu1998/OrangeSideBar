@@ -23,6 +23,12 @@ export default defineManifest({
       js: ['src/content/main.ts'],
       matches: ['https://*/*', 'http://*/*'],
     },
+    {
+      js: ['src/content/youtube-injector.ts'],
+      matches: ['https://www.youtube.com/*', 'https://youtube.com/*', 'https://m.youtube.com/*', 'https://youtu.be/*'],
+      run_at: 'document_start',
+      world: 'MAIN',
+    },
   ],
   permissions: [
     'sidePanel',
@@ -30,6 +36,7 @@ export default defineManifest({
     'activeTab',
     'tabs',
     'clipboardWrite',
+    'scripting',
   ],
   host_permissions: ['<all_urls>'],
   side_panel: {
@@ -40,10 +47,4 @@ export default defineManifest({
     type: 'module',
   },
   options_page: 'src/settings/index.html',
-  web_accessible_resources: [
-    {
-      resources: ['src/content/youtube-injector.ts'],
-      matches: ['https://www.youtube.com/*', 'https://youtube.com/*', 'https://m.youtube.com/*'],
-    },
-  ],
 })

@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working in this repository.
 
 ## Project Overview
 
-OrangeSideBar is a Chrome extension that provides an AI-powered sidebar for webpage summarization and interaction. Built with Vue 3, TypeScript, and Vite. Supports 10+ LLM providers with features like dual-column model comparison, multi-turn conversations, and interactive learning modes.
+OrangeSideBar is a Chrome extension (Manifest V3) that provides an AI-powered side panel for webpage summarization and chat. It is built with Vue 3 + TypeScript + Vite (CRXJS) and uses Pinia for state management. The extension supports multiple LLM providers (OpenAI, Anthropic, and several OpenAI-compatible endpoints), multi-turn chat, dual-column comparison, and multiple system-prompt modes. Assistant Markdown rendering supports Mermaid diagrams (including `mindmap`).
 
 ## Development Commands
 
@@ -19,160 +19,93 @@ bun run dev
 bun run build
 ```
 
-**Loading the extension for testing:**
+### Loading the extension for testing
+
 1. Run `bun run build` to generate the `dist/` folder
-2. Navigate to `chrome://extensions/`
-3. Enable "Developer mode"
-4. Click "Load unpacked" and select the `dist/` directory
+2. Open `chrome://extensions/`
+3. Enable “Developer mode”
+4. Click “Load unpacked” and select the `dist/` directory
 
-**Note:** During development with `bun run dev`, the extension can hot-reload but you may need to reload the extension page for manifest/background changes.
-
-## Development Philosophy
-
-- **KISS (Keep It Simple, Stupid)**: Favor simple, readable solutions over complex abstractions
-- **YAGNI (You Aren't Gonna Need It)**: Implement features only when actually needed
-- **SOLID Principles**: Single responsibility per component, open for extension, dependency inversion
+Note: Vite 7 recommends Node.js `20.19+` (or `22.12+`). Builds may still succeed on slightly older Node versions, but upgrading avoids warnings.
 
 ## Architecture Overview
 
-### Technology Stack
+### Extension entrypoints
 
-- **Framework:** Vue 3 with Composition API
-- **Language:** TypeScript (strict mode)
-- **State Management:** Pinia with Chrome storage persistence
-- **Styling:** Tailwind CSS 4
-- **UI Components:** Radix UI (via reka-ui) + Lucide icons
-- **Build Tool:** Vite with CRXJS plugin for Chrome extension bundling
-- **Package Manager:** Bun
+- `src/background/index.ts` — MV3 service worker (message routing, tab management)
+- `src/content/main.ts` — content script (Readability-based extraction)
+- `src/sidepanel/main.ts` / `src/sidepanel/App.vue` — main side panel UI
+- `src/settings/main.ts` / `src/settings/App.vue` — settings page UI
+- `src/popup/main.ts` / `src/popup/App.vue` — browser action popup
 
-### Source Structure
+### State management and persistence
 
-```
-src/
-├── background/           # Service worker (Chrome extension background)
-│   └── index.ts          # Message routing, tab management
-├── content/              # Content scripts injected into web pages
-│   ├── main.ts           # Page content extraction with Readability
-│   └── youtube-injector.ts  # YouTube subtitle interception (MAIN world)
-├── sidepanel/            # Main sidebar UI
-│   ├── index.html
-│   ├── main.ts           # Vue app entry point
-│   └── App.vue           # Root component
-├── settings/             # Options/settings page
-│   ├── index.html
-│   ├── main.ts
-│   └── App.vue
-├── lib/
-│   ├── llm/              # LLM provider abstraction layer
-│   │   ├── types.ts      # Core LLM types
-│   │   ├── base.ts       # Abstract BaseLLMProvider class
-│   │   ├── openai.ts     # OpenAI-compatible provider
-│   │   ├── anthropic.ts  # Anthropic Claude provider
-│   │   └── factory.ts    # Provider factory & model routing
-│   └── content/          # Content extraction utilities
-│       ├── types.ts
-│       ├── web.ts        # Readability-based extraction
-│       ├── pdf.ts        # PDF.js processing
-│       └── youtube.ts    # YouTube-specific handling
-├── stores/               # Pinia state management
-│   ├── chat.ts           # Chat sessions, messages, streaming state
-│   ├── settings.ts       # Provider configs, prompts, theme
-│   ├── ui.ts             # UI state (dialogs, layout)
-│   └── plugins/chromeStorage.ts  # Auto-sync to chrome.storage.local
-├── types/                # TypeScript type definitions
-│   ├── provider.ts       # ProviderId, ProviderInfo, ProviderConfig
-│   ├── settings.ts       # Theme, PromptMode, ModelParameters
-│   ├── chat.ts           # Message, ChatSession, DualColumnState
-│   └── index.ts
-├── constants/            # Configuration constants
-│   ├── providers.ts      # Provider definitions, MODEL_PROVIDER_MAPPING
-│   ├── prompts.ts        # System prompts (default, paper, learning modes)
-│   └── index.ts
-├── components/           # Vue components
-│   ├── ui/               # Base UI components (Button, Card, Dialog, etc.)
-│   ├── layout/           # AppHeader, FeatureGrid
-│   ├── chat/             # MessageList, InputGroup, ModelSelector
-│   └── settings/         # ProviderSettings, PromptEditor
-├── composables/          # Vue composables
-│   ├── useChat.ts        # Chat logic and message handling
-│   ├── useContent.ts     # Content extraction from pages
-│   └── useTheme.ts       # Theme switching
-└── assets/styles/        # Tailwind CSS
-```
+Pinia stores:
 
-### Key Configuration Files
+- `src/stores/settings.ts` — providers (API keys/base URLs/enabled), model parameters, prompt modes, per-provider model cache
+- `src/stores/chat.ts` — chat sessions/messages, streaming state, dual-column state
+- `src/stores/ui.ts` — UI state (dialogs/layout mode, etc.)
 
-- `manifest.config.ts` - Chrome Manifest V3 definition (permissions, content scripts, service worker)
-- `vite.config.ts` - Vite build config with Vue, Tailwind, CRXJS plugins
-- `tsconfig.json` - TypeScript config with path alias `@/*` → `src/*`
-- `package.json` - Dependencies and npm scripts
+Persistence + cross-context sync:
 
-### Multi-LLM Provider System
+- `src/stores/plugins/chromeStorage.ts` syncs store state to `chrome.storage.local` under the key `orangesidebar_<storeId>`.
+- It also listens to `chrome.storage.onChanged` so changes from the Settings page reflect in the Side panel/Popup (and vice versa) without requiring a full reload.
+- Runtime-only keys excluded from persistence: `isStreaming`, `abortController`, `isLoadingModels`.
 
-**Supported Providers:** OpenAI, Anthropic, DeepSeek, Moonshot (Kimi), SiliconFlow, OpenRouter, Groq, Grok, Mistral, Ollama
+Provider enable/disable behavior (important):
 
-**Provider Architecture:**
-- `src/constants/providers.ts` - `PROVIDERS` object with base URLs, API paths, feature support flags
-- `src/lib/llm/factory.ts` - `LLMProviderFactory` singleton that routes models to providers
-- `src/lib/llm/openai.ts` - `OpenAIProvider` handles OpenAI-compatible APIs (most providers)
-- `src/lib/llm/anthropic.ts` - `AnthropicProvider` handles Claude API
+- Disabling a provider clears its cached models so model selectors stop showing them.
+- If the current `defaultModel` belongs to a disabled provider, the settings store will attempt to switch to an enabled model.
 
-**Adding a new provider:**
-1. Add entry to `PROVIDERS` in `src/constants/providers.ts`
-2. Add model prefix mapping to `MODEL_PROVIDER_MAPPING`
-3. If OpenAI-compatible, no new provider class needed
-4. Add to `DEFAULT_PROVIDERS` in `src/stores/settings.ts`
-5. If thinking/reasoning model, add to `THINKING_MODELS`
+### LLM provider system
 
-### State Management
+Provider metadata (mostly UI/reference):
 
-Pinia stores with automatic Chrome storage persistence via `chromeStoragePlugin`:
+- `src/constants/providers.ts` contains `PROVIDERS` (name/icon/defaultBaseUrl/features) and helper utilities.
 
-- **chat store** - Sessions, messages, streaming state, dual-column layout
-- **settings store** - Provider configs (API keys, base URLs), model parameters, system prompts, theme
-- **ui store** - Dialog visibility, layout mode
+Provider implementations:
 
-**Excluded from persistence:** `isStreaming`, `abortController`, `isLoadingModels`
+- `src/lib/llm/openai.ts` — OpenAI-compatible `/chat/completions` + `/models` client (used for OpenAI and most OpenAI-compatible providers)
+- `src/lib/llm/anthropic.ts` — Anthropic Claude client (static model list; no models endpoint)
 
-### Chrome Extension Message Passing
+Provider factory and routing:
 
-**Background → Content Script actions:**
-- `PING` - Check if content script loaded
-- `FETCH_PAGE_CONTENT` - Get structured HTML via Readability
-- `FETCH_TEXT_CONTENT` - Get plain text
-- `GET_PAGE_URL` - Current URL
-- `GET_VIDEO_INFO` - YouTube/Bilibili detection
-- `GET_YOUTUBE_SUBTITLES` - Cached subtitle data
+- `src/lib/llm/factory.ts` manages provider instances and model→provider routing.
+- OpenAI-compatible providers are served by cloned `OpenAIProvider` instances (providerId overridden).
 
-**Side panel → Background actions:**
-- `GET_TAB_INFO` - Active tab info
-- `getYouTubeSubtitles` - Request subtitles from content script
-- `openSettings` - Open options page
+Chat pipeline:
 
-### Prompt System
+- `src/composables/useChat.ts` builds API messages + system prompt, resolves the provider, verifies the provider is enabled/configured, then streams responses.
+- Provider resolution prefers the cached model list (more reliable for 3rd‑party model IDs that don’t match simple prefixes).
 
-Three modes defined in `src/constants/prompts.ts`:
-- **Default** - General conversation with time awareness
-- **Paper** - Academic paper analysis
-- **Learning** - Interactive Socratic tutoring (160+ lines)
+### Settings UI (providers/models/prompts)
 
-User customizations stored per mode in settings store.
+- `src/components/settings/ProviderSettings.vue`
+  - Enables/disables providers (reka-ui `Switch` uses `modelValue` / `update:modelValue`)
+  - Configures API key + base URL per provider
+  - “Test Connection” fetches models and caches them into `settingsStore.cachedModels[providerId]`
+- `src/components/settings/ModelConfig.vue` fetches models from enabled providers and selects the global `defaultModel`
+- `src/components/settings/PromptEditor.vue` edits the 3 system prompts (Default/Paper/Learning)
+
+Note: provider definitions currently exist in multiple places (constants, store defaults, settings UI list). When adding/removing a provider, update all relevant lists.
+
+### Markdown rendering (Side panel)
+
+- `src/components/chat/MarkdownRenderer.vue` renders assistant messages via:
+  - `marked` (Markdown → HTML)
+  - `highlight.js` (code highlighting)
+  - `DOMPurify` (sanitization)
+- Mermaid is supported via fenced code blocks:
+  - ```mermaid
+  - ```mindmap (treated as Mermaid `mindmap`)
 
 ## Code Style Guidelines
 
 - 2-space indentation
-- Conventional commits with emoji prefixes (✨ feat, 🐛 fix, 📄 docs, 🦄 refactor)
-- Path alias `@/` for imports from `src/`
+- Prefer small, focused changes (avoid unrelated refactors)
 - Vue Composition API with `<script setup lang="ts">`
-- Async/await for asynchronous operations
-- Streaming responses with AbortController for cancellation
+- Use path alias `@/` for imports from `src/`
 
 ## Build & Release
 
-**GitHub Actions Workflows:**
-- `build-crx.yml` - Builds and signs CRX on release publication
-- `release-draft.yml` - Manages draft releases
-
-**Output:**
-- `dist/` - Vite build output (load as unpacked extension)
-- `release/crx-orangesidebar-{version}.zip` - Packaged ZIP for distribution
+- `bun run build` outputs `dist/` (load as unpacked extension) and also creates a ZIP under `release/` (via `vite-plugin-zip-pack`).

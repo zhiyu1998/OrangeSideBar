@@ -73,16 +73,25 @@ async function handleGetYouTubeSubtitles(sendResponse: (response: unknown) => vo
       return
     }
 
-    // Send message to content script to get cached subtitles
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      action: 'GET_YOUTUBE_SUBTITLES',
+    // Read subtitle cache directly from the page (MAIN world), mirroring the legacy implementation.
+    // This avoids relying on MAIN-world content scripts having access to extension messaging APIs.
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      world: 'MAIN',
+      func: () => {
+        const win = window as unknown as {
+          __ytSubtitleCache?: Record<string, unknown>
+          __ytSubDownloaderInstalled?: boolean
+        }
+        return {
+          cache: win.__ytSubtitleCache || {},
+          installed: !!win.__ytSubDownloaderInstalled,
+          title: document.title.replace(' - YouTube', ''),
+        }
+      },
     })
 
-    if (response?.success) {
-      sendResponse({ success: true, data: response.data })
-    } else {
-      sendResponse({ success: false, error: response?.error || 'Failed to get subtitles' })
-    }
+    sendResponse({ success: true, data: results[0]?.result })
   } catch (error) {
     sendResponse({ success: false, error: String(error) })
   }

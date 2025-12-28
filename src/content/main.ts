@@ -114,46 +114,6 @@ function isBilibiliPage(): boolean {
 }
 
 /**
- * Get YouTube subtitle cache from window
- */
-function getYouTubeSubtitleCache(): { installed: boolean; cache: Record<string, unknown> } {
-  const win = window as Window & {
-    __ytSubDownloaderInstalled?: boolean
-    __ytSubtitleCache?: Record<string, unknown>
-  }
-
-  return {
-    installed: !!win.__ytSubDownloaderInstalled,
-    cache: win.__ytSubtitleCache || {},
-  }
-}
-
-/**
- * Inject YouTube subtitle interceptor
- */
-function injectYouTubeInterceptor(): void {
-  if (!isYouTubePage()) return
-
-  // Check if already injected
-  const win = window as Window & { __ytSubDownloaderInstalled?: boolean }
-  if (win.__ytSubDownloaderInstalled) return
-
-  // Create script element to inject into page context
-  const script = document.createElement('script')
-  script.src = chrome.runtime.getURL('src/content/youtube-injector.ts')
-  script.type = 'module'
-  ;(document.head || document.documentElement).appendChild(script)
-  script.onload = () => script.remove()
-
-  console.log('[OrangeSideBar] YouTube subtitle interceptor injected')
-}
-
-// Inject interceptor on YouTube pages
-if (isYouTubePage()) {
-  injectYouTubeInterceptor()
-}
-
-/**
  * Handle messages from background script or sidepanel
  */
 chrome.runtime.onMessage.addListener(
@@ -210,17 +170,6 @@ chrome.runtime.onMessage.addListener(
             error: 'Not a supported video page (YouTube or Bilibili only)',
           })
         }
-        break
-      }
-
-      case 'GET_YOUTUBE_SUBTITLES': {
-        if (!isYouTubePage()) {
-          sendResponse({ success: false, error: 'Not a YouTube page' })
-          break
-        }
-
-        const subtitleInfo = getYouTubeSubtitleCache()
-        sendResponse({ success: true, data: subtitleInfo })
         break
       }
 

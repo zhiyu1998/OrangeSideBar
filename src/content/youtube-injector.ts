@@ -61,6 +61,25 @@
     }
   }
 
+  /**
+   * Respond to extension requests for cached subtitles.
+   * Note: This content script runs in MAIN world, so it can read window-scoped cache directly.
+   */
+  if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      if (message?.action === 'GET_YOUTUBE_SUBTITLES') {
+        sendResponse({
+          success: true,
+          data: {
+            installed: !!(window as Window & { __ytSubDownloaderInstalled?: boolean }).__ytSubDownloaderInstalled,
+            cache: getCache(),
+          },
+        })
+        return true
+      }
+    })
+  }
+
   // Intercept Fetch
   const originalFetch = window.fetch
   window.fetch = async function (...args: Parameters<typeof fetch>): Promise<Response> {
