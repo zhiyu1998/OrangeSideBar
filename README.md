@@ -34,33 +34,12 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 - [X] 支持常见LLM系列模型
 - [X] 支持多轮对话
 - [X] 支持图片分享
-- [X] 支持联网搜索
-- [X] 支持输'/'触发快捷功能，快捷功能包括翻译、摘要、润色、图像转文本、代码解释
-- [X] 联网工具 SerpApi
+- [ ] 支持联网搜索
 - [X] OpenAI 规范 API 支持（中转服务商、硅基流动等）
 - [X] 支持本地 PDF 读取总结
 - [X] 论文模式，为阅读论文增效
-- [X] 知识库，基于Qdrant向量数据库，碎片化知识整理
 
 > PDF 读取总结需要到插件设置开启 `Allow access to file URLs`
-
-## 🗄️ Qdrant 向量数据库快速配置
-
-1、在自己服务器上docker安装一下：
-
-```
-docker pull qdrant/qdrant
-```
-
-```
-docker run -p 6333:6333 -p 6334:6334 \
-    -v "$(pwd)/qdrant_storage:/qdrant/storage:z" \
-    qdrant/qdrant
-```
-
-2、将地址输出到配置页面，创建集合测试一下，最下面有一个保存配置，点一下
-
-![img](./public/qdrant.png)
 
 ## 🌼 致谢
 
