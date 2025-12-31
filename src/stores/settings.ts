@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Theme, PromptMode, SystemPrompts } from '@/types/settings'
 import type { ProviderId, ProviderConfig, ModelParameters } from '@/types/provider'
 import type { ModelInfo } from '@/lib/llm/types'
@@ -231,6 +231,21 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function clearProviderModels(providerId: ProviderId) {
     delete cachedModels.value[providerId]
+  }
+
+  // Watch for theme changes and apply them automatically
+  watch(isDarkMode, () => {
+    applyTheme()
+  }, { immediate: true })
+
+  // Support real-time system theme changes
+  if (typeof window !== 'undefined') {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    mediaQuery.addEventListener('change', () => {
+      if (theme.value === 'system') {
+        applyTheme()
+      }
+    })
   }
 
   return {
