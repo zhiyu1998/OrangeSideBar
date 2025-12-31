@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RotateCcw, RefreshCw, Loader2, Check } from 'lucide-vue-next'
+import { RotateCcw, RefreshCw, Sliders } from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
 import { llmFactory } from '@/lib/llm/factory'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
@@ -28,7 +27,6 @@ const defaultModel = computed(() => settingsStore.defaultModel)
 
 // Model fetching state
 const isLoadingModels = ref(false)
-const availableModels = ref<ModelInfo[]>([])
 const modelsByProvider = ref<Record<string, ModelInfo[]>>({})
 
 interface ParamConfig {
@@ -45,47 +43,20 @@ const paramConfigs: ParamConfig[] = [
   {
     key: 'temperature',
     label: 'Temperature',
-    description: 'Controls randomness. Lower values make responses more focused and deterministic.',
-    min: 0,
-    max: 2,
-    step: 0.1,
-    useSlider: true,
+    description: 'Controls randomness. Lower values are more deterministic.',
+    min: 0, max: 2, step: 0.1, useSlider: true,
   },
   {
     key: 'topP',
     label: 'Top P',
-    description: 'Controls diversity via nucleus sampling. 0.5 means half of all likelihood-weighted options are considered.',
-    min: 0,
-    max: 1,
-    step: 0.05,
-    useSlider: true,
+    description: 'Alternative to temperature, called nucleus sampling.',
+    min: 0, max: 1, step: 0.05, useSlider: true,
   },
   {
     key: 'maxTokens',
     label: 'Max Tokens',
-    description: 'Maximum number of tokens to generate in the response.',
-    min: 1,
-    max: 128000,
-    step: 1,
-    useSlider: false,
-  },
-  {
-    key: 'frequencyPenalty',
-    label: 'Frequency Penalty',
-    description: 'Reduces repetition by penalizing tokens that have already appeared.',
-    min: 0,
-    max: 2,
-    step: 0.1,
-    useSlider: true,
-  },
-  {
-    key: 'presencePenalty',
-    label: 'Presence Penalty',
-    description: 'Encourages new topics by penalizing tokens that have appeared at all.',
-    min: 0,
-    max: 2,
-    step: 0.1,
-    useSlider: true,
+    description: 'Maximum response length.',
+    min: 1, max: 128000, step: 1, useSlider: false,
   },
 ]
 
@@ -118,43 +89,31 @@ function selectModel(value: string | number | bigint | Record<string, unknown> |
 
 async function fetchModels() {
   isLoadingModels.value = true
-  const allModels: ModelInfo[] = []
   const grouped: Record<string, ModelInfo[]> = {}
 
   try {
     const enabledProviders = settingsStore.enabledProviders
-
     for (const providerId of enabledProviders) {
       const config = settingsStore.getProviderConfig(providerId)
       if (!config.apiKey) continue
-
       try {
-        // Configure the provider
         llmFactory.configureProvider(providerId, {
           apiKey: typeof config.apiKey === 'string' ? config.apiKey : config.apiKey[0],
           baseUrl: config.baseUrl,
         })
-
         const provider = llmFactory.getProvider(providerId)
         if (provider) {
           const models = await provider.getModels()
-          allModels.push(...models)
           grouped[providerId] = models
         }
       } catch (error) {
-        console.error(`Failed to fetch models for ${providerId}:`, error)
+        console.error(error)
       }
     }
-
-    availableModels.value = allModels
     modelsByProvider.value = grouped
   } finally {
     isLoadingModels.value = false
   }
-}
-
-function getSelectedModelInfo(): ModelInfo | undefined {
-  return availableModels.value.find((m) => m.id === defaultModel.value)
 }
 
 onMounted(() => {
@@ -163,137 +122,122 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Default Model Selection -->
-    <Card>
-      <CardHeader class="flex flex-row items-center justify-between space-y-0">
-        <div>
-          <CardTitle>Default Model</CardTitle>
-          <CardDescription>
-            Select the default model for conversations.
-          </CardDescription>
-        </div>
+  <div class="space-y-12">
+    <!-- Default Model Section -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div class="space-y-2">
+        <h3 class="text-sm font-bold tracking-tight">Active Engine</h3>
+        <p class="text-xs text-muted-foreground leading-relaxed">
+          Select the primary model that will power your general conversations. You can always override this in specific function settings.
+        </p>
         <Button
           variant="outline"
           size="sm"
+          class="h-7 text-[10px]"
           :disabled="isLoadingModels"
           @click="fetchModels"
         >
-          <Loader2 v-if="isLoadingModels" class="mr-2 h-4 w-4 animate-spin" />
-          <RefreshCw v-else class="mr-2 h-4 w-4" />
-          Refresh Models
+          <RefreshCw :class="['mr-1 h-3 w-3', isLoadingModels ? 'animate-spin' : '']" />
+          Update Model List
         </Button>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <div class="space-y-2">
-          <Label>Selected Model</Label>
-          <Select :model-value="defaultModel" @update:model-value="selectModel">
-            <SelectTrigger>
-              <SelectValue placeholder="Select a model" />
-            </SelectTrigger>
-            <SelectContent>
-              <template v-if="Object.keys(modelsByProvider).length > 0">
-                <SelectGroup v-for="(models, providerId) in modelsByProvider" :key="providerId">
-                  <SelectLabel>{{ providerNames[providerId as ProviderId] || providerId }}</SelectLabel>
-                  <SelectItem
-                    v-for="model in models"
-                    :key="model.id"
-                    :value="model.id"
-                  >
-                    <div class="flex items-center gap-2">
-                      <span>{{ model.name }}</span>
-                      <Badge v-if="model.supportsVision" variant="secondary" class="text-xs">Vision</Badge>
-                      <Badge v-if="model.isThinkingModel" variant="outline" class="text-xs">Thinking</Badge>
-                    </div>
-                  </SelectItem>
-                </SelectGroup>
-              </template>
-              <template v-else>
-                <SelectItem value="gpt-4o-mini">GPT-4o Mini (Default)</SelectItem>
-                <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                <SelectItem value="claude-sonnet-4-20250514">Claude Sonnet 4</SelectItem>
-              </template>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <!-- Current Model Info -->
-        <div v-if="getSelectedModelInfo()" class="rounded-lg border p-3 bg-muted/50">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-sm font-medium">{{ getSelectedModelInfo()?.name }}</span>
-            <Badge variant="secondary" class="text-xs">
-              {{ providerNames[getSelectedModelInfo()?.providerId as ProviderId] }}
-            </Badge>
-            <Badge v-if="getSelectedModelInfo()?.supportsVision" variant="outline" class="text-xs">
-              <Check class="mr-1 h-3 w-3" /> Vision
-            </Badge>
-            <Badge v-if="getSelectedModelInfo()?.isThinkingModel" variant="outline" class="text-xs">
-              <Check class="mr-1 h-3 w-3" /> Thinking
-            </Badge>
+      </div>
+      
+      <div class="lg:col-span-2">
+        <div class="bg-muted/20 border rounded-2xl p-6 flex flex-col gap-6">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <Label class="text-sm font-semibold">Global Default Model</Label>
+              <Badge variant="secondary" class="text-[10px]">Auto-Synced</Badge>
+            </div>
+            
+            <Select :model-value="defaultModel" @update:model-value="selectModel">
+              <SelectTrigger class="h-12 bg-background/50 border-muted">
+                <SelectValue placeholder="Select a model" />
+              </SelectTrigger>
+              <SelectContent>
+                <template v-if="Object.keys(modelsByProvider).length > 0">
+                  <SelectGroup v-for="(models, providerId) in modelsByProvider" :key="providerId">
+                    <SelectLabel class="text-[10px] uppercase text-muted-foreground">{{ providerNames[providerId as ProviderId] || providerId }}</SelectLabel>
+                    <SelectItem
+                      v-for="model in models"
+                      :key="model.id"
+                      :value="model.id"
+                    >
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm">{{ model.name }}</span>
+                        <Badge v-if="model.supportsVision" variant="secondary" class="text-[9px] h-4 px-1">Vision</Badge>
+                        <Badge v-if="model.isThinkingModel" variant="outline" class="text-[9px] h-4 px-1">Thinking</Badge>
+                      </div>
+                    </SelectItem>
+                  </SelectGroup>
+                </template>
+                <template v-else>
+                  <SelectItem value="gpt-4o-mini">GPT-4o Mini (Fallback)</SelectItem>
+                </template>
+              </SelectContent>
+            </Select>
+            <p class="text-[10px] text-muted-foreground">Don't see your models? Check your API Providers configuration.</p>
           </div>
         </div>
+      </div>
+    </section>
 
-        <p class="text-xs text-muted-foreground">
-          Configure API keys in the Providers tab to see available models from each provider.
+    <!-- Parameters Section -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start border-t pt-12">
+      <div class="space-y-4">
+        <div class="flex items-center gap-2">
+          <Sliders class="h-4 w-4 text-orange-500" />
+          <h3 class="text-sm font-bold tracking-tight">Fine-tuning</h3>
+        </div>
+        <p class="text-xs text-muted-foreground leading-relaxed">
+          Adjust how the model generates text. These parameters affect creativity, length, and coherence.
         </p>
-      </CardContent>
-    </Card>
-
-    <!-- Model Parameters -->
-    <Card>
-      <CardHeader class="flex flex-row items-center justify-between space-y-0">
-        <div>
-          <CardTitle>Model Parameters</CardTitle>
-          <CardDescription>
-            Fine-tune the model behavior with these parameters.
-          </CardDescription>
-        </div>
-        <Button variant="outline" size="sm" @click="resetParams">
-          <RotateCcw class="mr-2 h-4 w-4" />
-          Reset to Defaults
+        <Button variant="ghost" size="sm" class="h-7 text-[10px] text-muted-foreground" @click="resetParams">
+          <RotateCcw class="mr-1 h-3 w-3" />
+          Reset to Factory Defaults
         </Button>
-      </CardHeader>
-      <CardContent class="space-y-6">
-        <div
-          v-for="config in paramConfigs"
-          :key="config.key"
-          class="space-y-3"
-        >
-          <div class="flex items-center justify-between">
-            <Label :for="config.key">{{ config.label }}</Label>
-            <span class="text-sm font-medium tabular-nums">
-              {{ params[config.key] }}
-            </span>
+      </div>
+      
+      <div class="lg:col-span-2 space-y-4">
+        <div class="bg-muted/20 border rounded-2xl p-6 space-y-8">
+          <div
+            v-for="config in paramConfigs"
+            :key="config.key"
+            class="space-y-4"
+          >
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <Label :for="config.key" class="text-sm font-semibold">{{ config.label }}</Label>
+                <p class="text-[10px] text-muted-foreground pr-4">{{ config.description }}</p>
+              </div>
+              <div class="bg-background/80 border rounded px-2 py-1 min-w-[3rem] text-center">
+                <span class="text-xs font-bold tabular-nums">{{ params[config.key] }}</span>
+              </div>
+            </div>
+
+            <template v-if="config.useSlider">
+              <Slider
+                :id="config.key"
+                :model-value="[params[config.key]]"
+                :min="config.min"
+                :max="config.max"
+                :step="config.step"
+                class="w-full"
+                @update:model-value="(v) => v && updateParam(config.key, v[0])"
+              />
+            </template>
+            <template v-else>
+              <Input
+                :id="config.key"
+                type="number"
+                :value="params[config.key]"
+                class="h-10 bg-background/50"
+                @input="(e: Event) => updateParam(config.key, Number((e.target as HTMLInputElement).value))"
+              />
+            </template>
           </div>
-
-          <template v-if="config.useSlider">
-            <Slider
-              :id="config.key"
-              :model-value="[params[config.key]]"
-              :min="config.min"
-              :max="config.max"
-              :step="config.step"
-              class="w-full"
-              @update:model-value="(v) => v && updateParam(config.key, v[0])"
-            />
-          </template>
-          <template v-else>
-            <Input
-              :id="config.key"
-              type="number"
-              :value="params[config.key]"
-              :min="config.min"
-              :max="config.max"
-              :step="config.step"
-              @input="(e: Event) => updateParam(config.key, Number((e.target as HTMLInputElement).value))"
-            />
-          </template>
-
-          <p class="text-xs text-muted-foreground">
-            {{ config.description }}
-          </p>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   </div>
 </template>

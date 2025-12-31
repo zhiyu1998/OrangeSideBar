@@ -1,21 +1,27 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Check, Eye, EyeOff, Loader2, X, RefreshCw } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { 
+  Check, 
+  Eye, 
+  EyeOff, 
+  Loader2, 
+  X, 
+  RefreshCw, 
+  ExternalLink,
+  ShieldCheck,
+  Zap,
+  Plus,
+  Cpu
+} from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
 import { llmFactory } from '@/lib/llm/factory'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import BorderBeam from '@/components/inspira/ui/BorderBeam.vue'
 import type { ProviderId } from '@/types/provider'
 
 const settingsStore = useSettingsStore()
@@ -25,82 +31,28 @@ interface ProviderInfo {
   name: string
   description: string
   defaultBaseUrl: string
+  icon?: string
 }
 
 const providers: ProviderInfo[] = [
-  {
-    id: 'openai',
-    name: 'OpenAI',
-    description: 'GPT-4o, GPT-4o-mini, GPT-4 Turbo',
-    defaultBaseUrl: 'https://api.openai.com/v1',
-  },
-  {
-    id: 'anthropic',
-    name: 'Anthropic',
-    description: 'Claude 4, Claude 3.5 Sonnet, Claude 3.5 Haiku',
-    defaultBaseUrl: 'https://api.anthropic.com',
-  },
-  {
-    id: 'deepseek',
-    name: 'DeepSeek',
-    description: 'DeepSeek-V3, DeepSeek-R1',
-    defaultBaseUrl: 'https://api.deepseek.com/v1',
-  },
-  {
-    id: 'moonshot',
-    name: 'Moonshot (Kimi)',
-    description: 'Kimi-K2, Moonshot-v1',
-    defaultBaseUrl: 'https://api.moonshot.cn/v1',
-  },
-  {
-    id: 'siliconflow',
-    name: 'SiliconFlow',
-    description: 'Various open-source models',
-    defaultBaseUrl: 'https://api.siliconflow.cn/v1',
-  },
-  {
-    id: 'openrouter',
-    name: 'OpenRouter',
-    description: 'Access multiple providers via one API',
-    defaultBaseUrl: 'https://openrouter.ai/api/v1',
-  },
-  {
-    id: 'groq',
-    name: 'Groq',
-    description: 'Fast inference for LLaMA and Mixtral',
-    defaultBaseUrl: 'https://api.groq.com/openai/v1',
-  },
-  {
-    id: 'grok',
-    name: 'Grok (xAI)',
-    description: 'Grok-2, Grok-3',
-    defaultBaseUrl: 'https://api.x.ai/v1',
-  },
-  {
-    id: 'mistral',
-    name: 'Mistral AI',
-    description: 'Mistral Large, Mistral Medium',
-    defaultBaseUrl: 'https://api.mistral.ai/v1',
-  },
-  {
-    id: 'ollama',
-    name: 'Ollama (Local)',
-    description: 'Run models locally',
-    defaultBaseUrl: 'http://127.0.0.1:11434/v1',
-  },
+  { id: 'openai', name: 'OpenAI', description: 'GPT-4o, GPT-4o-mini', defaultBaseUrl: 'https://api.openai.com/v1' },
+  { id: 'anthropic', name: 'Anthropic', description: 'Claude 3.5 Sonnet', defaultBaseUrl: 'https://api.anthropic.com' },
+  { id: 'deepseek', name: 'DeepSeek', description: 'DeepSeek-V3, R1', defaultBaseUrl: 'https://api.deepseek.com/v1' },
+  { id: 'siliconflow', name: 'SiliconFlow', description: 'Open-source models', defaultBaseUrl: 'https://api.siliconflow.cn/v1' },
+  { id: 'openrouter', name: 'OpenRouter', description: 'Universal API gateway', defaultBaseUrl: 'https://openrouter.ai/api/v1' },
+  { id: 'groq', name: 'Groq', description: 'Ultra-fast LLaMA', defaultBaseUrl: 'https://api.groq.com/openai/v1' },
+  { id: 'ollama', name: 'Ollama', description: 'Local LLM server', defaultBaseUrl: 'http://127.0.0.1:11434/v1' },
 ]
 
-// State for password visibility
+const selectedProviderId = ref<ProviderId>('openai')
 const showApiKey = ref<Record<ProviderId, boolean>>({} as Record<ProviderId, boolean>)
 const testingProvider = ref<ProviderId | null>(null)
 const testResult = ref<Record<ProviderId, 'success' | 'error' | null>>({} as Record<ProviderId, 'success' | 'error' | null>)
 
+const selectedProvider = computed(() => providers.find(p => p.id === selectedProviderId.value))
+
 function toggleShowApiKey(providerId: ProviderId) {
   showApiKey.value[providerId] = !showApiKey.value[providerId]
-}
-
-function getProviderConfig(providerId: ProviderId) {
-  return settingsStore.getProviderConfig(providerId)
 }
 
 function updateApiKey(providerId: ProviderId, value: string) {
@@ -115,15 +67,8 @@ function toggleEnabled(providerId: ProviderId, checked: boolean) {
   settingsStore.setProviderEnabled(providerId, checked)
 }
 
-function resetBaseUrl(providerId: ProviderId) {
-  const provider = providers.find((p) => p.id === providerId)
-  if (provider) {
-    settingsStore.updateProviderConfig(providerId, { baseUrl: provider.defaultBaseUrl })
-  }
-}
-
 async function testConnection(providerId: ProviderId) {
-  const config = getProviderConfig(providerId)
+  const config = settingsStore.getProviderConfig(providerId)
   if (!config.apiKey) {
     testResult.value[providerId] = 'error'
     return
@@ -133,7 +78,6 @@ async function testConnection(providerId: ProviderId) {
   testResult.value[providerId] = null
 
   try {
-    // Configure the provider with current settings
     llmFactory.configureProvider(providerId, {
       apiKey: typeof config.apiKey === 'string' ? config.apiKey : config.apiKey[0],
       baseUrl: config.baseUrl,
@@ -141,7 +85,6 @@ async function testConnection(providerId: ProviderId) {
 
     const provider = llmFactory.getProvider(providerId)
     if (provider) {
-      // Fetch models - this also tests connection
       const models = await provider.getModels()
       settingsStore.setProviderModels(providerId, models)
       testResult.value[providerId] = 'success'
@@ -156,180 +99,210 @@ async function testConnection(providerId: ProviderId) {
 }
 
 async function refreshModels(providerId: ProviderId) {
-  const config = getProviderConfig(providerId)
-  if (!config.apiKey) return
-
   settingsStore.setProviderLoadingModels(providerId, true)
-
   try {
+    const config = settingsStore.getProviderConfig(providerId)
     llmFactory.configureProvider(providerId, {
       apiKey: typeof config.apiKey === 'string' ? config.apiKey : config.apiKey[0],
       baseUrl: config.baseUrl,
     })
-
     const provider = llmFactory.getProvider(providerId)
     if (provider) {
       const models = await provider.getModels()
       settingsStore.setProviderModels(providerId, models)
     }
   } catch (error) {
-    console.error(`Failed to refresh models for ${providerId}:`, error)
+    console.error(error)
   } finally {
     settingsStore.setProviderLoadingModels(providerId, false)
   }
 }
-
-function getTestButtonContent(providerId: ProviderId) {
-  if (testingProvider.value === providerId) {
-    return { icon: Loader2, text: 'Testing...', class: 'animate-spin' }
-  }
-  if (testResult.value[providerId] === 'success') {
-    return { icon: Check, text: 'Connected', class: 'text-green-500' }
-  }
-  if (testResult.value[providerId] === 'error') {
-    return { icon: X, text: 'Failed', class: 'text-red-500' }
-  }
-  return { icon: null, text: 'Test Connection', class: '' }
-}
 </script>
 
 <template>
-  <div class="space-y-6">
-    <Card>
-      <CardHeader>
-        <CardTitle>LLM Providers</CardTitle>
-        <CardDescription>
-          Configure API keys and endpoints for different LLM providers.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Accordion type="single" collapsible class="w-full">
-          <AccordionItem
+  <div class="flex gap-12 min-h-[750px] animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <!-- Master: Provider List -->
+    <div class="w-80 flex flex-col gap-4">
+      <div class="flex items-center justify-between px-2">
+        <h4 class="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">Service Providers</h4>
+        <Badge variant="outline" class="text-[9px] opacity-50 px-1.5 h-4">{{ providers.length }} Available</Badge>
+      </div>
+
+      <Button variant="outline" class="w-full justify-start gap-3 border-dashed h-14 rounded-2xl bg-muted/5 group hover:border-primary/50 transition-all">
+        <Plus class="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+        <span class="text-xs font-semibold">Custom Endpoint</span>
+      </Button>
+      
+      <ScrollArea class="flex-1 -mr-4 pr-4">
+        <div class="space-y-3 pb-8">
+          <div
             v-for="provider in providers"
             :key="provider.id"
-            :value="provider.id"
+            class="group relative flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all border box-border shadow-sm hover:shadow-md"
+            :class="selectedProviderId === provider.id 
+              ? 'bg-primary/5 border-primary/40' 
+              : 'bg-background hover:bg-muted/30 border-muted/30'"
+            @click="selectedProviderId = provider.id"
           >
-            <AccordionTrigger class="hover:no-underline">
-              <div class="flex items-center gap-3">
-                <Switch
-                  :model-value="getProviderConfig(provider.id).enabled"
-                  @click.stop
-                  @update:model-value="(enabled: boolean) => toggleEnabled(provider.id, enabled)"
+            <div class="flex items-center gap-4">
+              <div 
+                class="w-12 h-12 rounded-xl bg-muted/10 border flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-3 shadow-inner"
+                :class="{ 'border-primary/20 bg-primary/5': selectedProviderId === provider.id }"
+              >
+                <img v-if="provider.icon" :src="provider.icon" class="w-7 h-7" />
+                <Cpu v-else class="w-6 h-6 text-muted-foreground" />
+              </div>
+              <div class="flex flex-col min-w-0">
+                <span class="text-sm font-bold tracking-tight text-foreground">{{ provider.name }}</span>
+                <span class="text-[11px] text-muted-foreground/60 truncate leading-tight mt-0.5">{{ provider.description }}</span>
+              </div>
+            </div>
+            
+            <Switch
+              :model-value="settingsStore.getProviderConfig(provider.id).enabled"
+              @click.stop
+              @update:model-value="(enabled: boolean) => toggleEnabled(provider.id, enabled)"
+            />
+
+            <!-- Selected indicator -->
+            <BorderBeam 
+              v-if="selectedProviderId === provider.id"
+              :size="100" 
+              :duration="6" 
+              :border-width="2.5" 
+              color-from="#f97316"
+              color-to="#fb923c"
+            />
+          </div>
+        </div>
+      </ScrollArea>
+    </div>
+
+    <!-- Detail: Provider Configuration -->
+    <div class="flex-1 bg-muted/10 border border-muted/50 rounded-[2.5rem] p-10 overflow-hidden flex flex-col gap-10 relative shadow-inner">
+      <template v-if="selectedProvider">
+        <div class="flex items-center justify-between border-b border-muted/30 pb-10">
+          <div class="flex items-center gap-6">
+            <div class="w-16 h-16 rounded-[1.5rem] bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-lg shadow-primary/5 transition-transform hover:scale-105">
+              <Zap class="w-8 h-8 fill-primary/10" />
+            </div>
+            <div>
+              <h3 class="text-2xl font-black tracking-tighter text-foreground">{{ selectedProvider.name }}</h3>
+              <p class="text-xs font-medium text-muted-foreground/60 mt-1 uppercase tracking-widest">Advanced Configuration</p>
+            </div>
+          </div>
+          <a href="#" class="text-[11px] font-bold text-primary flex items-center gap-1.5 hover:underline decoration-2 underline-offset-4 bg-primary/5 px-3 py-1.5 rounded-full border border-primary/20 transition-colors hover:bg-primary/10">
+            Setup Guide <ExternalLink class="h-3 w-3" />
+          </a>
+        </div>
+
+        <ScrollArea class="flex-1 -mr-6 pr-6">
+          <div class="space-y-12 pb-10">
+            <!-- API Key Section -->
+            <div class="space-y-6">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <ShieldCheck class="w-4 h-4 text-orange-500" />
+                  <Label class="text-sm font-extrabold tracking-tight">API Key Authentication</Label>
+                </div>
+                <Badge variant="outline" class="text-[9px] uppercase tracking-widest bg-muted/20 px-2 py-0.5 border-muted/50">Encrypted Storage</Badge>
+              </div>
+              <div class="relative group">
+                <Input
+                  :type="showApiKey[selectedProviderId] ? 'text' : 'password'"
+                  :value="settingsStore.getProviderConfig(selectedProviderId).apiKey as string"
+                  placeholder="Paste your private key..."
+                  class="pr-14 h-15 bg-background border-muted/30 group-focus-within:border-primary/50 group-focus-within:ring-4 group-focus-within:ring-primary/10 transition-all rounded-2xl text-base shadow-sm"
+                  @input="(e: Event) => updateApiKey(selectedProviderId, (e.target as HTMLInputElement).value)"
                 />
-                <div class="text-left">
-                  <div class="font-medium">{{ provider.name }}</div>
-                  <div class="text-xs text-muted-foreground">
-                    {{ provider.description }}
-                  </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 text-muted-foreground rounded-xl hover:bg-accent/50 transition-colors"
+                  @click="toggleShowApiKey(selectedProviderId)"
+                >
+                  <EyeOff v-if="showApiKey[selectedProviderId]" class="h-5 w-5" />
+                  <Eye v-else class="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            <!-- Endpoint Section -->
+            <div class="space-y-6">
+              <div class="flex items-center gap-2">
+                <div class="w-1.5 h-1.5 rounded-full bg-primary" />
+                <Label class="text-sm font-extrabold tracking-tight">Base API Endpoint</Label>
+              </div>
+              <div class="space-y-2">
+                <Input
+                  :value="settingsStore.getProviderConfig(selectedProviderId).baseUrl"
+                  :placeholder="selectedProvider.defaultBaseUrl"
+                  class="h-15 bg-background border-muted/30 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all rounded-2xl shadow-sm"
+                  @input="(e: Event) => updateBaseUrl(selectedProviderId, (e.target as HTMLInputElement).value)"
+                />
+                <div class="flex items-center gap-2 px-1">
+                  <span class="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.1em]">Recommended:</span>
+                  <span class="text-[10px] font-mono text-muted-foreground/60 break-all">{{ selectedProvider.defaultBaseUrl }}</span>
                 </div>
               </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div class="space-y-4 pt-4">
-                <!-- API Key -->
-                <div class="space-y-2">
-                  <Label :for="`${provider.id}-api-key`">API Key</Label>
-                  <div class="flex gap-2">
-                    <div class="relative flex-1">
-                      <Input
-                        :id="`${provider.id}-api-key`"
-                        :type="showApiKey[provider.id] ? 'text' : 'password'"
-                        :value="getProviderConfig(provider.id).apiKey as string"
-                        placeholder="Enter your API key"
-                        @input="(e: Event) => updateApiKey(provider.id, (e.target as HTMLInputElement).value)"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        class="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                        @click="toggleShowApiKey(provider.id)"
-                      >
-                        <EyeOff v-if="showApiKey[provider.id]" class="h-4 w-4" />
-                        <Eye v-else class="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+            </div>
 
-                <!-- Base URL -->
-                <div class="space-y-2">
-                  <Label :for="`${provider.id}-base-url`">Base URL</Label>
-                  <div class="flex gap-2">
-                    <Input
-                      :id="`${provider.id}-base-url`"
-                      :value="getProviderConfig(provider.id).baseUrl"
-                      :placeholder="provider.defaultBaseUrl"
-                      @input="(e: Event) => updateBaseUrl(provider.id, (e.target as HTMLInputElement).value)"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      @click="resetBaseUrl(provider.id)"
-                    >
-                      Reset
-                    </Button>
-                  </div>
-                </div>
+            <!-- Actions Section -->
+            <div class="flex items-center gap-6 pt-6">
+              <Button
+                variant="default"
+                class="flex-1 h-15 font-black text-sm rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all gap-3"
+                :disabled="testingProvider === selectedProviderId || !settingsStore.getProviderConfig(selectedProviderId).apiKey"
+                @click="testConnection(selectedProviderId)"
+              >
+                <Loader2 v-if="testingProvider === selectedProviderId" class="h-5 w-5 animate-spin" />
+                <ShieldCheck v-else-if="testResult[selectedProviderId] === 'success'" class="h-5 w-5 text-white" />
+                <X v-else-if="testResult[selectedProviderId] === 'error'" class="h-5 w-5 text-white" />
+                <span v-if="testResult[selectedProviderId] === 'success'">Configuration Verified</span>
+                <span v-else-if="testResult[selectedProviderId] === 'error'">Connection Error</span>
+                <span v-else>Initialize Connection Test</span>
+              </Button>
+            </div>
 
-                <!-- Test Connection -->
-                <div class="flex justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    :disabled="testingProvider === provider.id || !getProviderConfig(provider.id).apiKey"
-                    @click="testConnection(provider.id)"
-                  >
-                    <component
-                      v-if="getTestButtonContent(provider.id).icon"
-                      :is="getTestButtonContent(provider.id).icon"
-                      :class="['mr-2 h-4 w-4', getTestButtonContent(provider.id).class]"
-                    />
-                    {{ getTestButtonContent(provider.id).text }}
+            <!-- Model Cache Section -->
+            <transition name="fade">
+              <div v-if="settingsStore.getProviderModels(selectedProviderId).length > 0" class="space-y-6 pt-10 border-t border-muted/30">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <BarChart3 class="w-4 h-4 text-primary/80" />
+                    <Label class="text-sm font-extrabold tracking-tight uppercase tracking-wider opacity-60">Engine Inventory</Label>
+                  </div>
+                  <Button variant="ghost" size="sm" class="h-9 w-9 rounded-xl hover:bg-primary/5 transition-colors" @click="refreshModels(selectedProviderId)">
+                    <RefreshCw :class="['h-4 w-4 text-primary', settingsStore.isProviderLoadingModels(selectedProviderId) ? 'animate-spin' : '']" />
                   </Button>
                 </div>
-
-                <!-- Available Models -->
-                <div v-if="settingsStore.getProviderModels(provider.id).length > 0" class="space-y-3 pt-4 border-t">
-                  <div class="flex items-center justify-between">
-                    <Label>Available Models ({{ settingsStore.getProviderModels(provider.id).length }})</Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      :disabled="settingsStore.isProviderLoadingModels(provider.id)"
-                      @click="refreshModels(provider.id)"
-                    >
-                      <RefreshCw
-                        :class="['h-4 w-4', settingsStore.isProviderLoadingModels(provider.id) ? 'animate-spin' : '']"
-                      />
-                    </Button>
-                  </div>
-                  <ScrollArea class="h-48">
-                    <div class="grid grid-cols-1 gap-2 pr-4">
-                      <div
-                        v-for="model in settingsStore.getProviderModels(provider.id)"
-                        :key="model.id"
-                        class="flex items-center justify-between p-2 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer transition-colors"
-                        :class="{ 'ring-2 ring-primary': settingsStore.defaultModel === model.id }"
-                        @click="settingsStore.setDefaultModel(model.id)"
-                      >
-                        <div class="flex-1 min-w-0">
-                          <div class="font-medium text-sm truncate">{{ model.name }}</div>
-                          <div class="text-xs text-muted-foreground truncate">{{ model.id }}</div>
-                        </div>
-                        <div class="flex items-center gap-1 ml-2 flex-shrink-0">
-                          <Badge v-if="model.supportsVision" variant="secondary" class="text-xs">Vision</Badge>
-                          <Badge v-if="model.isThinkingModel" variant="outline" class="text-xs">Thinking</Badge>
-                          <Check v-if="settingsStore.defaultModel === model.id" class="h-4 w-4 text-primary ml-1" />
-                        </div>
-                      </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                  <div
+                    v-for="model in settingsStore.getProviderModels(selectedProviderId).slice(0, 10)"
+                    :key="model.id"
+                    class="p-4 rounded-2xl border bg-background/50 hover:bg-primary/5 hover:border-primary/20 transition-all cursor-pointer group flex items-center justify-between shadow-sm relative overflow-hidden"
+                    :class="{ 'border-primary/50 bg-primary/5 ring-1 ring-primary/20': settingsStore.defaultModel === model.id }"
+                    @click="settingsStore.setDefaultModel(model.id)"
+                  >
+                    <div class="flex flex-col min-w-0 pr-3 z-10">
+                      <span class="text-[13px] font-bold truncate leading-none text-foreground">{{ model.name }}</span>
+                      <span class="text-[10px] text-muted-foreground/50 truncate mt-1 font-mono uppercase tracking-tighter">{{ model.id }}</span>
                     </div>
-                  </ScrollArea>
+                    <Check v-if="settingsStore.defaultModel === model.id" class="h-4 w-4 text-primary flex-shrink-0 z-10" />
+                    <div v-if="settingsStore.defaultModel === model.id" class="absolute -right-2 -bottom-2 w-12 h-12 bg-primary/5 rounded-full blur-xl" />
+                  </div>
                 </div>
+                <p class="text-[10px] text-center text-muted-foreground/30 font-medium uppercase tracking-[0.2em] pt-4">Synchronized with remote endpoint</p>
               </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </CardContent>
-    </Card>
+            </transition>
+          </div>
+        </ScrollArea>
+      </template>
+      <div v-else class="flex-1 flex flex-col items-center justify-center text-muted-foreground/20 italic font-medium tracking-tighter">
+        <Cpu class="w-32 h-32 mb-4 stroke-1 opacity-10" />
+        Select a provider to begin
+      </div>
+    </div>
   </div>
 </template>

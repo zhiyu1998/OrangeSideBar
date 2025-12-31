@@ -1,84 +1,73 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Monitor, Moon, Sun } from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type { Theme } from '@/types/settings'
 
 const settingsStore = useSettingsStore()
 
-const themeOptions: { value: Theme; label: string; icon: typeof Sun }[] = [
-  { value: 'light', label: 'Light', icon: Sun },
-  { value: 'dark', label: 'Dark', icon: Moon },
-  { value: 'system', label: 'System', icon: Monitor },
-]
-
-const currentTheme = computed(() => settingsStore.theme)
-
-function setTheme(theme: Theme) {
-  settingsStore.setTheme(theme)
+function handleThemeChange(value: string | number | bigint | Record<string, unknown> | null) {
+  if (typeof value === 'string') {
+    settingsStore.setTheme(value as Theme)
+  }
 }
 </script>
 
 <template>
-  <div class="space-y-6">
-    <Card>
-      <CardHeader>
-        <CardTitle>Appearance</CardTitle>
-        <CardDescription>
-          Customize the appearance of the application.
-        </CardDescription>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <div class="space-y-2">
-          <Label>Theme</Label>
-          <div class="flex gap-2">
-            <Button
-              v-for="option in themeOptions"
-              :key="option.value"
-              :variant="currentTheme === option.value ? 'default' : 'outline'"
-              size="sm"
-              class="flex-1"
-              @click="setTheme(option.value)"
-            >
-              <component :is="option.icon" class="mr-2 h-4 w-4" />
-              {{ option.label }}
-            </Button>
+  <div class="space-y-12">
+    <!-- Theme Selection -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div class="space-y-2">
+        <h3 class="text-sm font-bold tracking-tight">Appearance</h3>
+        <p class="text-xs text-muted-foreground leading-relaxed">
+          Customize how OrangeSideBar looks on your screen. Choose between light, dark, or follow your system settings.
+        </p>
+      </div>
+      
+      <div class="lg:col-span-2">
+        <div class="bg-muted/20 border rounded-2xl p-6 flex flex-col gap-6">
+          <div class="flex items-center justify-between">
+            <div class="space-y-0.5">
+              <Label class="text-sm font-semibold">Interface Theme</Label>
+              <p class="text-[10px] text-muted-foreground">Select your preferred color scheme</p>
+            </div>
+            <Select :model-value="settingsStore.theme" @update:model-value="handleThemeChange">
+              <SelectTrigger class="w-[180px] bg-background/50">
+                <SelectValue placeholder="Select theme" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="light">Light</SelectItem>
+                <SelectItem value="dark">Dark</SelectItem>
+                <SelectItem value="system">System</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
 
-    <Card>
-      <CardHeader>
-        <CardTitle>About</CardTitle>
-        <CardDescription>
-          OrangeSideBar - 网页总结助手
-        </CardDescription>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <div class="text-sm text-muted-foreground">
-          <p class="mb-2">
-            大橘侧边栏：一个开源的网页侧边栏 AI 对话总结工具
-          </p>
-          <p>
-            支持 OpenAI、Gemini、Anthropic 规范的 API，支持自动摘要、联网搜索、多轮对话、视频字幕总结、知识库对话、论文模式等功能
-          </p>
+    <!-- Language & Region (Placeholder for future) -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start border-t pt-12">
+      <div class="space-y-2">
+        <h3 class="text-sm font-bold tracking-tight">System Status</h3>
+        <p class="text-xs text-muted-foreground leading-relaxed">
+          Monitor your extension's connectivity and performance.
+        </p>
+      </div>
+      
+      <div class="lg:col-span-2 space-y-4">
+        <div class="bg-muted/20 border rounded-2xl p-6">
+          <div class="flex items-center justify-between opacity-50 outline-dotted outline-1 outline-muted rounded-lg p-4">
+            <span class="text-xs font-medium italic">Developer Mode and advanced statistics coming soon...</span>
+          </div>
         </div>
-        <div class="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            as="a"
-            href="https://github.com/zhiyu1998/OrangeSideBar"
-            target="_blank"
-          >
-            GitHub
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   </div>
 </template>
