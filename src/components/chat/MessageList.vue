@@ -59,18 +59,11 @@ function handleRegenerate(messageId: string) {
 <template>
   <ScrollArea ref="scrollAreaRef" class="flex-1">
     <div class="min-h-full">
-      <!-- Empty State -->
+      <!-- Empty State removed -->
       <div
         v-if="messages.length === 0"
-        class="flex flex-col items-center justify-center h-[300px] text-center px-6"
+        class="flex flex-col items-center justify-center py-10"
       >
-        <div class="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center mb-4">
-          <span class="text-3xl">🍊</span>
-        </div>
-        <h3 class="text-lg font-medium mb-2">Start a conversation</h3>
-        <p class="text-sm text-muted-foreground max-w-[280px]">
-          Ask me anything, or use the feature buttons above to summarize, translate, or analyze content.
-        </p>
       </div>
 
       <!-- Messages -->

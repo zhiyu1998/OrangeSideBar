@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Send, Square, ImagePlus, X } from 'lucide-vue-next'
 import ModelSelector from './ModelSelector.vue'
+import BorderBeam from '@/components/inspira/ui/BorderBeam.vue'
 
 interface Props {
   isStreaming?: boolean
@@ -117,49 +118,65 @@ function removeImage(index: number) {
     </div>
 
     <!-- Input Area -->
-    <div class="flex gap-2 items-end">
-      <!-- Image Upload -->
-      <Button
-        variant="ghost"
-        size="icon"
-        class="h-9 w-9 flex-shrink-0"
-        :disabled="images.length >= 4 || isStreaming"
-        @click="handleImageUpload"
-      >
-        <ImagePlus class="w-4 h-4" />
-      </Button>
+    <div class="relative group">
+      <div class="flex gap-2 items-end relative z-10">
+        <!-- Image Upload -->
+        <Button
+          variant="ghost"
+          size="icon"
+          class="h-9 w-9 flex-shrink-0"
+          :disabled="images.length >= 4 || isStreaming"
+          @click="handleImageUpload"
+        >
+          <ImagePlus class="w-4 h-4" />
+        </Button>
 
-      <!-- Text Input -->
-      <Textarea
-        ref="textareaRef"
-        v-model="inputText"
-        placeholder="Ask anything... (Enter to send, Shift+Enter for new line)"
-        class="min-h-[40px] max-h-[200px] resize-none py-2.5"
-        rows="1"
-        :disabled="disabled"
-        @keydown="handleKeydown"
-        @input="handleInput"
-      />
+        <!-- Text Input -->
+        <Textarea
+          ref="textareaRef"
+          v-model="inputText"
+          placeholder="Ask anything... (Enter to send, Shift+Enter for new line)"
+          class="min-h-[40px] max-h-[200px] resize-none py-2.5 bg-transparent border-none focus-visible:ring-0 shadow-none"
+          rows="1"
+          :disabled="disabled"
+          @keydown="handleKeydown"
+          @input="handleInput"
+        />
 
-      <!-- Send/Stop Button -->
-      <Button
-        v-if="isStreaming"
-        variant="destructive"
-        size="icon"
-        class="h-9 w-9 flex-shrink-0"
-        @click="handleStop"
+        <!-- Send/Stop Button -->
+        <Button
+          v-if="isStreaming"
+          variant="destructive"
+          size="icon"
+          class="h-9 w-9 flex-shrink-0"
+          @click="handleStop"
+        >
+          <Square class="w-4 h-4" />
+        </Button>
+        <Button
+          v-else
+          size="icon"
+          class="h-9 w-9 flex-shrink-0"
+          :disabled="!canSend"
+          @click="handleSend"
+        >
+          <Send class="w-4 h-4" />
+        </Button>
+      </div>
+
+      <!-- Border Beam Effect -->
+      <div
+        class="absolute inset-0 rounded-md border bg-background pointer-events-none transition-colors group-focus-within:border-primary/50"
       >
-        <Square class="w-4 h-4" />
-      </Button>
-      <Button
-        v-else
-        size="icon"
-        class="h-9 w-9 flex-shrink-0"
-        :disabled="!canSend"
-        @click="handleSend"
-      >
-        <Send class="w-4 h-4" />
-      </Button>
+        <BorderBeam
+          v-if="!disabled"
+          :size="150"
+          :duration="10"
+          :border-width="1.5"
+          color-from="var(--primary)"
+          color-to="var(--accent)"
+        />
+      </div>
     </div>
   </div>
 </template>

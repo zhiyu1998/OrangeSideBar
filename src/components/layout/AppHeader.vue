@@ -49,8 +49,8 @@ function handleClear() {
 </script>
 
 <template>
-  <header class="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
-    <div class="flex items-center gap-2">
+  <header class="relative flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
+    <div class="flex items-center gap-2 relative z-10">
       <img src="/logo_48.png" class="w-7 h-7" alt="OrangeSideBar">
       <h1 class="text-base font-semibold tracking-tight">OrangeSideBar</h1>
     </div>
