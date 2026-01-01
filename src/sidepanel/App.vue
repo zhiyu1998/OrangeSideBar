@@ -15,11 +15,9 @@ const { extractCurrentTabText, extractSubtitles, getCurrentUrl, isLoading: isCon
 async function handleSummary() {
   const content = await extractCurrentTabText()
   if (content) {
-    // Truncate if too long (e.g., 15000 chars)
     const truncatedContent = content.length > 15000
       ? content.slice(0, 15000) + '\n\n[Content truncated...]'
       : content
-    // Use SUMMARY_PROMPT from constants
     const llmContent = `${SUMMARY_PROMPT}${truncatedContent}`
     const displayContent = `请帮我总结当前网页内容 [已提取 ${truncatedContent.length.toLocaleString()} 字符]`
     sendMessage(displayContent, undefined, llmContent)
@@ -63,7 +61,6 @@ async function handleSubtitles() {
       ? subtitles.slice(0, 20000) + '\n\n[Subtitles truncated...]'
       : subtitles
 
-    // Detect platform and use appropriate prompt
     const url = await getCurrentUrl()
     const isBilibili = url?.includes('bilibili.com')
     const subtitlePrompt = isBilibili
@@ -72,14 +69,59 @@ async function handleSubtitles() {
 
     const llmContent = `${subtitlePrompt}${truncatedSubtitles}`
     const platformName = isBilibili ? 'Bilibili' : 'YouTube'
-    const displayContent = `请帮我总结 ${platformName} 视频字幕 [已提取 ${truncatedSubtitles.length.toLocaleString()} 字符]`
+    const displayContent = `请帮我总结 ${platformName}视频字幕 [已提取 ${truncatedSubtitles.length.toLocaleString()} 字符]`
     sendMessage(displayContent, undefined, llmContent)
   } else {
     sendMessage(`无法提取字幕${contentError.value ? `：${contentError.value}` : '，请确保视频正在播放或已开启字幕。'}`)
   }
 }
 
-function handleSend(content: string, images?: string[]) {
+interface SelectedTab {
+  type: 'all' | 'single'
+  tabId?: number
+  tabTitle?: string
+}
+
+async function handleSend(content: string, images?: string[], selectedTabs?: SelectedTab[]) {
+  let finalLlmContent = undefined
+  
+  if (selectedTabs && selectedTabs.length > 0) {
+    let combinedContent = ''
+    let tabsToProcess: { id?: number; title: string }[] = []
+
+    if (selectedTabs[0].type === 'all') {
+      const allTabs = await chrome.tabs.query({ currentWindow: true })
+      tabsToProcess = allTabs.map(t => ({ id: t.id, title: t.title || 'Untitled' }))
+    } else {
+      tabsToProcess = selectedTabs.map(t => ({ id: t.tabId, title: t.tabTitle || 'Untitled' }))
+    }
+
+    // Extract content from each tab sequentially
+    for (const tab of tabsToProcess) {
+      if (tab.id) {
+        try {
+          // Temporarily set active tab if needed or just send message to specific tabId
+          const response = await chrome.tabs.sendMessage(tab.id, {
+            action: 'FETCH_TEXT_CONTENT',
+          })
+          if (response?.success) {
+            combinedContent += `\n\n--- Content from Tab: ${tab.title} ---\n${response.data}\n`
+          }
+        } catch (err) {
+          console.warn(`Could not extract content from tab ${tab.id}:`, err)
+          combinedContent += `\n\n--- Could not extract content from Tab: ${tab.title} ---\n`
+        }
+      }
+    }
+
+    if (combinedContent) {
+      finalLlmContent = `${content}\n\n[Context from ${tabsToProcess.length} tabs]:\n${combinedContent}`
+      const displayContent = `${content} [Context: ${tabsToProcess.length} tabs]`
+      sendMessage(displayContent, images, finalLlmContent)
+      return
+    }
+  }
+
   sendMessage(content, images)
 }
 
