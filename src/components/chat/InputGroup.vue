@@ -30,6 +30,7 @@ const images = ref<string[]>([])
 const selectedTabs = ref<SelectedTab[]>([])
 const showTabPopover = ref(false)
 const atPosition = ref(-1) // Track position of @
+const cursorAtOpen = ref(-1) // Track cursor position when popover opened
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const tabPopoverRef = ref<InstanceType<typeof TabMentionPopover> | null>(null)
 
@@ -78,6 +79,8 @@ function handleKeydown(e: KeyboardEvent) {
     }
     if (e.key === 'Escape') {
       showTabPopover.value = false
+      atPosition.value = -1
+      cursorAtOpen.value = -1
       return
     }
   }
@@ -103,12 +106,16 @@ function handleInput(e: Event) {
   if (textBeforeCursor.endsWith('@')) {
     showTabPopover.value = true
     atPosition.value = cursorPosition - 1
+    cursorAtOpen.value = cursorPosition // Track cursor at the moment @ was typed
   } else if (showTabPopover.value) {
+    // Update cursor position as user types search query
+    cursorAtOpen.value = cursorPosition
     // If popover is open, check if @ still exists before current cursor
     const lastAt = textBeforeCursor.lastIndexOf('@')
     if (lastAt === -1 || lastAt < atPosition.value) {
       showTabPopover.value = false
       atPosition.value = -1
+      cursorAtOpen.value = -1
     }
   }
 
@@ -133,16 +140,16 @@ function handleTabSelect(tab: SelectedTab) {
   
   // Precise removal of @ and any search text after it
   const value = inputText.value
-  const cursorPosition = textareaRef.value?.selectionStart || 0
   
-  if (atPosition.value !== -1) {
+  if (atPosition.value !== -1 && cursorAtOpen.value !== -1) {
     const before = value.substring(0, atPosition.value)
-    const after = value.substring(cursorPosition)
+    const after = value.substring(cursorAtOpen.value)
     inputText.value = before + after
   }
   
   showTabPopover.value = false
   atPosition.value = -1
+  cursorAtOpen.value = -1
   
   nextTick(() => {
     textareaRef.value?.focus()
