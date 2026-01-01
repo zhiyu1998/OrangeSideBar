@@ -129,6 +129,7 @@ onMounted(() => {
     <FeatureGrid
       :loading="isContentLoading"
       :disabled="isStreaming"
+      :collapsed="messages.length > 0"
       @summary="handleSummary"
       @translate="handleTranslate"
       @pdf="handlePdf"

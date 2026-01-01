@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { User, Bot, Copy, RotateCcw, ChevronDown, ChevronUp } from 'lucide-vue-next'
+import { User, Bot, Copy, RotateCcw, ChevronDown, ChevronUp, Check } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { ref } from 'vue'
 import MarkdownRenderer from './MarkdownRenderer.vue'
@@ -23,12 +23,17 @@ const emit = defineEmits<{
 }>()
 
 const showThinking = ref(false)
+const copied = ref(false)
 
 const isUser = computed(() => props.role === 'user')
 const hasThinking = computed(() => !!props.thinking && props.thinking.length > 0)
 
 function copyContent() {
   emit('copy', props.content)
+  copied.value = true
+  setTimeout(() => {
+    copied.value = false
+  }, 2000)
 }
 
 function regenerate() {
@@ -114,11 +119,12 @@ function toggleThinking() {
         <Button
           variant="ghost"
           size="sm"
-          class="h-7 px-2 text-xs"
+          class="h-7 px-2 text-xs transition-all duration-200"
+          :class="{ 'text-green-500 bg-green-500/10': copied }"
           @click="copyContent"
         >
-          <Copy class="w-3 h-3 mr-1" />
-          Copy
+          <component :is="copied ? Check : Copy" class="w-3 h-3 mr-1" />
+          {{ copied ? 'Copied!' : 'Copy' }}
         </Button>
         <Button
           variant="ghost"
