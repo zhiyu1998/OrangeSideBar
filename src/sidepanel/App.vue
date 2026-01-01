@@ -83,7 +83,7 @@ interface SelectedTab {
 }
 
 async function handleSend(content: string, images?: string[], selectedTabs?: SelectedTab[]) {
-  let finalLlmContent = undefined
+  let llmContent = undefined
   
   if (selectedTabs && selectedTabs.length > 0) {
     let combinedContent = ''
@@ -103,13 +103,11 @@ async function handleSend(content: string, images?: string[], selectedTabs?: Sel
           const [{ result: text }] = await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: () => {
-              // Extraction logic: focus on main content if possible
               return document.body.innerText || ''
             }
           })
           
           if (text) {
-            // Truncate per tab (e.g. 8000 chars) to prevent context explosion
             const truncated = text.length > 8000 
               ? text.slice(0, 8000) + '... [Tab content truncated]' 
               : text
@@ -123,9 +121,23 @@ async function handleSend(content: string, images?: string[], selectedTabs?: Sel
     }
 
     if (combinedContent) {
-      finalLlmContent = `${content}\n\n[Context from ${tabsToProcess.length} tabs]:\n${combinedContent}`
+      llmContent = `${content}\n\n[Context from ${tabsToProcess.length} tabs]:\n${combinedContent}`
       const displayContent = `${content} [Context: ${tabsToProcess.length} tabs]`
-      sendMessage(displayContent, images, finalLlmContent)
+      
+      // Send the message with full context
+      await sendMessage(displayContent, images, llmContent)
+      
+      // Cleanup: Find that user message and clear its voluminous llmContent 
+      // so subsequent turns don't carry the dead weight.
+      // Note: messages is computed from chatStore.currentMessages
+      const lastUserMsg = [...messages.value].reverse().find(m => m.role === 'user')
+      if (lastUserMsg && lastUserMsg.llmContent) {
+        const { useChatStore } = await import('@/stores/chat')
+        const chatStore = useChatStore()
+        chatStore.updateMessage(lastUserMsg.id, { 
+          llmContent: `${content}\n\n[Tab context used once]` 
+        })
+      }
       return
     }
   }
