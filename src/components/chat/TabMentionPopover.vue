@@ -1,19 +1,32 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useTabs, type TabInfo } from '@/composables/useTabs'
+import { ref, computed, watch, nextTick } from 'vue'
+import { useTabs } from '@/composables/useTabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Layers, Globe, Search } from 'lucide-vue-next'
 
 const { tabs, isLoading, refreshTabs } = useTabs()
 const searchQuery = ref('')
+const activeIndex = ref(0)
 
 const filteredTabs = computed(() => {
-  if (!searchQuery.value) return tabs.value
   const query = searchQuery.value.toLowerCase()
-  return tabs.value.filter(tab => 
+  const baseTabs = tabs.value.filter(tab => 
     tab.title.toLowerCase().includes(query) || 
     tab.url.toLowerCase().includes(query)
   )
+  return baseTabs
+})
+
+const allOptions = computed(() => {
+  return [
+    { type: 'all', tabTitle: 'All Open Tabs' },
+    ...filteredTabs.value.map(tab => ({ type: 'single', tabId: tab.id, tabTitle: tab.title }))
+  ]
+})
+
+// Reset active index when search changes
+watch(searchQuery, () => {
+  activeIndex.value = 0
 })
 
 interface SelectedTab {
@@ -31,9 +44,40 @@ function selectAll() {
   emit('select', { type: 'all', tabTitle: 'All Open Tabs' })
 }
 
-function selectTab(tab: TabInfo) {
-  emit('select', { type: 'single', tabId: tab.id, tabTitle: tab.title })
+function selectTab(tab: any) {
+  if (tab.type === 'single') {
+    emit('select', { type: 'single', tabId: tab.tabId, tabTitle: tab.tabTitle })
+  } else {
+    selectAll()
+  }
 }
+
+async function moveSelection(direction: 'up' | 'down') {
+  const max = allOptions.value.length - 1
+  if (direction === 'down') {
+    activeIndex.value = activeIndex.value < max ? activeIndex.value + 1 : 0
+  } else {
+    activeIndex.value = activeIndex.value > 0 ? activeIndex.value - 1 : max
+  }
+
+  await nextTick()
+  const activeEl = document.querySelector(`[data-index="${activeIndex.value}"]`)
+  if (activeEl) {
+    activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }
+}
+
+function selectActive() {
+  const active = allOptions.value[activeIndex.value]
+  if (active) {
+    selectTab(active)
+  }
+}
+
+defineExpose({
+  moveSelection,
+  selectActive
+})
 </script>
 
 <template>
@@ -56,18 +100,22 @@ function selectTab(tab: TabInfo) {
       </div>
     </div>
 
-    <ScrollArea class="h-64">
+    <ScrollArea ref="scrollAreaRef" class="h-64">
       <div class="p-1.5 space-y-1">
         <!-- All Tabs Option -->
         <button
-          class="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-primary/10 transition-all text-left group"
+          class="w-full flex items-center gap-3 p-2.5 rounded-xl transition-all text-left group"
+          :class="activeIndex === 0 ? 'bg-primary/20 scale-[1.02]' : 'hover:bg-primary/10'"
+          data-index="0"
           @click="selectAll"
         >
-          <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner"
+            :class="activeIndex === 0 ? 'bg-primary/20' : 'bg-primary/10'"
+          >
             <Layers class="w-4 h-4" />
           </div>
           <div class="flex flex-col">
-            <span class="text-xs font-bold">Summarize All Tabs</span>
+            <span class="text-xs font-bold" :class="activeIndex === 0 ? 'text-primary' : ''">Summarize All Tabs</span>
             <span class="text-[9px] text-muted-foreground uppercase tracking-tighter">{{ tabs.length }} Tabs currently open</span>
           </div>
         </button>
@@ -82,17 +130,23 @@ function selectTab(tab: TabInfo) {
 
         <template v-else>
           <button
-            v-for="tab in filteredTabs"
+            v-for="(tab, index) in filteredTabs"
             :key="tab.id"
-            class="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-accent/50 transition-all text-left group overflow-hidden"
-            @click="selectTab(tab)"
+            class="w-full flex items-center gap-3 p-2.5 rounded-xl transition-all text-left group overflow-hidden"
+            :class="activeIndex === index + 1 ? 'bg-accent scale-[1.02]' : 'hover:bg-accent/50'"
+            :data-index="index + 1"
+            @click="selectTab({ type: 'single', tabId: tab.id, tabTitle: tab.title })"
           >
-            <div class="w-8 h-8 rounded-lg bg-background border flex items-center justify-center flex-shrink-0 group-hover:border-primary/30 group-hover:scale-105 transition-all shadow-sm overflow-hidden">
+            <div class="w-8 h-8 rounded-lg bg-background border flex items-center justify-center flex-shrink-0 group-hover:border-primary/30 group-hover:scale-105 transition-all shadow-sm overflow-hidden"
+              :class="activeIndex === index + 1 ? 'border-primary/50' : ''"
+            >
               <img v-if="tab.favIconUrl" :src="tab.favIconUrl" class="w-4.5 h-4.5 object-contain" />
               <Globe v-else class="w-4 h-4 text-muted-foreground/40" />
             </div>
             <div class="flex flex-col min-w-0">
-              <span class="text-xs font-semibold truncate text-foreground group-hover:text-primary transition-colors">{{ tab.title }}</span>
+              <span class="text-xs font-semibold truncate text-foreground group-hover:text-primary transition-colors"
+                :class="activeIndex === index + 1 ? 'text-primary' : ''"
+              >{{ tab.title }}</span>
               <span class="text-[9px] text-muted-foreground truncate opacity-60 font-mono">{{ tab.url }}</span>
             </div>
           </button>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Send, Square, ImagePlus, X, Globe, Layers } from 'lucide-vue-next'
@@ -29,7 +29,9 @@ const inputText = ref('')
 const images = ref<string[]>([])
 const selectedTabs = ref<SelectedTab[]>([])
 const showTabPopover = ref(false)
+const atPosition = ref(-1) // Track position of @
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const tabPopoverRef = ref<InstanceType<typeof TabMentionPopover> | null>(null)
 
 const canSend = computed(() => {
   return (inputText.value.trim() || images.value.length > 0 || selectedTabs.value.length > 0) && !props.disabled
@@ -58,12 +60,30 @@ function handleStop() {
 }
 
 function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    if (showTabPopover.value) {
+  if (showTabPopover.value) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      tabPopoverRef.value?.moveSelection('down')
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      tabPopoverRef.value?.moveSelection('up')
+      return
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      tabPopoverRef.value?.selectActive()
+      return
+    }
+    if (e.key === 'Escape') {
       showTabPopover.value = false
       return
     }
+  }
+
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
     if (props.isStreaming) {
       handleStop()
     } else {
@@ -82,8 +102,14 @@ function handleInput(e: Event) {
   
   if (textBeforeCursor.endsWith('@')) {
     showTabPopover.value = true
-  } else if (showTabPopover.value && !textBeforeCursor.includes('@')) {
-    showTabPopover.value = false
+    atPosition.value = cursorPosition - 1
+  } else if (showTabPopover.value) {
+    // If popover is open, check if @ still exists before current cursor
+    const lastAt = textBeforeCursor.lastIndexOf('@')
+    if (lastAt === -1 || lastAt < atPosition.value) {
+      showTabPopover.value = false
+      atPosition.value = -1
+    }
   }
 
   // Auto-resize textarea
@@ -95,11 +121,9 @@ function handleTabSelect(tab: SelectedTab) {
   if (tab.type === 'all') {
     selectedTabs.value = [tab]
   } else {
-    // Check if "All Tabs" is already selected
     if (selectedTabs.value.some(t => t.type === 'all')) {
       selectedTabs.value = []
     }
-    // Limit to 10 tabs
     if (selectedTabs.value.length < 10) {
       if (!selectedTabs.value.find(t => t.tabId === tab.tabId)) {
         selectedTabs.value.push(tab)
@@ -107,15 +131,22 @@ function handleTabSelect(tab: SelectedTab) {
     }
   }
   
-  // Remove the '@' from text
-  const cursorPosition = textareaRef.value?.selectionStart || 0
+  // Precise removal of @ and any search text after it
   const value = inputText.value
-  const before = value.substring(0, cursorPosition).replace(/@$/, '')
-  const after = value.substring(cursorPosition)
-  inputText.value = before + after
+  const cursorPosition = textareaRef.value?.selectionStart || 0
+  
+  if (atPosition.value !== -1) {
+    const before = value.substring(0, atPosition.value)
+    const after = value.substring(cursorPosition)
+    inputText.value = before + after
+  }
   
   showTabPopover.value = false
-  textareaRef.value?.focus()
+  atPosition.value = -1
+  
+  nextTick(() => {
+    textareaRef.value?.focus()
+  })
 }
 
 function removeTab(index: number) {
@@ -155,6 +186,7 @@ function removeImage(index: number) {
     <!-- Tab Mention Popover -->
     <TabMentionPopover 
       v-if="showTabPopover"
+      ref="tabPopoverRef"
       @select="handleTabSelect"
       @close="showTabPopover = false"
     />

@@ -100,12 +100,20 @@ async function handleSend(content: string, images?: string[], selectedTabs?: Sel
     for (const tab of tabsToProcess) {
       if (tab.id) {
         try {
-          // Temporarily set active tab if needed or just send message to specific tabId
-          const response = await chrome.tabs.sendMessage(tab.id, {
-            action: 'FETCH_TEXT_CONTENT',
+          const [{ result: text }] = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => {
+              // Extraction logic: focus on main content if possible
+              return document.body.innerText || ''
+            }
           })
-          if (response?.success) {
-            combinedContent += `\n\n--- Content from Tab: ${tab.title} ---\n${response.data}\n`
+          
+          if (text) {
+            // Truncate per tab (e.g. 8000 chars) to prevent context explosion
+            const truncated = text.length > 8000 
+              ? text.slice(0, 8000) + '... [Tab content truncated]' 
+              : text
+            combinedContent += `\n\n--- Content from Tab: ${tab.title} ---\n${truncated}\n`
           }
         } catch (err) {
           console.warn(`Could not extract content from tab ${tab.id}:`, err)
