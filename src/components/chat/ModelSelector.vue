@@ -64,9 +64,9 @@ async function fetchModels() {
 
       try {
         llmFactory.configureProvider(providerId, {
-          apiKey: typeof config.apiKey === 'string' ? config.apiKey : config.apiKey[0],
+          apiKey: settingsStore.getApiKey(providerId),
           baseUrl: config.baseUrl,
-        })
+        }, settingsStore.getProviderApiSpec(providerId))
 
         const provider = llmFactory.getProvider(providerId)
         if (provider) {

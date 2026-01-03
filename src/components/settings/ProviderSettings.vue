@@ -2,18 +2,15 @@
 import { ref, computed, watch } from 'vue'
 import { 
   Check, 
+  ChevronRight,
   Eye, 
   EyeOff, 
   Loader2, 
   X, 
   RefreshCw, 
   ExternalLink,
-  ShieldCheck,
-  Zap,
   Plus,
   Cpu,
-  Trash2,
-  AlertCircle
 } from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
 import { llmFactory } from '@/lib/llm/factory'
@@ -26,9 +23,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
@@ -58,11 +52,12 @@ const builtInProviders: ProviderInfo[] = [
   { id: 'ollama', name: 'Ollama', defaultBaseUrl: 'http://127.0.0.1:11434/v1', iconSvg: PROVIDER_ICONS.ollama },
 ]
 
-const allProviders = computed(() => {
-  const custom = settingsStore.customProviders.map(p => ({
+const allProviders = computed<ProviderInfo[]>(() => {
+  const custom: ProviderInfo[] = settingsStore.customProviders.map(p => ({
     id: p.id as ProviderId,
     name: p.name,
     defaultBaseUrl: p.baseUrl,
+    icon: undefined,
     iconSvg: p.iconSvg,
     isCustom: true
   }))
@@ -112,14 +107,10 @@ async function testConnection(providerId: ProviderId) {
   testResult.value[providerId] = null
 
   try {
-    // Get apiSpec for custom providers
-    const customProvider = settingsStore.customProviders.find(p => p.id === providerId)
-    const apiSpec = customProvider?.apiSpec
-
     llmFactory.configureProvider(providerId, {
-      apiKey: typeof config.apiKey === 'string' ? config.apiKey : config.apiKey[0],
+      apiKey: settingsStore.getApiKey(providerId),
       baseUrl: config.baseUrl,
-    }, apiSpec as 'openai' | 'anthropic' | undefined)
+    }, settingsStore.getProviderApiSpec(providerId))
 
     const provider = llmFactory.getProvider(providerId)
     if (provider) {
@@ -141,9 +132,9 @@ async function refreshModels(providerId: ProviderId) {
   try {
     const config = settingsStore.getProviderConfig(providerId)
     llmFactory.configureProvider(providerId, {
-      apiKey: typeof config.apiKey === 'string' ? config.apiKey : config.apiKey[0],
+      apiKey: settingsStore.getApiKey(providerId),
       baseUrl: config.baseUrl,
-    })
+    }, settingsStore.getProviderApiSpec(providerId))
     const provider = llmFactory.getProvider(providerId)
     if (provider) {
       const models = await provider.getModels()
@@ -175,6 +166,14 @@ const currentProviderModels = computed(() => settingsStore.getProviderModels(sel
 const paginatedModels = computed(() => {
   const start = (modelPage.value - 1) * modelsPerPage
   return currentProviderModels.value.slice(start, start + modelsPerPage)
+})
+
+// Clamp page if models shrink after refresh / config change
+watch(currentProviderModels, () => {
+  const maxPage = Math.max(1, Math.ceil(currentProviderModels.value.length / modelsPerPage))
+  if (modelPage.value > maxPage) {
+    modelPage.value = maxPage
+  }
 })
 </script>
 
@@ -380,7 +379,7 @@ const paginatedModels = computed(() => {
                     <PaginationContent>
                       <PaginationPrevious class="rounded-xl h-9 hover:bg-primary/5 transition-colors border-muted/30" />
                       
-                      <template v-for="(item, index) in page > 0 ? [1] : []" :key="index">
+                      <template v-for="(_, index) in page > 0 ? [1] : []" :key="index">
                         <!-- Simplified pagination display -->
                         <div class="flex items-center gap-1 px-4">
                           <span class="text-xs font-bold text-muted-foreground">{{ modelPage }}</span>

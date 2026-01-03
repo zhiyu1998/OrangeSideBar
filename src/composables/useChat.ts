@@ -39,7 +39,7 @@ export function useChat(options: UseChatOptions = {}) {
       llmFactory.configureProvider(providerId, {
         apiKey: settingsStore.getApiKey(providerId),
         baseUrl: config.baseUrl,
-      })
+      }, settingsStore.getProviderApiSpec(providerId))
     }
   }
 

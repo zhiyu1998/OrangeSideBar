@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { Theme, PromptMode, SystemPrompts } from '@/types/settings'
-import type { ProviderId, ProviderConfig, ModelParameters, CustomProvider } from '@/types/provider'
+import type { ApiSpec, ProviderId, ProviderConfig, ModelParameters, CustomProvider } from '@/types/provider'
 import type { ModelInfo } from '@/lib/llm/types'
 import { DEFAULT_SYSTEM_PROMPT, PAPER_SYSTEM_PROMPT, LEARNING_MODE_PROMPT } from '@/constants/prompts'
 
@@ -247,12 +247,20 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function getApiKey(providerId: ProviderId): string {
-    const config = providers.value[providerId]
+    const config = getProviderConfig(providerId)
     if (Array.isArray(config.apiKey)) {
       // Random selection for multiple keys
       return config.apiKey[Math.floor(Math.random() * config.apiKey.length)]
     }
     return config.apiKey
+  }
+
+  function getProviderApiSpec(providerId: ProviderId): ApiSpec {
+    if (String(providerId).startsWith('custom_')) {
+      const custom = customProviders.value.find(p => p.id === providerId)
+      return custom?.apiSpec || 'openai'
+    }
+    return providerId === 'anthropic' ? 'anthropic' : 'openai'
   }
 
   // Model cache actions
@@ -320,6 +328,7 @@ export const useSettingsStore = defineStore('settings', () => {
     updateSystemPrompt,
     resetSystemPrompt,
     getApiKey,
+    getProviderApiSpec,
     // Model cache actions
     setProviderModels,
     getProviderModels,

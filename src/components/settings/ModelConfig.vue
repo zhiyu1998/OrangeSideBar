@@ -98,9 +98,9 @@ async function fetchModels() {
       if (!config.apiKey) continue
       try {
         llmFactory.configureProvider(providerId, {
-          apiKey: typeof config.apiKey === 'string' ? config.apiKey : config.apiKey[0],
+          apiKey: settingsStore.getApiKey(providerId),
           baseUrl: config.baseUrl,
-        })
+        }, settingsStore.getProviderApiSpec(providerId))
         const provider = llmFactory.getProvider(providerId)
         if (provider) {
           const models = await provider.getModels()
@@ -230,9 +230,9 @@ onMounted(() => {
               <Input
                 :id="config.key"
                 type="number"
-                :value="params[config.key]"
+                :model-value="params[config.key]"
                 class="h-10 bg-background/50"
-                @input="(e: Event) => updateParam(config.key, Number((e.target as HTMLInputElement).value))"
+                @update:model-value="(val) => updateParam(config.key, Number(val))"
               />
             </template>
           </div>

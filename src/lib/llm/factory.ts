@@ -3,7 +3,7 @@
  * Manages provider instances and routing based on model ID
  */
 
-import type { ProviderId } from '@/types/provider'
+import type { ApiSpec, ProviderId } from '@/types/provider'
 import type { BaseLLMProvider } from './base'
 import { OpenAIProvider } from './openai'
 import { AnthropicProvider } from './anthropic'
@@ -143,7 +143,7 @@ class LLMProviderFactory {
   /**
    * Configure a provider with API credentials
    */
-  configureProvider(providerId: ProviderId, config: LLMProviderConfig, apiSpec?: 'openai' | 'anthropic'): void {
+  configureProvider(providerId: ProviderId, config: LLMProviderConfig, apiSpec?: ApiSpec): void {
     let provider = this.getProvider(providerId)
 
     if (!provider) {

@@ -3,9 +3,6 @@ import { ref } from 'vue'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -19,11 +16,8 @@ import {
   ChevronRight, 
   Hash,
   Link as LinkIcon,
-  Trash2,
-  AlertTriangle
 } from 'lucide-vue-next'
 import type { ApiSpec, CustomProvider } from '@/types/provider'
-import { PROVIDER_ICONS } from '@/assets/icons/providerIcons'
 
 const props = defineProps<{
   open: boolean
