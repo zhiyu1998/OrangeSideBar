@@ -13,11 +13,13 @@ import ProviderSettings from '@/components/settings/ProviderSettings.vue'
 import ModelConfig from '@/components/settings/ModelConfig.vue'
 import PromptEditor from '@/components/settings/PromptEditor.vue'
 import InteractiveGridPattern from '@/components/inspira/ui/InteractiveGridPattern.vue'
-import { getLatestVersion } from '@/lib/version'
+import { getVersionInfo } from '@/lib/version'
 
 const settingsStore = useSettingsStore()
 const activeTab = ref('general')
-const version = ref('...')
+const currentVersion = ref('...')
+const latestVersion = ref<string | null>(null)
+const updateAvailable = ref(false)
 
 const menuItems = [
   { id: 'general', label: 'General', icon: Settings },
@@ -28,7 +30,10 @@ const menuItems = [
 
 onMounted(async () => {
   settingsStore.applyTheme()
-  version.value = await getLatestVersion()
+  const versionInfo = await getVersionInfo()
+  currentVersion.value = versionInfo.current
+  latestVersion.value = versionInfo.latest
+  updateAvailable.value = versionInfo.updateAvailable
 })
 </script>
 
@@ -50,7 +55,10 @@ onMounted(async () => {
         </div>
         <div>
           <h1 class="text-base font-bold tracking-tight">OrangeSideBar</h1>
-          <p class="text-[10px] text-primary font-mono uppercase tracking-widest">{{ version }}</p>
+          <p class="text-[10px] text-primary font-mono uppercase tracking-widest">{{ currentVersion }}</p>
+          <p v-if="updateAvailable && latestVersion" class="text-[10px] text-muted-foreground/70 font-mono uppercase tracking-widest">
+            Latest {{ latestVersion }}
+          </p>
         </div>
       </div>
 
