@@ -210,10 +210,10 @@ async function refreshModels(providerId: ProviderId) {
               <div class="relative group">
                 <Input
                   :type="showApiKey[selectedProviderId] ? 'text' : 'password'"
-                  :value="settingsStore.getProviderConfig(selectedProviderId).apiKey as string"
+                  :model-value="settingsStore.getProviderConfig(selectedProviderId).apiKey as string"
                   placeholder="Paste your private key..."
                   class="pr-14 h-15 bg-background border-muted/30 group-focus-within:border-primary/50 group-focus-within:ring-4 group-focus-within:ring-primary/10 transition-all rounded-2xl text-base shadow-sm"
-                  @input="(e: Event) => updateApiKey(selectedProviderId, (e.target as HTMLInputElement).value)"
+                  @update:model-value="(value) => updateApiKey(selectedProviderId, String(value))"
                 />
                 <Button
                   variant="ghost"
@@ -235,10 +235,10 @@ async function refreshModels(providerId: ProviderId) {
               </div>
               <div class="space-y-2">
                 <Input
-                  :value="settingsStore.getProviderConfig(selectedProviderId).baseUrl"
+                  :model-value="settingsStore.getProviderConfig(selectedProviderId).baseUrl"
                   :placeholder="selectedProvider.defaultBaseUrl"
                   class="h-15 bg-background border-muted/30 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all rounded-2xl shadow-sm"
-                  @input="(e: Event) => updateBaseUrl(selectedProviderId, (e.target as HTMLInputElement).value)"
+                  @update:model-value="(value) => updateBaseUrl(selectedProviderId, String(value))"
                 />
                 <div class="flex items-center gap-2 px-1">
                   <span class="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.1em]">Recommended:</span>
