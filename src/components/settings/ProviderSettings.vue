@@ -23,25 +23,26 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import BorderBeam from '@/components/inspira/ui/BorderBeam.vue'
 import type { ProviderId } from '@/types/provider'
+import { PROVIDER_ICONS } from '@/assets/icons/providerIcons'
 
 const settingsStore = useSettingsStore()
 
 interface ProviderInfo {
   id: ProviderId
   name: string
-  description: string
   defaultBaseUrl: string
   icon?: string
+  iconSvg?: string
 }
 
 const providers: ProviderInfo[] = [
-  { id: 'openai', name: 'OpenAI', description: 'GPT-4o, GPT-4o-mini', defaultBaseUrl: 'https://api.openai.com/v1' },
-  { id: 'anthropic', name: 'Anthropic', description: 'Claude 3.5 Sonnet', defaultBaseUrl: 'https://api.anthropic.com' },
-  { id: 'deepseek', name: 'DeepSeek', description: 'DeepSeek-V3, R1', defaultBaseUrl: 'https://api.deepseek.com/v1' },
-  { id: 'siliconflow', name: 'SiliconFlow', description: 'Open-source models', defaultBaseUrl: 'https://api.siliconflow.cn/v1' },
-  { id: 'openrouter', name: 'OpenRouter', description: 'Universal API gateway', defaultBaseUrl: 'https://openrouter.ai/api/v1' },
-  { id: 'groq', name: 'Groq', description: 'Ultra-fast LLaMA', defaultBaseUrl: 'https://api.groq.com/openai/v1' },
-  { id: 'ollama', name: 'Ollama', description: 'Local LLM server', defaultBaseUrl: 'http://127.0.0.1:11434/v1' },
+  { id: 'openai', name: 'OpenAI', defaultBaseUrl: 'https://api.openai.com/v1', iconSvg: PROVIDER_ICONS.openai },
+  { id: 'anthropic', name: 'Anthropic', defaultBaseUrl: 'https://api.anthropic.com', iconSvg: PROVIDER_ICONS.anthropic },
+  { id: 'deepseek', name: 'DeepSeek', defaultBaseUrl: 'https://api.deepseek.com/v1', iconSvg: PROVIDER_ICONS.deepseek },
+  { id: 'siliconflow', name: 'SiliconFlow', defaultBaseUrl: 'https://api.siliconflow.cn/v1', iconSvg: PROVIDER_ICONS.siliconflow },
+  { id: 'openrouter', name: 'OpenRouter', defaultBaseUrl: 'https://openrouter.ai/api/v1', iconSvg: PROVIDER_ICONS.openrouter },
+  { id: 'groq', name: 'Groq', defaultBaseUrl: 'https://api.groq.com/openai/v1', iconSvg: PROVIDER_ICONS.groq },
+  { id: 'ollama', name: 'Ollama', defaultBaseUrl: 'http://127.0.0.1:11434/v1', iconSvg: PROVIDER_ICONS.ollama },
 ]
 
 const selectedProviderId = ref<ProviderId>('openai')
@@ -120,45 +121,46 @@ async function refreshModels(providerId: ProviderId) {
 </script>
 
 <template>
-  <div class="flex gap-12 min-h-[750px] animate-in fade-in slide-in-from-bottom-4 duration-500">
+  <div class="flex gap-10 min-h-[700px] animate-in fade-in slide-in-from-bottom-4 duration-500">
     <!-- Master: Provider List -->
-    <div class="w-80 flex flex-col gap-4">
+    <div class="w-60 flex flex-col gap-3">
       <div class="flex items-center justify-between px-2">
-        <h4 class="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">Service Providers</h4>
-        <Badge variant="outline" class="text-[9px] opacity-50 px-1.5 h-4">{{ providers.length }} Available</Badge>
+        <h4 class="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">Providers</h4>
+        <Badge variant="outline" class="text-[9px] opacity-50 px-1.5 h-4">{{ providers.length }}</Badge>
       </div>
 
-      <Button variant="outline" class="w-full justify-start gap-3 border-dashed h-14 rounded-2xl bg-muted/5 group hover:border-primary/50 transition-all">
-        <Plus class="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-        <span class="text-xs font-semibold">Custom Endpoint</span>
+      <Button variant="outline" class="w-full justify-start gap-2 border-dashed h-10 rounded-xl bg-muted/5 group hover:border-primary/50 transition-all px-3">
+        <Plus class="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+        <span class="text-xs font-semibold">Add Custom</span>
       </Button>
       
       <ScrollArea class="flex-1 -mr-4 pr-4">
-        <div class="space-y-3 pb-8">
+        <div class="space-y-5 pb-4">
           <div
             v-for="provider in providers"
             :key="provider.id"
-            class="group relative flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all border box-border shadow-sm hover:shadow-md"
+            class="group relative flex items-center justify-between px-4 py-2.5 rounded-xl cursor-pointer transition-all border box-border shadow-sm hover:shadow-md"
             :class="selectedProviderId === provider.id 
               ? 'bg-primary/5 border-primary/40' 
               : 'bg-background hover:bg-muted/30 border-muted/30'"
             @click="selectedProviderId = provider.id"
           >
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
               <div 
-                class="w-12 h-12 rounded-xl bg-muted/10 border flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-3 shadow-inner"
+                class="w-8 h-8 rounded-lg bg-muted/10 border flex items-center justify-center transition-all group-hover:scale-105 shadow-inner overflow-hidden"
                 :class="{ 'border-primary/20 bg-primary/5': selectedProviderId === provider.id }"
               >
-                <img v-if="provider.icon" :src="provider.icon" class="w-7 h-7" />
-                <Cpu v-else class="w-6 h-6 text-muted-foreground" />
+                <div v-if="provider.iconSvg" v-html="provider.iconSvg" class="w-5 h-5 flex items-center justify-center provider-logo" />
+                <img v-else-if="provider.icon" :src="provider.icon" class="w-5 h-5 flex-shrink-0" />
+                <Cpu v-else class="w-4 h-4 text-muted-foreground flex-shrink-0" />
               </div>
               <div class="flex flex-col min-w-0">
-                <span class="text-sm font-bold tracking-tight text-foreground">{{ provider.name }}</span>
-                <span class="text-[11px] text-muted-foreground/60 truncate leading-tight mt-0.5">{{ provider.description }}</span>
+                <span class="text-sm font-semibold tracking-tight text-foreground">{{ provider.name }}</span>
               </div>
             </div>
             
             <Switch
+              class="scale-75"
               :model-value="settingsStore.getProviderConfig(provider.id).enabled"
               @click.stop
               @update:model-value="(enabled: boolean) => toggleEnabled(provider.id, enabled)"
@@ -179,20 +181,24 @@ async function refreshModels(providerId: ProviderId) {
     </div>
 
     <!-- Detail: Provider Configuration -->
-    <div class="flex-1 bg-muted/10 border border-muted/50 rounded-[2.5rem] p-10 overflow-hidden flex flex-col gap-10 relative shadow-inner">
+    <div class="flex-1 bg-muted/5 border border-muted/50 rounded-[2rem] p-8 overflow-hidden flex flex-col gap-8 relative shadow-inner">
       <template v-if="selectedProvider">
-        <div class="flex items-center justify-between border-b border-muted/30 pb-10">
-          <div class="flex items-center gap-6">
-            <div class="w-16 h-16 rounded-[1.5rem] bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-lg shadow-primary/5 transition-transform hover:scale-105">
-              <Zap class="w-8 h-8 fill-primary/10" />
+        <div class="flex items-center justify-between border-b border-muted/30 pb-8">
+          <div class="flex items-center gap-4">
+            <div 
+              v-if="selectedProvider.iconSvg || selectedProvider.icon"
+              class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center border border-primary/20 shadow-sm transition-transform hover:scale-105 overflow-hidden"
+            >
+              <div v-if="selectedProvider.iconSvg" v-html="selectedProvider.iconSvg" class="w-7 h-7 flex items-center justify-center provider-logo" />
+              <img v-else :src="selectedProvider.icon" class="w-7 h-7" />
             </div>
             <div>
-              <h3 class="text-2xl font-black tracking-tighter text-foreground">{{ selectedProvider.name }}</h3>
-              <p class="text-xs font-medium text-muted-foreground/60 mt-1 uppercase tracking-widest">Advanced Configuration</p>
+              <h3 class="text-xl font-black tracking-tighter text-foreground">{{ selectedProvider.name }}</h3>
+              <p class="text-[9px] font-medium text-muted-foreground/60 mt-0.5 uppercase tracking-[0.15em]">Configuration</p>
             </div>
           </div>
-          <a href="#" class="text-[11px] font-bold text-primary flex items-center gap-1.5 hover:underline decoration-2 underline-offset-4 bg-primary/5 px-3 py-1.5 rounded-full border border-primary/20 transition-colors hover:bg-primary/10">
-            Setup Guide <ExternalLink class="h-3 w-3" />
+          <a href="#" class="text-[10px] font-bold text-primary flex items-center gap-1.5 hover:underline decoration-1 underline-offset-4 bg-primary/5 px-3 py-1.5 rounded-full border border-primary/20 transition-colors hover:bg-primary/10">
+            Guide <ExternalLink class="h-3 w-3" />
           </a>
         </div>
 
@@ -202,7 +208,6 @@ async function refreshModels(providerId: ProviderId) {
             <div class="space-y-6">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <ShieldCheck class="w-4 h-4 text-orange-500" />
                   <Label class="text-sm font-extrabold tracking-tight">API Key Authentication</Label>
                 </div>
                 <Badge variant="outline" class="text-[9px] uppercase tracking-widest bg-muted/20 px-2 py-0.5 border-muted/50">Encrypted Storage</Badge>
@@ -256,7 +261,7 @@ async function refreshModels(providerId: ProviderId) {
                 @click="testConnection(selectedProviderId)"
               >
                 <Loader2 v-if="testingProvider === selectedProviderId" class="h-5 w-5 animate-spin" />
-                <ShieldCheck v-else-if="testResult[selectedProviderId] === 'success'" class="h-5 w-5 text-white" />
+                <Check v-else-if="testResult[selectedProviderId] === 'success'" class="h-5 w-5 text-white" />
                 <X v-else-if="testResult[selectedProviderId] === 'error'" class="h-5 w-5 text-white" />
                 <span v-if="testResult[selectedProviderId] === 'success'">Configuration Verified</span>
                 <span v-else-if="testResult[selectedProviderId] === 'error'">Connection Error</span>
@@ -306,3 +311,20 @@ async function refreshModels(providerId: ProviderId) {
     </div>
   </div>
 </template>
+
+<style scoped>
+:deep(.provider-logo svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
