@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { Theme, PromptMode, SystemPrompts } from '@/types/settings'
-import type { ProviderId, ProviderConfig, ModelParameters } from '@/types/provider'
+import type { ProviderId, ProviderConfig, ModelParameters, CustomProvider } from '@/types/provider'
 import type { ModelInfo } from '@/lib/llm/types'
 import { DEFAULT_SYSTEM_PROMPT, PAPER_SYSTEM_PROMPT, LEARNING_MODE_PROMPT } from '@/constants/prompts'
 
@@ -76,6 +76,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const providers = ref<Record<ProviderId, ProviderConfig>>(
     JSON.parse(JSON.stringify(DEFAULT_PROVIDERS))
   )
+  const customProviders = ref<CustomProvider[]>([])
   const systemPrompts = ref<SystemPrompts>({
     default: DEFAULT_SYSTEM_PROMPT,
     paper: PAPER_SYSTEM_PROMPT,
@@ -87,11 +88,15 @@ export const useSettingsStore = defineStore('settings', () => {
   const isLoadingModels = ref<Record<ProviderId, boolean>>({} as Record<ProviderId, boolean>)
 
   // Getters
-  const enabledProviders = computed(() =>
-    (Object.keys(providers.value) as ProviderId[]).filter(
+  const enabledProviders = computed(() => {
+    const builtIn = (Object.keys(providers.value) as ProviderId[]).filter(
       (id) => providers.value[id].enabled
     )
-  )
+    const custom = customProviders.value
+      .filter(p => p.enabled)
+      .map(p => p.id)
+    return [...builtIn, ...custom]
+  })
 
   const currentSystemPrompt = computed(() => systemPrompts.value[currentPromptMode.value])
 
@@ -143,10 +148,27 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function getProviderConfig(providerId: ProviderId): ProviderConfig {
+    if (String(providerId).startsWith('custom_')) {
+      const custom = customProviders.value.find(p => p.id === providerId)
+      return {
+        apiKey: custom?.apiKey || '',
+        baseUrl: custom?.baseUrl || '',
+        enabled: custom?.enabled ?? false
+      }
+    }
     return providers.value[providerId]
   }
 
   function updateProviderConfig(providerId: ProviderId, config: Partial<ProviderConfig>) {
+    if (String(providerId).startsWith('custom_')) {
+      const index = customProviders.value.findIndex(p => p.id === providerId)
+      if (index !== -1) {
+        if (config.apiKey !== undefined) customProviders.value[index].apiKey = config.apiKey as string
+        if (config.baseUrl !== undefined) customProviders.value[index].baseUrl = config.baseUrl
+        if (config.enabled !== undefined) customProviders.value[index].enabled = config.enabled
+      }
+      return
+    }
     providers.value[providerId] = {
       ...providers.value[providerId],
       ...config,
@@ -154,7 +176,12 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function setProviderEnabled(providerId: ProviderId, enabled: boolean) {
-    providers.value[providerId].enabled = enabled
+    if (String(providerId).startsWith('custom_')) {
+      const index = customProviders.value.findIndex(p => p.id === providerId)
+      if (index !== -1) customProviders.value[index].enabled = enabled
+    } else {
+      providers.value[providerId].enabled = enabled
+    }
 
     if (!enabled) {
       const disabledModelIds = new Set(
@@ -201,6 +228,22 @@ export const useSettingsStore = defineStore('settings', () => {
       learning: LEARNING_MODE_PROMPT,
     }
     systemPrompts.value[mode] = defaults[mode]
+  }
+
+  function addCustomProvider(provider: CustomProvider) {
+    customProviders.value.push(provider)
+  }
+
+  function removeCustomProvider(id: string) {
+    customProviders.value = customProviders.value.filter(p => p.id !== id)
+    clearProviderModels(id)
+  }
+
+  function updateCustomProvider(id: string, updates: Partial<CustomProvider>) {
+    const index = customProviders.value.findIndex(p => p.id === id)
+    if (index !== -1) {
+      customProviders.value[index] = { ...customProviders.value[index], ...updates }
+    }
   }
 
   function getApiKey(providerId: ProviderId): string {
@@ -255,6 +298,7 @@ export const useSettingsStore = defineStore('settings', () => {
     currentPromptMode,
     modelParameters,
     providers,
+    customProviders,
     systemPrompts,
     cachedModels,
     isLoadingModels,
@@ -282,5 +326,8 @@ export const useSettingsStore = defineStore('settings', () => {
     setProviderLoadingModels,
     isProviderLoadingModels,
     clearProviderModels,
+    addCustomProvider,
+    updateCustomProvider,
+    removeCustomProvider,
   }
 })

@@ -2,11 +2,23 @@
  * Provider Configuration Types
  */
 
-export type ProviderId = 'openai' | 'anthropic' | 'deepseek' | 'moonshot' | 'siliconflow' | 'openrouter' | 'groq' | 'grok' | 'mistral' | 'ollama'
+export type ApiSpec = 'openai' | 'anthropic' | 'google'
+
+export type ProviderId = 'openai' | 'anthropic' | 'deepseek' | 'moonshot' | 'siliconflow' | 'openrouter' | 'groq' | 'grok' | 'mistral' | 'ollama' | (string & {})
 
 export interface ProviderConfig {
   apiKey: string | string[]
   baseUrl: string
+  enabled: boolean
+}
+
+export interface CustomProvider {
+  id: string
+  name: string
+  iconSvg?: string
+  apiSpec: ApiSpec
+  baseUrl: string
+  apiKey: string
   enabled: boolean
 }
 

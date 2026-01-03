@@ -11,7 +11,9 @@ import {
   ShieldCheck,
   Zap,
   Plus,
-  Cpu
+  Cpu,
+  Trash2,
+  AlertCircle
 } from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
 import { llmFactory } from '@/lib/llm/factory'
@@ -22,8 +24,9 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import BorderBeam from '@/components/inspira/ui/BorderBeam.vue'
-import type { ProviderId } from '@/types/provider'
+import type { ProviderId, CustomProvider } from '@/types/provider'
 import { PROVIDER_ICONS } from '@/assets/icons/providerIcons'
+import AddProviderDialog from './AddProviderDialog.vue'
 
 const settingsStore = useSettingsStore()
 
@@ -33,9 +36,10 @@ interface ProviderInfo {
   defaultBaseUrl: string
   icon?: string
   iconSvg?: string
+  isCustom?: boolean
 }
 
-const providers: ProviderInfo[] = [
+const builtInProviders: ProviderInfo[] = [
   { id: 'openai', name: 'OpenAI', defaultBaseUrl: 'https://api.openai.com/v1', iconSvg: PROVIDER_ICONS.openai },
   { id: 'anthropic', name: 'Anthropic', defaultBaseUrl: 'https://api.anthropic.com', iconSvg: PROVIDER_ICONS.anthropic },
   { id: 'deepseek', name: 'DeepSeek', defaultBaseUrl: 'https://api.deepseek.com/v1', iconSvg: PROVIDER_ICONS.deepseek },
@@ -45,12 +49,24 @@ const providers: ProviderInfo[] = [
   { id: 'ollama', name: 'Ollama', defaultBaseUrl: 'http://127.0.0.1:11434/v1', iconSvg: PROVIDER_ICONS.ollama },
 ]
 
+const allProviders = computed(() => {
+  const custom = settingsStore.customProviders.map(p => ({
+    id: p.id as ProviderId,
+    name: p.name,
+    defaultBaseUrl: p.baseUrl,
+    iconSvg: p.iconSvg,
+    isCustom: true
+  }))
+  return [...builtInProviders, ...custom]
+})
+
+const isAddDialogOpen = ref(false)
 const selectedProviderId = ref<ProviderId>('openai')
 const showApiKey = ref<Record<ProviderId, boolean>>({} as Record<ProviderId, boolean>)
 const testingProvider = ref<ProviderId | null>(null)
 const testResult = ref<Record<ProviderId, 'success' | 'error' | null>>({} as Record<ProviderId, 'success' | 'error' | null>)
 
-const selectedProvider = computed(() => providers.find(p => p.id === selectedProviderId.value))
+const selectedProvider = computed(() => allProviders.value.find(p => p.id === selectedProviderId.value))
 
 function toggleShowApiKey(providerId: ProviderId) {
   showApiKey.value[providerId] = !showApiKey.value[providerId]
@@ -79,10 +95,14 @@ async function testConnection(providerId: ProviderId) {
   testResult.value[providerId] = null
 
   try {
+    // Get apiSpec for custom providers
+    const customProvider = settingsStore.customProviders.find(p => p.id === providerId)
+    const apiSpec = customProvider?.apiSpec
+
     llmFactory.configureProvider(providerId, {
       apiKey: typeof config.apiKey === 'string' ? config.apiKey : config.apiKey[0],
       baseUrl: config.baseUrl,
-    })
+    }, apiSpec as 'openai' | 'anthropic' | undefined)
 
     const provider = llmFactory.getProvider(providerId)
     if (provider) {
@@ -118,6 +138,20 @@ async function refreshModels(providerId: ProviderId) {
     settingsStore.setProviderLoadingModels(providerId, false)
   }
 }
+
+function handleAddCustomProvider(provider: CustomProvider) {
+  settingsStore.addCustomProvider(provider)
+  selectedProviderId.value = provider.id
+}
+
+function handleDeleteCustomProvider(id: string) {
+  settingsStore.removeCustomProvider(id)
+  selectedProviderId.value = 'openai'
+}
+
+function updateCustomProviderName(id: string, name: string) {
+  settingsStore.updateCustomProvider(id, { name })
+}
 </script>
 
 <template>
@@ -126,10 +160,14 @@ async function refreshModels(providerId: ProviderId) {
     <div class="w-60 flex flex-col gap-3">
       <div class="flex items-center justify-between px-2">
         <h4 class="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">Providers</h4>
-        <Badge variant="outline" class="text-[9px] opacity-50 px-1.5 h-4">{{ providers.length }}</Badge>
+        <Badge variant="outline" class="text-[9px] opacity-50 px-1.5 h-4">{{ allProviders.length }}</Badge>
       </div>
 
-      <Button variant="outline" class="w-full justify-start gap-2 border-dashed h-10 rounded-xl bg-muted/5 group hover:border-primary/50 transition-all px-3">
+      <Button 
+        variant="outline" 
+        class="w-full justify-start gap-2 border-dashed h-10 rounded-xl bg-muted/5 group hover:border-primary/50 transition-all px-3"
+        @click="isAddDialogOpen = true"
+      >
         <Plus class="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
         <span class="text-xs font-semibold">Add Custom</span>
       </Button>
@@ -137,7 +175,7 @@ async function refreshModels(providerId: ProviderId) {
       <ScrollArea class="flex-1 -mr-4 pr-4">
         <div class="space-y-5 pb-4">
           <div
-            v-for="provider in providers"
+            v-for="provider in allProviders"
             :key="provider.id"
             class="group relative flex items-center justify-between px-4 py-2.5 rounded-xl cursor-pointer transition-all border box-border shadow-sm hover:shadow-md"
             :class="selectedProviderId === provider.id 
@@ -193,7 +231,15 @@ async function refreshModels(providerId: ProviderId) {
               <img v-else :src="selectedProvider.icon" class="w-7 h-7" />
             </div>
             <div>
-              <h3 class="text-xl font-black tracking-tighter text-foreground">{{ selectedProvider.name }}</h3>
+              <div class="flex items-center gap-2">
+                <Input
+                  v-if="selectedProvider.isCustom"
+                  :model-value="selectedProvider.name"
+                  class="h-7 text-xl p-0 font-black tracking-tighter bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 w-auto min-w-[120px]"
+                  @update:model-value="(val) => updateCustomProviderName(selectedProviderId, String(val))"
+                />
+                <h3 v-else class="text-xl font-black tracking-tighter text-foreground">{{ selectedProvider.name }}</h3>
+              </div>
               <p class="text-[9px] font-medium text-muted-foreground/60 mt-0.5 uppercase tracking-[0.15em]">Configuration</p>
             </div>
           </div>
@@ -301,6 +347,17 @@ async function refreshModels(providerId: ProviderId) {
                 <p class="text-[10px] text-center text-muted-foreground/30 font-medium uppercase tracking-[0.2em] pt-4">Synchronized with remote endpoint</p>
               </div>
             </transition>
+
+            <!-- Delete Custom Provider -->
+            <div v-if="selectedProvider.isCustom" class="pt-8 border-t border-muted/30 flex justify-end items-center gap-4 group/del">
+              <Button 
+                variant="destructive"
+                class="rounded-xl px-6 h-11 font-bold shadow-lg shadow-destructive/20 hover:scale-105 transition-all"
+                @click="handleDeleteCustomProvider(selectedProviderId)"
+              >
+                Delete Provider
+              </Button>
+            </div>
           </div>
         </ScrollArea>
       </template>
@@ -310,6 +367,11 @@ async function refreshModels(providerId: ProviderId) {
       </div>
     </div>
   </div>
+
+  <AddProviderDialog 
+    v-model:open="isAddDialogOpen"
+    @add="handleAddCustomProvider"
+  />
 </template>
 
 <style scoped>

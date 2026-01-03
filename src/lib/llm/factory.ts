@@ -143,13 +143,19 @@ class LLMProviderFactory {
   /**
    * Configure a provider with API credentials
    */
-  configureProvider(providerId: ProviderId, config: LLMProviderConfig): void {
+  configureProvider(providerId: ProviderId, config: LLMProviderConfig, apiSpec?: 'openai' | 'anthropic'): void {
     let provider = this.getProvider(providerId)
 
     if (!provider) {
-      // Create OpenAI-compatible provider for unregistered providers
-      if (OPENAI_COMPATIBLE_PROVIDERS.includes(providerId)) {
-        provider = new OpenAIProvider()
+      // Create OpenAI-compatible provider for unregistered or custom providers
+      const isCustom = String(providerId).startsWith('custom_')
+      if (OPENAI_COMPATIBLE_PROVIDERS.includes(providerId) || isCustom) {
+        // Use Anthropic provider if specified, otherwise default to OpenAI
+        if (apiSpec === 'anthropic') {
+          provider = new AnthropicProvider()
+        } else {
+          provider = new OpenAIProvider()
+        }
         Object.defineProperty(provider, 'providerId', {
           value: providerId,
           writable: false,
