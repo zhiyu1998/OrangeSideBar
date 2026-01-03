@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { 
   Check, 
   Eye, 
@@ -23,6 +23,15 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import BorderBeam from '@/components/inspira/ui/BorderBeam.vue'
 import type { ProviderId, CustomProvider } from '@/types/provider'
 import { PROVIDER_ICONS } from '@/assets/icons/providerIcons'
@@ -62,6 +71,14 @@ const allProviders = computed(() => {
 
 const isAddDialogOpen = ref(false)
 const selectedProviderId = ref<ProviderId>('openai')
+const modelPage = ref(1)
+const modelsPerPage = 10
+
+// Reset page when provider changes
+watch(selectedProviderId, () => {
+  modelPage.value = 1
+})
+
 const showApiKey = ref<Record<ProviderId, boolean>>({} as Record<ProviderId, boolean>)
 const testingProvider = ref<ProviderId | null>(null)
 const testResult = ref<Record<ProviderId, 'success' | 'error' | null>>({} as Record<ProviderId, 'success' | 'error' | null>)
@@ -152,6 +169,13 @@ function handleDeleteCustomProvider(id: string) {
 function updateCustomProviderName(id: string, name: string) {
   settingsStore.updateCustomProvider(id, { name })
 }
+
+const currentProviderModels = computed(() => settingsStore.getProviderModels(selectedProviderId.value))
+
+const paginatedModels = computed(() => {
+  const start = (modelPage.value - 1) * modelsPerPage
+  return currentProviderModels.value.slice(start, start + modelsPerPage)
+})
 </script>
 
 <template>
@@ -330,7 +354,7 @@ function updateCustomProviderName(id: string, name: string) {
                 
                 <div class="grid grid-cols-2 gap-3">
                   <div
-                    v-for="model in settingsStore.getProviderModels(selectedProviderId).slice(0, 10)"
+                    v-for="model in paginatedModels"
                     :key="model.id"
                     class="p-4 rounded-2xl border bg-background/50 hover:bg-primary/5 hover:border-primary/20 transition-all cursor-pointer group flex items-center justify-between shadow-sm relative overflow-hidden"
                     :class="{ 'border-primary/50 bg-primary/5 ring-1 ring-primary/20': settingsStore.defaultModel === model.id }"
@@ -338,11 +362,36 @@ function updateCustomProviderName(id: string, name: string) {
                   >
                     <div class="flex flex-col min-w-0 pr-3 z-10">
                       <span class="text-[13px] font-bold truncate leading-none text-foreground">{{ model.name }}</span>
-                      <span class="text-[10px] text-muted-foreground/50 truncate mt-1 font-mono uppercase tracking-tighter">{{ model.id }}</span>
+                      <span class="text-[10px] text-muted-foreground/50 mt-1.5 truncate uppercase tracking-widest font-mono">{{ model.id }}</span>
                     </div>
-                    <Check v-if="settingsStore.defaultModel === model.id" class="h-4 w-4 text-primary flex-shrink-0 z-10" />
-                    <div v-if="settingsStore.defaultModel === model.id" class="absolute -right-2 -bottom-2 w-12 h-12 bg-primary/5 rounded-full blur-xl" />
+                    <div class="flex items-center gap-1.5 z-10">
+                      <div v-if="settingsStore.defaultModel === model.id" class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                      <div class="w-8 h-8 rounded-lg bg-muted/20 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                        <Check v-if="settingsStore.defaultModel === model.id" class="h-4 w-4 text-primary" />
+                        <ChevronRight v-else class="h-4 w-4 text-muted-foreground/30 group-hover:text-primary transition-all group-hover:translate-x-0.5" />
+                      </div>
+                    </div>
                   </div>
+                </div>
+
+                <!-- Model Pagination -->
+                <div v-if="currentProviderModels.length > modelsPerPage" class="pt-4 flex justify-center">
+                  <Pagination v-slot="{ page }" :total="currentProviderModels.length" :items-per-page="modelsPerPage" v-model:page="modelPage">
+                    <PaginationContent>
+                      <PaginationPrevious class="rounded-xl h-9 hover:bg-primary/5 transition-colors border-muted/30" />
+                      
+                      <template v-for="(item, index) in page > 0 ? [1] : []" :key="index">
+                        <!-- Simplified pagination display -->
+                        <div class="flex items-center gap-1 px-4">
+                          <span class="text-xs font-bold text-muted-foreground">{{ modelPage }}</span>
+                          <span class="text-[10px] text-muted-foreground/30 px-1">/</span>
+                          <span class="text-xs font-medium text-muted-foreground/40">{{ Math.ceil(currentProviderModels.length / modelsPerPage) }}</span>
+                        </div>
+                      </template>
+
+                      <PaginationNext class="rounded-xl h-9 hover:bg-primary/5 transition-colors border-muted/30" />
+                    </PaginationContent>
+                  </Pagination>
                 </div>
                 <p class="text-[10px] text-center text-muted-foreground/30 font-medium uppercase tracking-[0.2em] pt-4">Synchronized with remote endpoint</p>
               </div>
