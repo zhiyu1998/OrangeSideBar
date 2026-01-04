@@ -7,9 +7,11 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 
 </div>
 
-![](./public/sidebar.png)
-
-![](./public/settings.png)
+<p align="center">
+  <img src="https://brave.wzznft.com/i/2026/01/04/jv9in2.png" width="32%" />
+  <img src="https://brave.wzznft.com/i/2026/01/04/jv9iuu.png" width="32%" />
+  <img src="https://brave.wzznft.com/i/2026/01/04/jv9gac.png" width="32%" />
+</p>
 
 ## 📖 使用方式
 
@@ -40,9 +42,3 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 - [X] 论文模式，为阅读论文增效
 
 > PDF 读取总结需要到插件设置开启 `Allow access to file URLs`
-
-## 🌼 致谢
-
-大部分想法和实现都来自下面的项目，但是由于作者长时间没有维护，就自行写了一个，因为平时用的挺频繁的
-
-- [FisherAI](https://github.com/fisherdaddy/FisherAI)
