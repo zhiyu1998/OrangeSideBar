@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Button } from '@/components/ui/button'
-import { Settings, Moon, Sun, Monitor, Trash2, MessageSquare, BookOpen, GraduationCap } from 'lucide-vue-next'
+import { Settings, Moon, Sun, Monitor, Trash2, Share2, MessageSquare, BookOpen, GraduationCap } from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
 import type { PromptMode } from '@/types/settings'
 import {
@@ -19,6 +19,7 @@ defineProps<Props>()
 
 const emit = defineEmits<{
   clear: []
+  share: []
 }>()
 
 const settingsStore = useSettingsStore()
@@ -46,6 +47,10 @@ function setPromptMode(mode: PromptMode) {
 function handleClear() {
   emit('clear')
 }
+
+function handleShare() {
+  emit('share')
+}
 </script>
 
 <template>
@@ -56,6 +61,18 @@ function handleClear() {
     </div>
 
     <div class="flex items-center gap-1">
+      <!-- Share as Image -->
+      <Button
+        v-if="hasMessages"
+        variant="ghost"
+        size="icon"
+        class="h-8 w-8 text-muted-foreground hover:text-foreground"
+        title="Share as image"
+        @click="handleShare"
+      >
+        <Share2 class="h-4 w-4" />
+      </Button>
+
       <!-- Clear Conversation -->
       <Button
         v-if="hasMessages"

@@ -8,9 +8,12 @@ import mermaid from 'mermaid'
 interface Props {
   content: string
   isStreaming?: boolean
+  theme?: 'auto' | 'light' | 'dark'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  theme: 'auto',
+})
 
 const renderedContent = ref('')
 const containerRef = ref<HTMLElement | null>(null)
@@ -25,6 +28,8 @@ function escapeHtml(text: string): string {
 }
 
 function getMermaidTheme(): 'default' | 'dark' {
+  if (props.theme === 'light') return 'default'
+  if (props.theme === 'dark') return 'dark'
   return document.documentElement.classList.contains('dark') ? 'dark' : 'default'
 }
 
@@ -172,17 +177,17 @@ watch(
 .markdown-body h3 { font-size: 1.15em; }
 
 .markdown-body blockquote {
-  border-left: 3px solid hsl(var(--primary));
+  border-left: 3px solid var(--primary);
   padding-left: 1em;
   margin: 0.5em 0;
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
 }
 
 .markdown-body pre {
   margin: 0.75em 0;
   padding: 0.75em;
   border-radius: 0.5rem;
-  background-color: hsl(var(--muted));
+  background-color: var(--muted);
   overflow-x: auto;
 }
 
@@ -204,13 +209,13 @@ watch(
 .markdown-body .inline-code {
   padding: 0.15em 0.4em;
   border-radius: 0.25rem;
-  background-color: hsl(var(--muted));
+  background-color: var(--muted);
   font-size: 0.85em;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .markdown-body a {
-  color: hsl(var(--primary));
+  color: var(--primary);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -227,13 +232,13 @@ watch(
 
 .markdown-body th,
 .markdown-body td {
-  border: 1px solid hsl(var(--border));
+  border: 1px solid var(--border);
   padding: 0.5em 0.75em;
   text-align: left;
 }
 
 .markdown-body th {
-  background-color: hsl(var(--muted));
+  background-color: var(--muted);
   font-weight: 600;
 }
 
@@ -245,7 +250,7 @@ watch(
 
 .markdown-body hr {
   border: none;
-  border-top: 1px solid hsl(var(--border));
+  border-top: 1px solid var(--border);
   margin: 1em 0;
 }
 

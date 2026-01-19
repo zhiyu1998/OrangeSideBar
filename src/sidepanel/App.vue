@@ -1,15 +1,20 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useChat } from '@/composables/useChat'
 import { useContent } from '@/composables/useContent'
 import { AppHeader, FeatureGrid } from '@/components/layout'
 import { MessageList, InputGroup } from '@/components/chat'
+import ShareImageDialog from '@/components/share/ShareImageDialog.vue'
 import { SUMMARY_PROMPT, YOUTUBE_SUBTITLE_SUMMARY_PROMPT, BILIBILI_SUBTITLE_SUMMARY_PROMPT } from '@/constants/prompts'
 
 const settingsStore = useSettingsStore()
 const { sendMessage, stopStreaming, clearConversation, regenerate, isStreaming, messages } = useChat()
 const { extractCurrentTabText, extractSubtitles, getCurrentUrl, isLoading: isContentLoading, error: contentError } = useContent()
+
+const shareOpen = ref(false)
+const sharePageTitle = ref<string>('')
+const sharePageUrl = ref<string>('')
 
 // Feature handlers
 async function handleSummary() {
@@ -174,6 +179,19 @@ function handleClearConversation() {
   clearConversation()
 }
 
+async function handleShareConversation() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    sharePageTitle.value = tab?.title || 'Untitled'
+    sharePageUrl.value = tab?.url || ''
+  } catch {
+    sharePageTitle.value = 'Untitled'
+    sharePageUrl.value = ''
+  } finally {
+    shareOpen.value = true
+  }
+}
+
 onMounted(() => {
   settingsStore.applyTheme()
 })
@@ -185,6 +203,15 @@ onMounted(() => {
     <AppHeader
       :has-messages="messages.length > 0"
       @clear="handleClearConversation"
+      @share="handleShareConversation"
+    />
+
+    <ShareImageDialog
+      :open="shareOpen"
+      :messages="messages"
+      :page-title="sharePageTitle"
+      :page-url="sharePageUrl"
+      @update:open="(val) => (shareOpen = val)"
     />
 
     <!-- Feature Grid -->
