@@ -27,3 +27,4 @@ dist-ssr
 .claude/*
 .cursor/*
 .ace-tool
+tsconfig.tsbuildinfo
