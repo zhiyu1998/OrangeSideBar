@@ -325,7 +325,10 @@ watch(currentProviderModels, () => {
             <div class="flex items-center gap-6 pt-6">
               <Button
                 variant="default"
-                class="flex-1 h-15 font-black text-sm rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all gap-3"
+                class="flex-1 h-15 font-black text-sm rounded-2xl shadow-xl transition-all gap-3 hover:scale-[1.02] active:scale-95"
+                :class="testResult[selectedProviderId] === 'success'
+                  ? 'bg-emerald-600 hover:bg-emerald-600/90 shadow-emerald-500/20 border-emerald-600'
+                  : 'shadow-primary/20'"
                 :disabled="testingProvider === selectedProviderId || !settingsStore.getProviderConfig(selectedProviderId).apiKey"
                 @click="testConnection(selectedProviderId)"
               >
