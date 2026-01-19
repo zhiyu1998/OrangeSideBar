@@ -7,7 +7,7 @@ _✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 
 
 </div>
 
-![](https://brave.wzznft.com/i/2026/01/04/jv9iuu.png)
+<img width="2425" height="1284" alt="PixPin_2026-01-19_23-01-09" src="https://github.com/user-attachments/assets/c4693ad8-de38-45ac-add3-e4461122fd76" />
 
 ## 📖 使用方式
 
