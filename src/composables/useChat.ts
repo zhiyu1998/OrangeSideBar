@@ -5,7 +5,7 @@
 
 import { ref, computed } from 'vue'
 import { llmFactory } from '@/lib/llm/factory'
-import type { ChatMessage, StreamChunk } from '@/lib/llm/types'
+import type { ChatMessage, ContentPart, StreamChunk } from '@/lib/llm/types'
 import { useChatStore } from '@/stores/chat'
 import { useSettingsStore } from '@/stores/settings'
 import { getSystemPrompt } from '@/constants/prompts'
@@ -91,13 +91,66 @@ export function useChat(options: UseChatOptions = {}) {
     return null
   }
 
+  function parseImageDataUrl(
+    dataUrl: string
+  ): { mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'; data: string } | null {
+    const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUrl)
+    if (!match) return null
+    const rawMediaType = match[1].toLowerCase()
+    const data = match[2]
+
+    const mediaType = rawMediaType === 'image/jpg' ? 'image/jpeg' : rawMediaType
+    if (
+      mediaType !== 'image/jpeg' &&
+      mediaType !== 'image/png' &&
+      mediaType !== 'image/gif' &&
+      mediaType !== 'image/webp'
+    ) {
+      return null
+    }
+
+    return { mediaType, data }
+  }
+
   function buildApiMessages(excludeMessageId: string): ChatMessage[] {
     return messages.value
       .filter((m) => m.id !== excludeMessageId)
-      .map((m) => ({
-        role: m.role as 'user' | 'assistant' | 'system',
-        content: m.llmContent || m.content,
-      }))
+      .map((m) => {
+        const text = m.llmContent || m.content
+
+        if (m.role === 'user' && m.images && m.images.length > 0) {
+          const parts: ContentPart[] = []
+
+          if (text) {
+            parts.push({ type: 'text', text })
+          }
+
+          for (const img of m.images) {
+            const parsed = parseImageDataUrl(img)
+            if (!parsed) continue
+            parts.push({
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: parsed.mediaType,
+                data: parsed.data,
+              },
+            })
+          }
+
+          if (parts.length > 0) {
+            return {
+              role: 'user' as const,
+              content: parts,
+            }
+          }
+        }
+
+        return {
+          role: m.role as 'user' | 'assistant' | 'system',
+          content: text,
+        }
+      })
   }
 
   async function streamAssistantResponse(assistantMessageId: string): Promise<void> {
