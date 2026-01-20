@@ -18,6 +18,7 @@ const OPENAI_COMPATIBLE_PROVIDERS: ProviderId[] = [
   'grok',
   'mistral',
   'ollama',
+  'zhipu',
 ]
 
 /**
@@ -39,6 +40,9 @@ const MODEL_PROVIDER_MAPPING: Array<{ prefix: string; providerId: ProviderId }> 
   // Moonshot/Kimi models (OpenAI compatible)
   { prefix: 'moonshot-', providerId: 'moonshot' },
   { prefix: 'kimi-', providerId: 'moonshot' },
+
+  // Zhipu GLM models (OpenAI compatible)
+  { prefix: 'glm', providerId: 'zhipu' },
 
   // SiliconFlow models (OpenAI compatible)
   { prefix: 'Qwen', providerId: 'siliconflow' },
@@ -75,6 +79,22 @@ class LLMProviderFactory {
    */
   registerProvider(provider: BaseLLMProvider): void {
     this.providers.set(provider.providerId, provider)
+  }
+
+  private applyProviderOverrides(provider: BaseLLMProvider, providerId: ProviderId): void {
+    // ProviderId is used for routing and caching; override it for OpenAI-compatible clones.
+    Object.defineProperty(provider, 'providerId', {
+      value: providerId,
+      writable: false,
+    })
+
+    // Improve UX for OpenAI-compatible providers by showing a meaningful name.
+    if (providerId === 'zhipu') {
+      Object.defineProperty(provider, 'providerName', {
+        value: '智谱清言 (GLM)',
+        writable: false,
+      })
+    }
   }
 
   /**
@@ -124,11 +144,7 @@ class LLMProviderFactory {
       // create an OpenAI provider instance
       if (OPENAI_COMPATIBLE_PROVIDERS.includes(providerId)) {
         const openaiProvider = new OpenAIProvider()
-        // Override provider ID for the clone
-        Object.defineProperty(openaiProvider, 'providerId', {
-          value: providerId,
-          writable: false,
-        })
+        this.applyProviderOverrides(openaiProvider, providerId)
         this.registerProvider(openaiProvider)
         return openaiProvider
       }
@@ -156,10 +172,7 @@ class LLMProviderFactory {
         } else {
           provider = new OpenAIProvider()
         }
-        Object.defineProperty(provider, 'providerId', {
-          value: providerId,
-          writable: false,
-        })
+        this.applyProviderOverrides(provider, providerId)
         this.registerProvider(provider)
       } else {
         console.warn(`Cannot configure unregistered provider: ${providerId}`)

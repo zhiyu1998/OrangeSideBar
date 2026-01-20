@@ -44,6 +44,7 @@ interface ProviderInfo {
 
 const builtInProviders: ProviderInfo[] = [
   { id: 'openai', name: 'OpenAI', defaultBaseUrl: 'https://api.openai.com/v1', iconSvg: PROVIDER_ICONS.openai },
+  { id: 'zhipu', name: '智谱清言 (GLM)', defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4', iconSvg: PROVIDER_ICONS.zhipu },
   { id: 'anthropic', name: 'Anthropic', defaultBaseUrl: 'https://api.anthropic.com', iconSvg: PROVIDER_ICONS.anthropic },
   { id: 'deepseek', name: 'DeepSeek', defaultBaseUrl: 'https://api.deepseek.com/v1', iconSvg: PROVIDER_ICONS.deepseek },
   { id: 'siliconflow', name: 'SiliconFlow', defaultBaseUrl: 'https://api.siliconflow.cn/v1', iconSvg: PROVIDER_ICONS.siliconflow },
@@ -161,19 +162,44 @@ function updateCustomProviderName(id: string, name: string) {
   settingsStore.updateCustomProvider(id, { name })
 }
 
+const onlyFreeModels = ref(false)
+
+const ZHIPU_FREE_MODELS = new Set(['glm-4.7-flash', 'glm-4.5-flash', 'glm-4-flash-250414'])
+
+function setOnlyFreeModels(v: boolean) {
+  onlyFreeModels.value = v
+}
+
+function isFreeModel(providerId: ProviderId, modelId: string): boolean {
+  if (providerId !== 'zhipu') return false
+  return ZHIPU_FREE_MODELS.has(modelId.toLowerCase())
+}
+
 const currentProviderModels = computed(() => settingsStore.getProviderModels(selectedProviderId.value))
+
+const filteredProviderModels = computed(() => {
+  const models = currentProviderModels.value
+  if (onlyFreeModels.value && selectedProviderId.value === 'zhipu') {
+    return models.filter((m) => isFreeModel('zhipu', m.id))
+  }
+  return models
+})
 
 const paginatedModels = computed(() => {
   const start = (modelPage.value - 1) * modelsPerPage
-  return currentProviderModels.value.slice(start, start + modelsPerPage)
+  return filteredProviderModels.value.slice(start, start + modelsPerPage)
 })
 
 // Clamp page if models shrink after refresh / config change
-watch(currentProviderModels, () => {
-  const maxPage = Math.max(1, Math.ceil(currentProviderModels.value.length / modelsPerPage))
+watch(filteredProviderModels, () => {
+  const maxPage = Math.max(1, Math.ceil(filteredProviderModels.value.length / modelsPerPage))
   if (modelPage.value > maxPage) {
     modelPage.value = maxPage
   }
+})
+
+watch(onlyFreeModels, () => {
+  modelPage.value = 1
 })
 </script>
 
@@ -353,8 +379,24 @@ watch(currentProviderModels, () => {
                     <RefreshCw :class="['h-4 w-4 text-primary', settingsStore.isProviderLoadingModels(selectedProviderId) ? 'animate-spin' : '']" />
                   </Button>
                 </div>
+
+                <div v-if="selectedProviderId === 'zhipu'" class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <Switch
+                      class="scale-75"
+                      :model-value="onlyFreeModels"
+                      @update:model-value="setOnlyFreeModels"
+                    />
+                    <span class="text-xs font-semibold text-muted-foreground">只看免费模型</span>
+                    <Badge variant="outline" class="text-[9px] uppercase tracking-widest bg-muted/20 px-2 py-0.5 border-muted/50">Zhipu</Badge>
+                  </div>
+                </div>
                 
-                <div class="grid grid-cols-2 gap-3">
+                <div v-if="filteredProviderModels.length === 0" class="py-6 text-center text-xs text-muted-foreground/60">
+                  没有匹配的模型（可关闭“只看免费模型”）
+                </div>
+
+                <div v-else class="grid grid-cols-2 gap-3">
                   <div
                     v-for="model in paginatedModels"
                     :key="model.id"
@@ -364,7 +406,16 @@ watch(currentProviderModels, () => {
                   >
                     <div class="flex flex-col min-w-0 pr-3 z-10">
                       <span class="text-[13px] font-bold truncate leading-none text-foreground">{{ model.name }}</span>
-                      <span class="text-[10px] text-muted-foreground/50 mt-1.5 truncate uppercase tracking-widest font-mono">{{ model.id }}</span>
+                      <div class="flex items-center gap-2 mt-1.5 min-w-0">
+                        <span class="text-[10px] text-muted-foreground/50 truncate uppercase tracking-widest font-mono">{{ model.id }}</span>
+                        <Badge
+                          v-if="isFreeModel(selectedProviderId, model.id)"
+                          variant="outline"
+                          class="text-[9px] uppercase tracking-widest bg-muted/10 px-1.5 py-0.5 border-muted/40"
+                        >
+                          FREE
+                        </Badge>
+                      </div>
                     </div>
                     <div class="flex items-center gap-1.5 z-10">
                       <div v-if="settingsStore.defaultModel === model.id" class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
@@ -377,8 +428,8 @@ watch(currentProviderModels, () => {
                 </div>
 
                 <!-- Model Pagination -->
-                <div v-if="currentProviderModels.length > modelsPerPage" class="pt-4 flex justify-center">
-                  <Pagination v-slot="{ page }" :total="currentProviderModels.length" :items-per-page="modelsPerPage" v-model:page="modelPage">
+                <div v-if="filteredProviderModels.length > modelsPerPage" class="pt-4 flex justify-center">
+                  <Pagination v-slot="{ page }" :total="filteredProviderModels.length" :items-per-page="modelsPerPage" v-model:page="modelPage">
                     <PaginationContent>
                       <PaginationPrevious class="rounded-xl h-9 hover:bg-primary/5 transition-colors border-muted/30" />
                       
@@ -387,7 +438,7 @@ watch(currentProviderModels, () => {
                         <div class="flex items-center gap-1 px-4">
                           <span class="text-xs font-bold text-muted-foreground">{{ modelPage }}</span>
                           <span class="text-[10px] text-muted-foreground/30 px-1">/</span>
-                          <span class="text-xs font-medium text-muted-foreground/40">{{ Math.ceil(currentProviderModels.length / modelsPerPage) }}</span>
+                          <span class="text-xs font-medium text-muted-foreground/40">{{ Math.ceil(filteredProviderModels.length / modelsPerPage) }}</span>
                         </div>
                       </template>
 

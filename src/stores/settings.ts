@@ -12,6 +12,11 @@ const DEFAULT_PROVIDERS: Record<ProviderId, ProviderConfig> = {
     baseUrl: 'https://api.openai.com/v1',
     enabled: true,
   },
+  zhipu: {
+    apiKey: '',
+    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    enabled: false,
+  },
   anthropic: {
     apiKey: '',
     baseUrl: 'https://api.anthropic.com',
@@ -156,7 +161,17 @@ export const useSettingsStore = defineStore('settings', () => {
         enabled: custom?.enabled ?? false
       }
     }
-    return providers.value[providerId]
+
+    const current = providers.value[providerId]
+    const defaults = DEFAULT_PROVIDERS[providerId]
+
+    // Handle migrations: older persisted state may not contain newly added providers.
+    if (!current) {
+      return defaults ?? { apiKey: '', baseUrl: '', enabled: false }
+    }
+
+    // Ensure any new fields/defaults are present without overwriting user changes.
+    return defaults ? { ...defaults, ...current } : current
   }
 
   function updateProviderConfig(providerId: ProviderId, config: Partial<ProviderConfig>) {
@@ -169,6 +184,12 @@ export const useSettingsStore = defineStore('settings', () => {
       }
       return
     }
+
+    if (!providers.value[providerId]) {
+      // Initialize missing provider (migration / newly added built-in)
+      providers.value[providerId] = DEFAULT_PROVIDERS[providerId] ?? { apiKey: '', baseUrl: '', enabled: false }
+    }
+
     providers.value[providerId] = {
       ...providers.value[providerId],
       ...config,
@@ -180,6 +201,9 @@ export const useSettingsStore = defineStore('settings', () => {
       const index = customProviders.value.findIndex(p => p.id === providerId)
       if (index !== -1) customProviders.value[index].enabled = enabled
     } else {
+      if (!providers.value[providerId]) {
+        providers.value[providerId] = DEFAULT_PROVIDERS[providerId] ?? { apiKey: '', baseUrl: '', enabled: false }
+      }
       providers.value[providerId].enabled = enabled
     }
 

@@ -18,6 +18,18 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
       thinking: false,
     },
   },
+  zhipu: {
+    id: 'zhipu',
+    name: '智谱清言 (GLM)',
+    icon: 'zhipu.svg',
+    defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    apiPath: '/chat/completions',
+    supportedFeatures: {
+      streaming: true,
+      vision: false,
+      thinking: false,
+    },
+  },
   anthropic: {
     id: 'anthropic',
     name: 'Anthropic',
@@ -145,6 +157,7 @@ export const MODEL_PROVIDER_MAPPING: Record<string, ProviderId> = {
   'o1-': 'openai',
   'o3-': 'openai',
   'chatgpt-': 'openai',
+  'glm': 'zhipu',
   'claude-': 'anthropic',
   'deepseek-': 'deepseek',
   'moonshot-': 'moonshot',

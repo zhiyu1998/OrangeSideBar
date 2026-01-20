@@ -222,21 +222,39 @@ export class OpenAIProvider extends BaseLLMProvider {
 
     try {
       const response = await client.models.list()
-      const models: ModelInfo[] = []
 
-      for (const model of response.data) {
-        // Include all models from the API response
-        // Third-party providers may have custom model names
-        models.push({
-          id: model.id,
-          name: model.id,
+      const apiModels: ModelInfo[] = response.data.map((model) => ({
+        id: model.id,
+        name: model.id,
+        providerId: this.providerId,
+        supportsVision: this.supportsVision(model.id),
+        isThinkingModel: this.supportsThinking(model.id),
+      }))
+
+      // Zhipu's /models can return a limited subset depending on account/availability.
+      // Merge the known official list so users can still select other supported models.
+      if (this.providerId === 'zhipu') {
+        const defaults = this.getDefaultModels().map((m) => ({
+          ...m,
           providerId: this.providerId,
-          supportsVision: this.supportsVision(model.id),
-          isThinkingModel: this.supportsThinking(model.id),
-        })
+        }))
+
+        const byId = new Map<string, ModelInfo>()
+
+        for (const model of defaults) {
+          byId.set(model.id.toLowerCase(), model)
+        }
+
+        for (const model of apiModels) {
+          const key = model.id.toLowerCase()
+          const existing = byId.get(key)
+          byId.set(key, existing ? { ...model, ...existing, id: model.id } : model)
+        }
+
+        return Array.from(byId.values()).sort((a, b) => a.id.localeCompare(b.id))
       }
 
-      return models.sort((a, b) => a.id.localeCompare(b.id))
+      return apiModels.sort((a, b) => a.id.localeCompare(b.id))
     } catch (error) {
       console.error('Failed to fetch models:', error)
       // Return default models if API call fails
@@ -248,6 +266,25 @@ export class OpenAIProvider extends BaseLLMProvider {
    * Get default models list
    */
   private getDefaultModels(): ModelInfo[] {
+    if (this.providerId === 'zhipu') {
+      return [
+        // Official model list (may evolve; API /models is source of truth)
+        { id: 'glm-4.7', name: 'GLM-4.7', providerId: this.providerId },
+        { id: 'glm-4.7-flashx', name: 'GLM-4.7-FlashX', providerId: this.providerId },
+        { id: 'glm-4.6', name: 'GLM-4.6', providerId: this.providerId },
+        { id: 'glm-4.5-air', name: 'GLM-4.5-Air', providerId: this.providerId },
+        { id: 'glm-4.5-airx', name: 'GLM-4.5-AirX', providerId: this.providerId },
+        { id: 'glm-4-long', name: 'GLM-4-Long', providerId: this.providerId },
+        { id: 'glm-4-flashx-250414', name: 'GLM-4-FlashX-250414', providerId: this.providerId },
+        { id: 'glm-4.7-flash', name: 'GLM-4.7-Flash (Free)', providerId: this.providerId },
+        { id: 'glm-4.5-flash', name: 'GLM-4.5-Flash (Free)', providerId: this.providerId },
+        { id: 'glm-4-flash-250414', name: 'GLM-4-Flash-250414 (Free)', providerId: this.providerId },
+
+        // Backward compatible / commonly seen IDs
+        { id: 'glm-4-air-250414', name: 'GLM-4-Air-250414', providerId: this.providerId },
+      ]
+    }
+
     return [
       { id: 'gpt-4o', name: 'GPT-4o', providerId: this.providerId, supportsVision: true },
       { id: 'gpt-4o-mini', name: 'GPT-4o Mini', providerId: this.providerId, supportsVision: true },
@@ -264,6 +301,9 @@ export class OpenAIProvider extends BaseLLMProvider {
    */
   supportsModel(modelId: string): boolean {
     const lowerModelId = modelId.toLowerCase()
+    if (this.providerId === 'zhipu') {
+      return lowerModelId.startsWith('glm')
+    }
     return (
       lowerModelId.startsWith('gpt-') ||
       lowerModelId.startsWith('o1') ||
