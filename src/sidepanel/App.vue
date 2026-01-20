@@ -6,11 +6,23 @@ import { useContent } from '@/composables/useContent'
 import { AppHeader, FeatureGrid } from '@/components/layout'
 import { MessageList, InputGroup } from '@/components/chat'
 import ShareImageDialog from '@/components/share/ShareImageDialog.vue'
-import { SUMMARY_PROMPT, YOUTUBE_SUBTITLE_SUMMARY_PROMPT, BILIBILI_SUBTITLE_SUMMARY_PROMPT } from '@/constants/prompts'
+import {
+  SUMMARY_PROMPT,
+  LINUX_DO_SUMMARY_PROMPT,
+  YOUTUBE_SUBTITLE_SUMMARY_PROMPT,
+  BILIBILI_SUBTITLE_SUMMARY_PROMPT,
+} from '@/constants/prompts'
 
 const settingsStore = useSettingsStore()
 const { sendMessage, stopStreaming, clearConversation, regenerate, isStreaming, messages } = useChat()
-const { extractCurrentTabText, extractSubtitles, getCurrentUrl, isLoading: isContentLoading, error: contentError } = useContent()
+const {
+  extractCurrentTabText,
+  extractLinuxDoThreadText,
+  extractSubtitles,
+  getCurrentUrl,
+  isLoading: isContentLoading,
+  error: contentError,
+} = useContent()
 
 const shareOpen = ref(false)
 const sharePageTitle = ref<string>('')
@@ -18,13 +30,35 @@ const sharePageUrl = ref<string>('')
 
 // Feature handlers
 async function handleSummary() {
-  const content = await extractCurrentTabText()
+  const url = await getCurrentUrl()
+  const isLinuxDoThread = (() => {
+    if (!url) return false
+    try {
+      const { hostname, pathname } = new URL(url)
+      const isLinuxDoHost = hostname === 'linux.do' || hostname.endsWith('.linux.do')
+      if (!isLinuxDoHost) return false
+      return (
+        /\/topic\/\d+/.test(pathname) ||
+        /\/t\/[^/]+\/\d+/.test(pathname) ||
+        /\/t\/\d+/.test(pathname)
+      )
+    } catch {
+      return false
+    }
+  })()
+
+  const content = isLinuxDoThread
+    ? await extractLinuxDoThreadText({ maxPosts: 40, headPosts: 15, maxPostChars: 1200 })
+    : await extractCurrentTabText()
   if (content) {
     const truncatedContent = content.length > 15000
       ? content.slice(0, 15000) + '\n\n[Content truncated...]'
       : content
-    const llmContent = `${SUMMARY_PROMPT}${truncatedContent}`
-    const displayContent = `请帮我总结当前网页内容 [已提取 ${truncatedContent.length.toLocaleString()} 字符]`
+    const prompt = isLinuxDoThread ? LINUX_DO_SUMMARY_PROMPT : SUMMARY_PROMPT
+    const llmContent = `${prompt}${truncatedContent}`
+    const displayContent = isLinuxDoThread
+      ? `请帮我总结当前 Linux.do 帖子 [已提取 ${truncatedContent.length.toLocaleString()} 字符]`
+      : `请帮我总结当前网页内容 [已提取 ${truncatedContent.length.toLocaleString()} 字符]`
     sendMessage(displayContent, undefined, llmContent)
   } else {
     sendMessage(`无法提取页面内容${contentError.value ? `：${contentError.value}` : '，请确保页面已完全加载。'}`)

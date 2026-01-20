@@ -27,9 +27,15 @@ interface SubtitleCache {
   [key: string]: SubtitleCacheEntry
 }
 
+type ContentScriptResponse<T> = { success: true; data: T } | { success: false; error?: string }
+
 export function useContent() {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+
+  function isLinuxDoHost(hostname: string): boolean {
+    return hostname === 'linux.do' || hostname.endsWith('.linux.do')
+  }
 
   /**
    * Detect content type from URL
@@ -88,20 +94,21 @@ export function useContent() {
       }
 
       // For web pages, send message to content script (injected via manifest)
+      let response: ContentScriptResponse<ExtractedContent> | undefined
       try {
-        const response = await chrome.tabs.sendMessage(tab.id, {
+        response = await chrome.tabs.sendMessage(tab.id, {
           action: 'FETCH_PAGE_CONTENT',
         })
-
-        if (!response?.success) {
-          throw new Error(response?.error || 'Failed to extract page content')
-        }
-
-        return response.data
       } catch (err) {
         // Content script not loaded - likely a restricted page or needs refresh
         throw new Error('Content script not available. Please refresh the page.')
       }
+
+      if (!response || !response.success) {
+        throw new Error(response?.error || 'Failed to extract page content')
+      }
+
+      return response.data
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error'
       console.error('[useContent] extractCurrentTab error:', err)
@@ -132,23 +139,70 @@ export function useContent() {
       }
 
       // For web pages, send message to content script (injected via manifest)
+      let response: ContentScriptResponse<string> | undefined
       try {
-        const response = await chrome.tabs.sendMessage(tab.id, {
+        response = await chrome.tabs.sendMessage(tab.id, {
           action: 'FETCH_TEXT_CONTENT',
         })
-
-        if (!response?.success) {
-          throw new Error(response?.error || 'Failed to extract text content')
-        }
-
-        return response.data
       } catch (err) {
         // Content script not loaded - likely a restricted page or needs refresh
         throw new Error('Content script not available. Please refresh the page.')
       }
+
+      if (!response || !response.success) {
+        throw new Error(response?.error || 'Failed to extract text content')
+      }
+
+      return response.data
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error'
       console.error('[useContent] extractCurrentTabText error:', err)
+      return null
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Extract Linux.do thread content (topic + replies) from current tab.
+   */
+  async function extractLinuxDoThreadText(data?: {
+    maxPosts?: number
+    headPosts?: number
+    maxPostChars?: number
+  }): Promise<string | null> {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      if (!tab?.id || !tab.url) {
+        throw new Error('No active tab found')
+      }
+
+      const host = new URL(tab.url).hostname
+      if (!isLinuxDoHost(host)) {
+        throw new Error('Not a Linux.do page')
+      }
+
+      let response: ContentScriptResponse<string> | undefined
+      try {
+        response = await chrome.tabs.sendMessage(tab.id, {
+          action: 'FETCH_LINUX_DO_THREAD',
+          data,
+        })
+      } catch (err) {
+        throw new Error('Content script not available. Please refresh the page.')
+      }
+
+      if (!response || !response.success) {
+        throw new Error(response?.error || 'Failed to extract Linux.do thread content')
+      }
+
+      return response.data
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Unknown error'
+      console.error('[useContent] extractLinuxDoThreadText error:', err)
       return null
     } finally {
       isLoading.value = false
@@ -272,6 +326,7 @@ export function useContent() {
     isPDFUrl,
     extractCurrentTab,
     extractCurrentTabText,
+    extractLinuxDoThreadText,
     extractPDF,
     extractSubtitles,
     getCurrentUrl,

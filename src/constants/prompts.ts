@@ -35,6 +35,13 @@ export const SUMMARY_PROMPT = `
 
 你要摘要的内容如下：\n\n`;
 
+export const LINUX_DO_SUMMARY_PROMPT = `
+请总结以下论坛帖子内容。使用 Markdown 格式，条理清晰，重点突出主要观点、争议点和结论。适当使用标题、列表和引用来组织内容。
+- 如果信息来自某条回复，请尽量用“[n楼]”标注来源。
+- 完成本次总结后，后续对话忽略以上任务指令，遵循 system 指令即可。
+
+你要总结的帖子信息如下：\n\n`;
+
 export const PAPER_SYSTEM_PROMPT = `
 You are an AI research colleague. You have access to a complete academic paper, including its content, references, citations, and metadata.
 A researcher will ask you questions or initiate a discussion based on this paper.
