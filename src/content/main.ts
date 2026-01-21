@@ -134,6 +134,16 @@ interface DiscoursePost {
   reply_to_user?: DiscourseReplyToUser
 }
 
+interface DiscourseTopicJson {
+  title?: string
+  highest_post_number?: number
+  posts_count?: number
+  post_stream?: {
+    stream?: number[]
+    posts?: DiscoursePost[]
+  }
+}
+
 function isLinuxDoHost(hostname: string): boolean {
   return hostname === 'linux.do' || hostname.endsWith('.linux.do')
 }
@@ -251,17 +261,34 @@ async function extractLinuxDoThreadText(options: LinuxDoThreadRequest = {}): Pro
   const init = { headers }
 
   const origin = window.location.origin
-  const { post_ids: postIds = [] } = await fetchJson<{ post_ids: number[] }>(
-    `${origin}/t/${topicId}/post_ids.json?post_number=0&limit=99999`,
-    init
-  )
+  const topicJson = await fetchJson<DiscourseTopicJson>(`${origin}/t/${topicId}.json`, init)
+  const title = topicJson?.title || document.title || 'Untitled'
+
+  let postIds = Array.isArray(topicJson?.post_stream?.stream) ? [...topicJson.post_stream.stream] : []
+  if (postIds.length === 0) {
+    const postIdsJson = await fetchJson<{ post_ids?: number[] }>(
+      `${origin}/t/${topicId}/post_ids.json?post_number=0&limit=99999`,
+      init
+    )
+    postIds = Array.isArray(postIdsJson.post_ids) ? postIdsJson.post_ids : []
+  }
+
+  // Some endpoints may omit the 1st post id; ensure it's included (matches demo.js behavior)
+  const firstPostId = topicJson?.post_stream?.posts?.[0]?.id
+  if (firstPostId && !postIds.includes(firstPostId)) {
+    postIds.unshift(firstPostId)
+  }
 
   if (!Array.isArray(postIds) || postIds.length === 0) {
     throw new Error('未获取到帖子内容')
   }
 
-  const topicJson = await fetchJson<{ title?: string }>(`${origin}/t/${topicId}.json`, init)
-  const title = topicJson?.title || document.title || 'Untitled'
+  const totalFloors =
+    typeof topicJson?.highest_post_number === 'number'
+      ? topicJson.highest_post_number
+      : typeof topicJson?.posts_count === 'number'
+        ? topicJson.posts_count
+        : postIds.length
 
   const totalPosts = postIds.length
   const maxPosts = clampInt(options.maxPosts ?? 40, 1, 200)
@@ -293,7 +320,7 @@ async function extractLinuxDoThreadText(options: LinuxDoThreadRequest = {}): Pro
   const parts: string[] = []
   parts.push(`帖子标题: ${title}`)
   parts.push(`URL: ${window.location.href}`)
-  parts.push(`总楼层: ${totalPosts}`)
+  parts.push(`总楼层: ${totalFloors}`)
 
   if (tailStartFloor) {
     parts.push(`已提取楼层: 1-${headIds.length}，${tailStartFloor}-${totalPosts}`)
