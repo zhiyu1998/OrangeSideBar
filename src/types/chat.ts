@@ -9,6 +9,8 @@ export interface Message {
   llmContent?: string // Optional full content for LLM API (if different from display)
   images?: string[] // Base64 encoded images
   thinking?: string // Reasoning content for thinking models
+  thinkingStartedAt?: number
+  thinkingFinishedAt?: number
   timestamp: number
   error?: string
 }

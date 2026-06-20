@@ -23,8 +23,6 @@ export function useChat(options: UseChatOptions = {}) {
   // Local state
   const isLoading = ref(false)
   const error = ref<string | null>(null)
-  const currentThinking = ref<string>('')
-
   // Computed
   const modelId = computed(() => options.modelId || settingsStore.defaultModel)
   const isStreaming = computed(() => chatStore.isStreaming)
@@ -222,10 +220,9 @@ export function useChat(options: UseChatOptions = {}) {
       chatStore.setStreaming(false)
       chatStore.setAbortController(null)
 
-      // Update message with thinking content if any
-      if (currentThinking.value) {
-        chatStore.updateMessage(assistantMessageId, { thinking: currentThinking.value })
-        currentThinking.value = ''
+      const assistantMessage = messages.value.find((message) => message.id === assistantMessageId)
+      if (assistantMessage?.thinking && !assistantMessage.thinkingFinishedAt) {
+        chatStore.updateMessage(assistantMessageId, { thinkingFinishedAt: Date.now() })
       }
     }
   }
@@ -246,8 +243,6 @@ export function useChat(options: UseChatOptions = {}) {
     }
 
     error.value = null
-    currentThinking.value = ''
-
     // Create session if needed
     if (!chatStore.hasActiveSession) {
       chatStore.createSession(modelId.value)
@@ -265,6 +260,7 @@ export function useChat(options: UseChatOptions = {}) {
     const assistantMessage = chatStore.addMessage({
       role: 'assistant',
       content: '',
+      thinking: '',
     })
 
     await streamAssistantResponse(assistantMessage.id)
@@ -274,12 +270,33 @@ export function useChat(options: UseChatOptions = {}) {
    * Handle stream chunk
    */
   function handleStreamChunk(chunk: StreamChunk, messageId: string) {
+    const targetMessage = messages.value.find((message) => message.id === messageId)
+    const shouldFinishThinking =
+      !!targetMessage?.thinking &&
+      !!targetMessage.thinkingStartedAt &&
+      !targetMessage.thinkingFinishedAt &&
+      chunk.type !== 'thinking'
+
+    if (shouldFinishThinking) {
+      chatStore.updateMessage(messageId, { thinkingFinishedAt: Date.now() })
+    }
+
     switch (chunk.type) {
       case 'text':
         chatStore.appendToMessage(messageId, chunk.content)
         break
       case 'thinking':
-        currentThinking.value += chunk.content
+        if (!chunk.content) break
+        if (!targetMessage) break
+
+        if (!targetMessage.thinkingStartedAt) {
+          chatStore.updateMessage(messageId, {
+            thinkingStartedAt: Date.now(),
+            thinkingFinishedAt: undefined,
+          })
+        }
+
+        chatStore.appendThinkingToMessage(messageId, chunk.content)
         break
       case 'error':
         error.value = chunk.content
@@ -304,7 +321,6 @@ export function useChat(options: UseChatOptions = {}) {
   function clearConversation() {
     chatStore.clearCurrentSession()
     error.value = null
-    currentThinking.value = ''
   }
 
   /**
@@ -319,8 +335,6 @@ export function useChat(options: UseChatOptions = {}) {
     }
 
     error.value = null
-    currentThinking.value = ''
-
     const snapshot = messages.value.slice()
 
     // Resolve which assistant message to regenerate
@@ -352,6 +366,7 @@ export function useChat(options: UseChatOptions = {}) {
     const assistantMessage = chatStore.addMessage({
       role: 'assistant',
       content: '',
+      thinking: '',
     })
 
     await streamAssistantResponse(assistantMessage.id)
@@ -362,7 +377,6 @@ export function useChat(options: UseChatOptions = {}) {
     isLoading,
     isStreaming,
     error,
-    currentThinking,
     messages,
     modelId,
 

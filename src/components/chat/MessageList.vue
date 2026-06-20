@@ -38,6 +38,16 @@ watch(
   }
 )
 
+watch(
+  () => props.messages[props.messages.length - 1]?.thinking,
+  async () => {
+    if (props.isStreaming) {
+      await nextTick()
+      scrollToBottom()
+    }
+  }
+)
+
 function scrollToBottom() {
   if (scrollAreaRef.value) {
     const viewport = scrollAreaRef.value.$el?.querySelector('[data-radix-scroll-area-viewport]')
@@ -75,6 +85,8 @@ function handleRegenerate(messageId: string) {
           :role="message.role"
           :content="message.content"
           :thinking="message.thinking"
+          :thinking-started-at="message.thinkingStartedAt"
+          :thinking-finished-at="message.thinkingFinishedAt"
           :error="message.error"
           :images="message.images"
           :is-streaming="isStreaming && index === messages.length - 1 && message.role === 'assistant'"

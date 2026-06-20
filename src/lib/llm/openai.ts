@@ -107,6 +107,68 @@ export class OpenAIProvider extends BaseLLMProvider {
     return effort !== undefined && effort !== 'auto'
   }
 
+  private extractReasoningText(delta: unknown): string {
+    if (!delta || typeof delta !== 'object') return ''
+
+    const candidate = delta as Record<string, unknown>
+    const parts: string[] = []
+
+    const directKeys = [
+      'reasoning',
+      'reasoning_content',
+      'reasoning_text',
+      'thinking',
+    ]
+
+    for (const key of directKeys) {
+      const value = candidate[key]
+      if (typeof value === 'string' && value) {
+        parts.push(value)
+      }
+    }
+
+    const arrayKeys = [
+      'content',
+      'reasoning_details',
+      'reasoning_content',
+      'output',
+    ]
+
+    for (const key of arrayKeys) {
+      const value = candidate[key]
+      if (!Array.isArray(value)) continue
+
+      for (const item of value) {
+        if (!item || typeof item !== 'object') continue
+
+        const record = item as Record<string, unknown>
+        const type = typeof record.type === 'string' ? record.type : ''
+
+        if (
+          type.includes('reasoning') ||
+          type.includes('thinking') ||
+          type === 'summary_text'
+        ) {
+          const textCandidates = [
+            record.text,
+            record.reasoning,
+            record.thinking,
+            record.delta,
+            record.content,
+          ]
+
+          for (const textValue of textCandidates) {
+            if (typeof textValue === 'string' && textValue) {
+              parts.push(textValue)
+            }
+          }
+        }
+      }
+    }
+
+    return parts.join('')
+  }
+
   /**
    * Streaming chat completion
    */
@@ -138,8 +200,11 @@ export class OpenAIProvider extends BaseLLMProvider {
 
         if (!delta) continue
 
-        // Check for reasoning/thinking content (for o1/o3 models)
-        // OpenAI uses a different field for reasoning tokens
+        const reasoningText = this.extractReasoningText(delta)
+        if (reasoningText) {
+          yield { type: 'thinking', content: reasoningText }
+        }
+
         const content = delta.content || ''
 
         if (content) {

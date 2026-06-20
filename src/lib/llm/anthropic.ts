@@ -168,14 +168,19 @@ export class AnthropicProvider extends BaseLLMProvider {
       })
 
       for await (const event of stream) {
-        if (event.type === 'content_block_delta') {
-          const delta = event.delta
-          if ('text' in delta) {
-            yield { type: 'text', content: delta.text }
+        if (event.type === 'content_block_start') {
+          const block = event.content_block
+
+          if (block.type === 'thinking' && block.thinking) {
+            yield { type: 'thinking', content: block.thinking }
           }
-          // Handle thinking blocks if present
-          if ('thinking' in delta && delta.thinking) {
-            yield { type: 'thinking', content: delta.thinking as string }
+        } else if (event.type === 'content_block_delta') {
+          const delta = event.delta
+
+          if (delta.type === 'text_delta' && delta.text) {
+            yield { type: 'text', content: delta.text }
+          } else if (delta.type === 'thinking_delta' && delta.thinking) {
+            yield { type: 'thinking', content: delta.thinking }
           }
         } else if (event.type === 'message_stop') {
           yield { type: 'done', content: '' }

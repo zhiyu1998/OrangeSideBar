@@ -112,6 +112,17 @@ export const useChatStore = defineStore('chat', () => {
     const message = currentSession.value.messages.find((m) => m.id === messageId)
     if (message) {
       message.content += content
+      currentSession.value.updatedAt = Date.now()
+    }
+  }
+
+  function appendThinkingToMessage(messageId: string, content: string) {
+    if (!currentSession.value) return
+
+    const message = currentSession.value.messages.find((m) => m.id === messageId)
+    if (message) {
+      message.thinking = `${message.thinking || ''}${content}`
+      currentSession.value.updatedAt = Date.now()
     }
   }
 
@@ -198,6 +209,7 @@ export const useChatStore = defineStore('chat', () => {
     addMessage,
     updateMessage,
     appendToMessage,
+    appendThinkingToMessage,
     deleteMessage,
     removeMessagesAfter,
     clearCurrentSession,
