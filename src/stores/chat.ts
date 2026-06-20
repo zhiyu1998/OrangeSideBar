@@ -27,7 +27,20 @@ export const useChatStore = defineStore('chat', () => {
 
   const currentMessages = computed(() => currentSession.value?.messages || [])
 
+  const sortedSessions = computed(() =>
+    [...sessions.value].sort((a, b) => b.updatedAt - a.updatedAt)
+  )
+
   const hasActiveSession = computed(() => currentSessionId.value !== null)
+
+  function deriveSessionTitleFromMessage(content: string): string {
+    const normalized = content.replace(/\s+/g, ' ').trim()
+    if (!normalized) {
+      return `New Chat ${sessions.value.length + 1}`
+    }
+
+    return normalized.length > 32 ? `${normalized.slice(0, 32)}...` : normalized
+  }
 
   // Actions
   function createSession(modelId: string, title?: string): ChatSession {
@@ -73,6 +86,11 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     currentSession.value.messages.push(newMessage)
+
+    if (message.role === 'user' && currentSession.value.messages.length === 1) {
+      currentSession.value.title = deriveSessionTitleFromMessage(message.content)
+    }
+
     currentSession.value.updatedAt = Date.now()
 
     return newMessage
@@ -171,6 +189,7 @@ export const useChatStore = defineStore('chat', () => {
     // Getters
     currentSession,
     currentMessages,
+    sortedSessions,
     hasActiveSession,
     // Actions
     createSession,

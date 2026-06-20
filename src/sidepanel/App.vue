@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
+import { useChatStore } from '@/stores/chat'
 import { useChat } from '@/composables/useChat'
 import { useContent } from '@/composables/useContent'
 import type { ExtractedContent } from '@/lib/content/types'
-import { AppHeader, FeatureGrid } from '@/components/layout'
+import { AppHeader, FeatureGrid, SessionHistoryPanel } from '@/components/layout'
 import { MessageList, InputGroup } from '@/components/chat'
 import ShareImageDialog from '@/components/share/ShareImageDialog.vue'
 import {
@@ -15,10 +16,12 @@ import {
 } from '@/constants/prompts'
 
 const settingsStore = useSettingsStore()
+const chatStore = useChatStore()
 const { sendMessage, stopStreaming, clearConversation, regenerate, isStreaming, messages } = useChat()
 const {
   extractCurrentTab,
   extractCurrentTabText,
+  extractCurrentTabMarkdown,
   extractLinuxDoThreadText,
   extractSubtitles,
   getCurrentUrl,
@@ -29,6 +32,11 @@ const {
 const shareOpen = ref(false)
 const sharePageTitle = ref<string>('')
 const sharePageUrl = ref<string>('')
+const historyOpen = ref(false)
+const actionNotice = ref<{ type: 'success' | 'error'; text: string } | null>(null)
+let actionNoticeTimer: number | null = null
+
+const sortedSessions = computed(() => chatStore.sortedSessions)
 
 function formatSummaryContext(extracted: ExtractedContent): string {
   const metadataLines = [
@@ -48,6 +56,38 @@ function formatSummaryContext(extracted: ExtractedContent): string {
     : ''
 
   return `${frontmatter}${extracted.textContent}`.trim()
+}
+
+async function copyToClipboard(content: string) {
+  try {
+    await navigator.clipboard.writeText(content)
+  } catch {
+    const textarea = document.createElement('textarea')
+    textarea.value = content
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    try {
+      document.execCommand('copy')
+    } finally {
+      document.body.removeChild(textarea)
+    }
+  }
+}
+
+function showActionNotice(type: 'success' | 'error', text: string) {
+  actionNotice.value = { type, text }
+
+  if (actionNoticeTimer !== null) {
+    window.clearTimeout(actionNoticeTimer)
+  }
+
+  actionNoticeTimer = window.setTimeout(() => {
+    actionNotice.value = null
+    actionNoticeTimer = null
+  }, 2400)
 }
 
 // Feature handlers
@@ -142,6 +182,19 @@ async function handleSubtitles() {
   }
 }
 
+async function handleMarkdown() {
+  const markdown = await extractCurrentTabMarkdown()
+  if (markdown) {
+    await copyToClipboard(markdown)
+    showActionNotice('success', `Markdown copied to clipboard · ${markdown.length.toLocaleString()} chars`)
+  } else {
+    showActionNotice(
+      'error',
+      `Failed to extract Markdown${contentError.value ? `: ${contentError.value}` : '. Please refresh the page and try again.'}`
+    )
+  }
+}
+
 interface SelectedTab {
   type: 'all' | 'single'
   tabId?: number
@@ -216,20 +269,7 @@ function handleStop() {
 }
 
 function handleCopy(content: string) {
-  navigator.clipboard.writeText(content).catch(() => {
-    const textarea = document.createElement('textarea')
-    textarea.value = content
-    textarea.style.position = 'fixed'
-    textarea.style.opacity = '0'
-    document.body.appendChild(textarea)
-    textarea.focus()
-    textarea.select()
-    try {
-      document.execCommand('copy')
-    } finally {
-      document.body.removeChild(textarea)
-    }
-  })
+  void copyToClipboard(content)
 }
 
 function handleRegenerate(messageId: string) {
@@ -238,6 +278,33 @@ function handleRegenerate(messageId: string) {
 
 function handleClearConversation() {
   clearConversation()
+}
+
+function handleSelectSession(sessionId: string) {
+  if (chatStore.isStreaming) {
+    stopStreaming()
+  }
+  chatStore.selectSession(sessionId)
+  historyOpen.value = false
+}
+
+function handleDeleteSession(sessionId: string) {
+  if (chatStore.currentSessionId === sessionId && chatStore.isStreaming) {
+    stopStreaming()
+  }
+  chatStore.deleteSession(sessionId)
+}
+
+function handleNewChat() {
+  if (chatStore.isStreaming) {
+    stopStreaming()
+  }
+  chatStore.createSession(settingsStore.defaultModel)
+  historyOpen.value = false
+}
+
+function handleToggleHistory() {
+  historyOpen.value = !historyOpen.value
 }
 
 async function handleShareConversation() {
@@ -259,12 +326,15 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-screen bg-background overflow-hidden">
+  <div class="relative flex flex-col h-screen bg-background overflow-hidden">
     <!-- Header -->
     <AppHeader
       :has-messages="messages.length > 0"
+      :history-open="historyOpen"
       @clear="handleClearConversation"
       @share="handleShareConversation"
+      @new-chat="handleNewChat"
+      @toggle-history="handleToggleHistory"
     />
 
     <ShareImageDialog
@@ -273,6 +343,28 @@ onMounted(() => {
       :page-title="sharePageTitle"
       :page-url="sharePageUrl"
       @update:open="(val) => (shareOpen = val)"
+    />
+
+    <div
+      v-if="historyOpen"
+      class="absolute right-3 top-[4.25rem] z-30 w-[min(24rem,calc(100%-1.5rem))]"
+    >
+      <SessionHistoryPanel
+        class="shadow-2xl"
+        :sessions="sortedSessions"
+        :current-session-id="chatStore.currentSessionId"
+        :disabled="isStreaming"
+        @select="handleSelectSession"
+        @create="handleNewChat"
+        @delete="handleDeleteSession"
+      />
+    </div>
+
+    <button
+      v-if="historyOpen"
+      class="absolute inset-x-0 bottom-0 top-[4rem] z-20 bg-transparent"
+      aria-label="Close history"
+      @click="historyOpen = false"
     />
 
     <!-- Feature Grid -->
@@ -284,7 +376,18 @@ onMounted(() => {
       @translate="handleTranslate"
       @pdf="handlePdf"
       @subtitles="handleSubtitles"
+      @markdown="handleMarkdown"
     />
+
+    <div
+      v-if="actionNotice"
+      class="pointer-events-none absolute left-1/2 top-[4.5rem] z-40 -translate-x-1/2 rounded-xl px-3 py-2 text-xs shadow-lg backdrop-blur-sm"
+      :class="actionNotice.type === 'success'
+        ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+        : 'border border-destructive/30 bg-destructive/10 text-destructive'"
+    >
+      {{ actionNotice.text }}
+    </div>
 
     <!-- Separator -->
     <div class="h-px bg-border flex-shrink-0" />

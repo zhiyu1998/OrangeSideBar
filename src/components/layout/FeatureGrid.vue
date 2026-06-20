@@ -2,7 +2,7 @@
 import { Loader2 } from 'lucide-vue-next'
 import GlareCard from '@/components/inspira/ui/GlareCard.vue'
 
-type FeatureKey = 'summary' | 'translate' | 'pdf' | 'subtitles'
+type FeatureKey = 'summary' | 'translate' | 'pdf' | 'subtitles' | 'markdown'
 
 interface Props {
   loading?: boolean
@@ -17,6 +17,7 @@ const emit = defineEmits<{
   (e: 'translate'): void
   (e: 'pdf'): void
   (e: 'subtitles'): void
+  (e: 'markdown'): void
 }>()
 
 interface Feature {
@@ -32,6 +33,7 @@ const features: Feature[] = [
   { key: 'translate', icon: '/trans.webp', label: 'Translate', shortLabel: 'Trans', description: 'Translate content to Chinese' },
   { key: 'pdf', icon: '/fileAnalyze.webp', label: 'PDF', shortLabel: 'PDF', description: 'Analyze PDF documents' },
   { key: 'subtitles', icon: '/subtitles.webp', label: 'Subtitles', shortLabel: 'Subs', description: 'Extract and summarize video subtitles' },
+  { key: 'markdown', icon: '/markdown.webp', label: 'Markdown', shortLabel: 'MD', description: 'Convert the current page to Markdown' },
 ]
 
 function handleFeatureClick(key: FeatureKey) {
@@ -39,6 +41,7 @@ function handleFeatureClick(key: FeatureKey) {
   else if (key === 'translate') emit('translate')
   else if (key === 'pdf') emit('pdf')
   else if (key === 'subtitles') emit('subtitles')
+  else if (key === 'markdown') emit('markdown')
 }
 </script>
 

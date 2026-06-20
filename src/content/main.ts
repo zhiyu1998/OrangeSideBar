@@ -5,6 +5,7 @@
 
 import type { ExtractedContent, ContentResponse } from '@/lib/content/types'
 import { extractFromDocument, getPlainText } from '@/lib/content/web'
+import Defuddle from 'defuddle/full'
 
 console.log('[OrangeSideBar] Content script loaded')
 
@@ -33,6 +34,22 @@ function getTextContent(): string {
     return getPlainText(document)
   } catch {
     return getPlainText(document)
+  }
+}
+
+function getMarkdownContent(): string | null {
+  try {
+    const documentClone = document.cloneNode(true) as Document
+    const extractor = new Defuddle(documentClone, {
+      url: window.location.href,
+      useAsync: false,
+      markdown: true,
+    })
+    const result = extractor.parse()
+    return result.content || null
+  } catch (error) {
+    console.error('[OrangeSideBar] Failed to extract markdown:', error)
+    return null
   }
 }
 
@@ -328,6 +345,16 @@ chrome.runtime.onMessage.addListener(
       case 'FETCH_TEXT_CONTENT': {
         const text = getTextContent()
         sendResponse({ success: true, data: text })
+        break
+      }
+
+      case 'FETCH_MARKDOWN_CONTENT': {
+        const markdown = getMarkdownContent()
+        if (markdown) {
+          sendResponse({ success: true, data: markdown })
+        } else {
+          sendResponse({ success: false, error: 'Failed to extract markdown content' })
+        }
         break
       }
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Button } from '@/components/ui/button'
-import { Settings, Moon, Sun, Monitor, Trash2, Share2, MessageSquare, BookOpen, GraduationCap } from 'lucide-vue-next'
+import { Settings, Moon, Sun, Monitor, Trash2, Share2, MessageSquare, BookOpen, GraduationCap, Plus, History } from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
 import type { PromptMode } from '@/types/settings'
 import {
@@ -13,13 +13,16 @@ import {
 
 interface Props {
   hasMessages?: boolean
+  historyOpen?: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   clear: []
   share: []
+  newChat: []
+  toggleHistory: []
 }>()
 
 const settingsStore = useSettingsStore()
@@ -51,6 +54,14 @@ function handleClear() {
 function handleShare() {
   emit('share')
 }
+
+function handleNewChat() {
+  emit('newChat')
+}
+
+function handleToggleHistory() {
+  emit('toggleHistory')
+}
 </script>
 
 <template>
@@ -61,6 +72,27 @@ function handleShare() {
     </div>
 
     <div class="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        class="h-8 w-8 text-muted-foreground hover:text-foreground"
+        title="New conversation"
+        @click="handleNewChat"
+      >
+        <Plus class="h-4 w-4" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        class="h-8 w-8 text-muted-foreground hover:text-foreground"
+        :class="props.historyOpen ? 'bg-accent text-foreground' : ''"
+        title="Conversation history"
+        @click="handleToggleHistory"
+      >
+        <History class="h-4 w-4" />
+      </Button>
+
       <!-- Share as Image -->
       <Button
         v-if="hasMessages"

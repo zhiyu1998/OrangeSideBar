@@ -164,6 +164,47 @@ export function useContent() {
   }
 
   /**
+   * Extract markdown content from current tab.
+   */
+  async function extractCurrentTabMarkdown(): Promise<string | null> {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      if (!tab?.id || !tab.url) {
+        throw new Error('No active tab found')
+      }
+
+      const contentType = detectContentType(tab.url)
+      if (contentType !== 'web') {
+        throw new Error('Markdown export is only supported for regular web pages')
+      }
+
+      let response: ContentScriptResponse<string> | undefined
+      try {
+        response = await chrome.tabs.sendMessage(tab.id, {
+          action: 'FETCH_MARKDOWN_CONTENT',
+        })
+      } catch {
+        throw new Error('Content script not available. Please refresh the page.')
+      }
+
+      if (!response || !response.success) {
+        throw new Error(response?.error || 'Failed to extract markdown content')
+      }
+
+      return response.data
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Unknown error'
+      console.error('[useContent] extractCurrentTabMarkdown error:', err)
+      return null
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
    * Extract Linux.do thread content (topic + replies) from current tab.
    */
   async function extractLinuxDoThreadText(data?: {
@@ -326,6 +367,7 @@ export function useContent() {
     isPDFUrl,
     extractCurrentTab,
     extractCurrentTabText,
+    extractCurrentTabMarkdown,
     extractLinuxDoThreadText,
     extractPDF,
     extractSubtitles,
