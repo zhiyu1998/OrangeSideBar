@@ -25,6 +25,8 @@ const settingsStore = useSettingsStore()
 const params = computed(() => settingsStore.modelParameters)
 const defaultModel = computed(() => settingsStore.defaultModel)
 
+const MAX_TOKENS_LIMIT = 10000000
+
 // Model fetching state
 const isLoadingModels = ref(false)
 const modelsByProvider = ref<Record<string, ModelInfo[]>>({})
@@ -38,6 +40,26 @@ interface ParamConfig {
   step: number
   useSlider: boolean
 }
+
+interface MaxTokensPreset {
+  label: string
+  value: number
+  description: string
+}
+
+const maxTokensPresets: MaxTokensPreset[] = [
+  { label: '1k', value: 1000, description: 'about 750 English words or 500-600 Chinese characters' },
+  { label: '2k', value: 2000, description: 'about 1,500 English words' },
+  { label: '4k', value: 4000, description: 'about 3,000 English words' },
+  { label: '8k', value: 8000, description: 'about 6,000 English words' },
+  { label: '16k', value: 16000, description: 'about 12,000 English words' },
+  { label: '32k', value: 32000, description: 'about 24,000 English words' },
+  { label: '64k', value: 64000, description: 'about 48,000 English words' },
+  { label: '128k', value: 128000, description: 'about 96,000 English words' },
+  { label: '200k', value: 200000, description: 'about 150,000 English words' },
+  { label: '1M', value: 1000000, description: 'about 750,000 English words' },
+  { label: '10M', value: 10000000, description: 'about 7.5 million English words' },
+]
 
 const paramConfigs: ParamConfig[] = [
   {
@@ -56,12 +78,13 @@ const paramConfigs: ParamConfig[] = [
     key: 'maxTokens',
     label: 'Max Tokens',
     description: 'Maximum response length.',
-    min: 1, max: 128000, step: 1, useSlider: false,
+    min: 1, max: MAX_TOKENS_LIMIT, step: 1, useSlider: false,
   },
 ]
 
 const providerNames: Record<ProviderId, string> = {
   openai: 'OpenAI',
+  zhipu: 'Zhipu',
   anthropic: 'Anthropic',
   deepseek: 'DeepSeek',
   moonshot: 'Moonshot',
@@ -73,8 +96,27 @@ const providerNames: Record<ProviderId, string> = {
   ollama: 'Ollama',
 }
 
+const selectedMaxTokensPreset = computed(() => {
+  const currentPreset = maxTokensPresets.find((preset) => preset.value === params.value.maxTokens)
+  return currentPreset ? String(currentPreset.value) : 'custom'
+})
+
+const selectedMaxTokensLabel = computed(() => {
+  return maxTokensPresets.find((preset) => preset.value === params.value.maxTokens)?.label || 'Custom'
+})
+
 function updateParam(key: keyof typeof params.value, value: number) {
-  settingsStore.updateModelParameters({ [key]: value })
+  const config = paramConfigs.find((item) => item.key === key)
+  if (!config || !Number.isFinite(value)) return
+
+  const clampedValue = Math.min(config.max, Math.max(config.min, value))
+  settingsStore.updateModelParameters({ [key]: clampedValue })
+}
+
+function selectMaxTokensPreset(value: string | number | bigint | Record<string, unknown> | null) {
+  if (typeof value !== 'string' || value === 'custom') return
+
+  updateParam('maxTokens', Number(value))
 }
 
 function resetParams() {
@@ -227,10 +269,54 @@ onMounted(() => {
               />
             </template>
             <template v-else>
+              <div v-if="config.key === 'maxTokens'" class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_11rem] gap-3">
+                <Input
+                  :id="config.key"
+                  type="number"
+                  :model-value="params[config.key]"
+                  :min="config.min"
+                  :max="config.max"
+                  :step="config.step"
+                  class="h-10 bg-background/50"
+                  @update:model-value="(val) => updateParam(config.key, Number(val))"
+                />
+                <Select :model-value="selectedMaxTokensPreset" @update:model-value="selectMaxTokensPreset">
+                  <SelectTrigger class="h-10 w-full min-w-0 bg-background/50 border-muted">
+                    <SelectValue as-child placeholder="Quick pick">
+                      <span class="truncate">{{ selectedMaxTokensLabel }}</span>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent position="item-aligned" class="max-h-80 w-80 max-w-[calc(100vw-2rem)]">
+                    <SelectGroup>
+                      <SelectLabel class="text-[10px] uppercase text-muted-foreground">Quick Pick</SelectLabel>
+                      <SelectItem value="custom" disabled>
+                        Custom value
+                      </SelectItem>
+                      <SelectItem
+                        v-for="preset in maxTokensPresets"
+                        :key="preset.value"
+                        :value="String(preset.value)"
+                      >
+                        <div class="flex flex-col gap-0.5 py-1">
+                          <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold tabular-nums">{{ preset.label }}</span>
+                            <span class="text-[10px] text-muted-foreground tabular-nums">{{ preset.value.toLocaleString() }} tokens</span>
+                          </div>
+                          <span class="text-[10px] text-muted-foreground">{{ preset.description }}</span>
+                        </div>
+                      </SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
               <Input
+                v-else
                 :id="config.key"
                 type="number"
                 :model-value="params[config.key]"
+                :min="config.min"
+                :max="config.max"
+                :step="config.step"
                 class="h-10 bg-background/50"
                 @update:model-value="(val) => updateParam(config.key, Number(val))"
               />
