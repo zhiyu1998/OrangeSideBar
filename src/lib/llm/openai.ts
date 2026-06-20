@@ -14,6 +14,7 @@ import type {
   ContentPart,
 } from './types'
 import type { ProviderId } from '@/types/provider'
+import type { ReasoningEffort } from '@/types/provider'
 
 // Models that support vision
 const VISION_MODELS = [
@@ -24,16 +25,6 @@ const VISION_MODELS = [
   'o1',
   'o1-mini',
   'o3-mini',
-]
-
-// Models that support thinking/reasoning
-const THINKING_MODELS = [
-  'o1',
-  'o1-mini',
-  'o1-preview',
-  'o3-mini',
-  'deepseek-reasoner',
-  'deepseek-r1',
 ]
 
 export class OpenAIProvider extends BaseLLMProvider {
@@ -112,6 +103,10 @@ export class OpenAIProvider extends BaseLLMProvider {
     return result
   }
 
+  private shouldSendReasoningEffort(effort?: ReasoningEffort): effort is Exclude<ReasoningEffort, 'auto'> {
+    return effort !== undefined && effort !== 'auto'
+  }
+
   /**
    * Streaming chat completion
    */
@@ -128,6 +123,9 @@ export class OpenAIProvider extends BaseLLMProvider {
         max_tokens: params.maxTokens,
         frequency_penalty: params.frequencyPenalty,
         presence_penalty: params.presencePenalty,
+        ...(this.shouldSendReasoningEffort(params.reasoningEffort)
+          ? { reasoning_effort: params.reasoningEffort }
+          : {}),
         stream: true,
       }, {
         signal: params.signal,
@@ -192,6 +190,9 @@ export class OpenAIProvider extends BaseLLMProvider {
       max_tokens: params.maxTokens,
       frequency_penalty: params.frequencyPenalty,
       presence_penalty: params.presencePenalty,
+      ...(this.shouldSendReasoningEffort(params.reasoningEffort)
+        ? { reasoning_effort: params.reasoningEffort }
+        : {}),
       stream: false,
     }, {
       signal: params.signal,
@@ -306,8 +307,10 @@ export class OpenAIProvider extends BaseLLMProvider {
     }
     return (
       lowerModelId.startsWith('gpt-') ||
+      lowerModelId.startsWith('gpt5') ||
       lowerModelId.startsWith('o1') ||
       lowerModelId.startsWith('o3') ||
+      lowerModelId.startsWith('o4') ||
       lowerModelId.startsWith('chatgpt')
     )
   }
@@ -322,8 +325,8 @@ export class OpenAIProvider extends BaseLLMProvider {
   /**
    * Check thinking/reasoning support
    */
-  supportsThinking(modelId: string): boolean {
-    return THINKING_MODELS.some((m) => modelId.includes(m))
+  supportsThinking(_modelId: string): boolean {
+    return true
   }
 }
 

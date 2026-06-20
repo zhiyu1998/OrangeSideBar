@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { Theme, PromptMode, SystemPrompts } from '@/types/settings'
-import type { ApiSpec, ProviderId, ProviderConfig, ModelParameters, CustomProvider } from '@/types/provider'
+import type { ApiSpec, ProviderId, ProviderConfig, ModelParameters, CustomProvider, ReasoningEffort } from '@/types/provider'
 import type { ModelInfo } from '@/lib/llm/types'
 import { DEFAULT_SYSTEM_PROMPT, PAPER_SYSTEM_PROMPT, LEARNING_MODE_PROMPT } from '@/constants/prompts'
 
@@ -78,6 +78,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const defaultModel = ref<string>('gpt-4o-mini')
   const currentPromptMode = ref<PromptMode>('default')
   const modelParameters = ref<ModelParameters>({ ...DEFAULT_MODEL_PARAMS })
+  const reasoningEffort = ref<ReasoningEffort>('auto')
   const providers = ref<Record<ProviderId, ProviderConfig>>(
     JSON.parse(JSON.stringify(DEFAULT_PROVIDERS))
   )
@@ -146,6 +147,10 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function updateModelParameters(params: Partial<ModelParameters>) {
     Object.assign(modelParameters.value, params)
+  }
+
+  function setReasoningEffort(value: ReasoningEffort) {
+    reasoningEffort.value = value
   }
 
   function resetModelParameters() {
@@ -329,6 +334,7 @@ export const useSettingsStore = defineStore('settings', () => {
     defaultModel,
     currentPromptMode,
     modelParameters,
+    reasoningEffort,
     providers,
     customProviders,
     systemPrompts,
@@ -345,6 +351,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setDefaultModel,
     setPromptMode,
     updateModelParameters,
+    setReasoningEffort,
     resetModelParameters,
     getProviderConfig,
     updateProviderConfig,

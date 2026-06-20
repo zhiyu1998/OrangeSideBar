@@ -3,6 +3,7 @@
  */
 
 import type { ProviderId } from '@/types/provider'
+import type { ReasoningEffort } from '@/types/provider'
 
 /**
  * Message role types
@@ -48,6 +49,7 @@ export interface ChatParams {
   maxTokens?: number
   frequencyPenalty?: number
   presencePenalty?: number
+  reasoningEffort?: ReasoningEffort
   stream?: boolean
   signal?: AbortSignal
 }

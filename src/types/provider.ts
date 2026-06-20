@@ -4,6 +4,8 @@
 
 export type ApiSpec = 'openai' | 'anthropic' | 'google'
 
+export type ReasoningEffort = 'auto' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
+
 export type ProviderId = 'openai' | 'anthropic' | 'deepseek' | 'moonshot' | 'siliconflow' | 'openrouter' | 'groq' | 'grok' | 'mistral' | 'ollama' | (string & {})
 
 export interface ProviderConfig {

@@ -194,6 +194,7 @@ export function useChat(options: UseChatOptions = {}) {
         maxTokens: settingsStore.modelParameters.maxTokens,
         frequencyPenalty: settingsStore.modelParameters.frequencyPenalty,
         presencePenalty: settingsStore.modelParameters.presencePenalty,
+        reasoningEffort: settingsStore.reasoningEffort,
         signal: abortController.signal,
       })
 

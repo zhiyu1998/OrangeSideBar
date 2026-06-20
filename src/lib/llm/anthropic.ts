@@ -14,6 +14,7 @@ import type {
   ContentPart,
 } from './types'
 import type { ProviderId } from '@/types/provider'
+import type { ReasoningEffort } from '@/types/provider'
 
 // Models that support vision
 const VISION_MODELS = [
@@ -26,12 +27,13 @@ const VISION_MODELS = [
   'claude-opus-4',
 ]
 
-// Models that support extended thinking
-const THINKING_MODELS = [
-  'claude-3-5-sonnet-20241022',
-  'claude-sonnet-4',
-  'claude-opus-4',
-]
+const ANTHROPIC_REASONING_BUDGETS: Record<Exclude<ReasoningEffort, 'auto' | 'none'>, number> = {
+  minimal: 1024,
+  low: 2048,
+  medium: 4096,
+  high: 8192,
+  xhigh: 16384,
+}
 
 export class AnthropicProvider extends BaseLLMProvider {
   readonly providerId: ProviderId = 'anthropic'
@@ -121,6 +123,29 @@ export class AnthropicProvider extends BaseLLMProvider {
     return undefined
   }
 
+  private getThinkingConfig(
+    _modelId: string,
+    effort: ReasoningEffort | undefined,
+    maxTokens: number | undefined
+  ): Anthropic.ThinkingConfigParam | undefined {
+    if (!effort || effort === 'auto' || effort === 'none') {
+      return undefined
+    }
+
+    const requestedBudget = ANTHROPIC_REASONING_BUDGETS[effort]
+    const maxBudget = Math.max(1024, (maxTokens || 4096) - 1)
+    const budgetTokens = Math.min(requestedBudget, maxBudget)
+
+    if (budgetTokens < 1024) {
+      return undefined
+    }
+
+    return {
+      type: 'enabled',
+      budget_tokens: budgetTokens,
+    }
+  }
+
   /**
    * Streaming chat completion
    */
@@ -137,6 +162,7 @@ export class AnthropicProvider extends BaseLLMProvider {
         max_tokens: params.maxTokens || 4096,
         temperature: params.temperature,
         top_p: params.topP,
+        thinking: this.getThinkingConfig(params.model, params.reasoningEffort, params.maxTokens),
       }, {
         signal: params.signal,
       })
@@ -183,6 +209,7 @@ export class AnthropicProvider extends BaseLLMProvider {
       max_tokens: params.maxTokens || 4096,
       temperature: params.temperature,
       top_p: params.topP,
+      thinking: this.getThinkingConfig(params.model, params.reasoningEffort, params.maxTokens),
     }, {
       signal: params.signal,
     })
@@ -277,8 +304,8 @@ export class AnthropicProvider extends BaseLLMProvider {
   /**
    * Check thinking/reasoning support
    */
-  supportsThinking(modelId: string): boolean {
-    return THINKING_MODELS.some((m) => modelId.includes(m))
+  supportsThinking(_modelId: string): boolean {
+    return true
   }
 }
 

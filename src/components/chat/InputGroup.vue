@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Send, Square, ImagePlus, X, Globe, Layers } from 'lucide-vue-next'
 import ModelSelector from './ModelSelector.vue'
+import ReasoningEffortSelector from './ReasoningEffortSelector.vue'
 import BorderBeam from '@/components/inspira/ui/BorderBeam.vue'
 import TabMentionPopover from './TabMentionPopover.vue'
 
@@ -199,7 +200,10 @@ function removeImage(index: number) {
     />
 
     <!-- Model Selector -->
-    <ModelSelector />
+    <div class="flex items-center gap-2">
+      <ModelSelector />
+      <ReasoningEffortSelector />
+    </div>
 
     <!-- Selected Tabs Pills -->
     <div v-if="selectedTabs.length > 0" class="flex flex-wrap gap-2">
