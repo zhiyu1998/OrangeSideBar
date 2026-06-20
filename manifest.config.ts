@@ -37,6 +37,9 @@ export default defineManifest({
     'tabs',
     'clipboardWrite',
     'scripting',
+    'contextMenus',
+    'notifications',
+    'offscreen',
   ],
   host_permissions: ['<all_urls>'],
   side_panel: {

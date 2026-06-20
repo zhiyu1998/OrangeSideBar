@@ -3,11 +3,130 @@
  * Handles cross-component communication and Chrome API interactions
  */
 
+const COPY_MARKDOWN_MENU_ID = 'copy-page-as-markdown'
+const OFFSCREEN_DOCUMENT_PATH = 'src/offscreen/index.html'
+
+function sleep(ms: number) {
+  return new Promise((resolve) => globalThis.setTimeout(resolve, ms))
+}
+
+async function ensureContextMenu() {
+  await chrome.contextMenus.removeAll()
+  await chrome.contextMenus.create({
+    id: COPY_MARKDOWN_MENU_ID,
+    title: 'Copy Page as Markdown',
+    contexts: ['page'],
+    documentUrlPatterns: ['http://*/*', 'https://*/*'],
+  })
+}
+
+async function ensureOffscreenDocument() {
+  const offscreenUrl = chrome.runtime.getURL(OFFSCREEN_DOCUMENT_PATH)
+
+  if ('getContexts' in chrome.runtime) {
+    const contexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT'],
+      documentUrls: [offscreenUrl],
+    })
+
+    if (contexts.length > 0) {
+      return
+    }
+  }
+
+  await chrome.offscreen.createDocument({
+    url: OFFSCREEN_DOCUMENT_PATH,
+    reasons: ['CLIPBOARD'],
+    justification: 'Copy extracted markdown to clipboard from the extension context menu.',
+  })
+}
+
+async function copyHtmlAsMarkdownToClipboard(html: string, url: string): Promise<number> {
+  await ensureOffscreenDocument()
+
+  const response = await chrome.runtime.sendMessage({
+    action: 'COPY_MARKDOWN_HTML_TO_CLIPBOARD',
+    html,
+    url,
+  }) as { success?: boolean; error?: string; length?: number }
+
+  if (!response?.success) {
+    throw new Error(response?.error || 'Failed to copy markdown to clipboard')
+  }
+
+  return response.length || 0
+}
+
+async function notify(title: string, message: string) {
+  await chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'public/logo_48.png',
+    title,
+    message,
+  })
+}
+
+async function waitForTabComplete(tabId: number, timeoutMs = 5000) {
+  const start = Date.now()
+
+  while (Date.now() - start < timeoutMs) {
+    const tab = await chrome.tabs.get(tabId)
+    if (tab.status === 'complete') {
+      return
+    }
+    await sleep(200)
+  }
+}
+
+async function handleCopyPageAsMarkdown(tabId: number) {
+  await waitForTabComplete(tabId)
+
+  const [{ result }] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => ({
+      html: document.documentElement.outerHTML,
+      url: window.location.href,
+    }),
+  })
+
+  if (!result?.html) {
+    throw new Error('Failed to read page HTML')
+  }
+
+  const markdownLength = await copyHtmlAsMarkdownToClipboard(result.html, result.url)
+  await notify('OrangeSideBar', `Markdown copied to clipboard (${markdownLength.toLocaleString()} chars)`)
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  void ensureContextMenu()
+})
+
+chrome.runtime.onStartup.addListener(() => {
+  void ensureContextMenu()
+})
+
 // Open side panel when extension icon is clicked
 chrome.action.onClicked.addListener((tab) => {
   if (tab.id) {
     chrome.sidePanel.open({ tabId: tab.id })
   }
+})
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId !== COPY_MARKDOWN_MENU_ID || !tab?.id) {
+    return
+  }
+
+  void (async () => {
+    try {
+      await handleCopyPageAsMarkdown(tab.id as number)
+    } catch (error) {
+      await notify(
+        'OrangeSideBar',
+        `Copy Markdown failed: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
+  })()
 })
 
 // Handle messages from content scripts and side panel

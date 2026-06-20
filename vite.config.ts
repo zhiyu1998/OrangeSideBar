@@ -13,6 +13,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        sidepanel: path.resolve(__dirname, 'src/sidepanel/index.html'),
+        settings: path.resolve(__dirname, 'src/settings/index.html'),
+        offscreen: path.resolve(__dirname, 'src/offscreen/index.html'),
+      },
+    },
+  },
   plugins: [
     vue(),
     tailwindcss(),
