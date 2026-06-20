@@ -3,47 +3,17 @@
  * Handles page content extraction and message passing
  */
 
-import { Readability } from '@mozilla/readability'
 import type { ExtractedContent, ContentResponse } from '@/lib/content/types'
+import { extractFromDocument, getPlainText } from '@/lib/content/web'
 
 console.log('[OrangeSideBar] Content script loaded')
 
 /**
- * Extract content from current page using Readability
+ * Extract content from current page.
  */
 function extractContent(): ExtractedContent | null {
   try {
-    const documentClone = document.cloneNode(true) as Document
-
-    // Pre-strip scripts before Readability to avoid parsing issues
-    const docBody = documentClone.body
-    if (docBody) {
-      const unwantedElements = docBody.querySelectorAll('script, style, noscript')
-      unwantedElements.forEach((el) => el.remove())
-    }
-
-    const reader = new Readability(documentClone, {
-      charThreshold: 20,
-      keepClasses: false,
-    })
-
-    const article = reader.parse()
-
-    if (!article) {
-      return null
-    }
-
-    return {
-      title: article.title || document.title || 'Untitled',
-      content: article.content || '',
-      textContent: article.textContent || '',
-      excerpt: article.excerpt || undefined,
-      byline: article.byline || undefined,
-      siteName: article.siteName || undefined,
-      url: window.location.href,
-      length: article.length || 0,
-      type: 'web',
-    }
+    return extractFromDocument(document, window.location.href)
   } catch (error) {
     console.error('[OrangeSideBar] Failed to extract content:', error)
     return null
@@ -51,46 +21,18 @@ function extractContent(): ExtractedContent | null {
 }
 
 /**
- * Remove script, style, noscript elements from a cloned element
- */
-function removeScriptElements(element: HTMLElement): void {
-  const unwantedElements = element.querySelectorAll('script, style, noscript, svg, iframe')
-  unwantedElements.forEach((el) => el.remove())
-}
-
-/**
- * Get clean text content from an element (with scripts removed)
- */
-function getCleanTextFromElement(element: HTMLElement): string {
-  const clone = element.cloneNode(true) as HTMLElement
-  removeScriptElements(clone)
-  return clone.textContent?.trim() || ''
-}
-
-/**
  * Get plain text content from page
  */
 function getTextContent(): string {
   try {
-    // Clone document and pre-strip scripts before Readability
-    const documentClone = document.cloneNode(true) as Document
-    const docBody = documentClone.body
-    if (docBody) {
-      removeScriptElements(docBody)
+    const extracted = extractFromDocument(document, window.location.href)
+    if (extracted) {
+      return `${extracted.title}\n\n${extracted.textContent}`.trim()
     }
 
-    const reader = new Readability(documentClone)
-    const article = reader.parse()
-
-    if (article) {
-      return `${article.title}\n\n${article.textContent}`
-    }
-
-    // Fallback: use cleaned body text
-    return getCleanTextFromElement(document.body)
+    return getPlainText(document)
   } catch {
-    // Even on error, return cleaned body text (not raw textContent)
-    return getCleanTextFromElement(document.body)
+    return getPlainText(document)
   }
 }
 

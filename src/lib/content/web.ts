@@ -1,40 +1,62 @@
 /**
- * Web content extraction using @mozilla/readability
+ * Web content extraction using defuddle.
  */
 
-import { Readability } from '@mozilla/readability'
+import Defuddle, { type DefuddleResponse } from 'defuddle'
 import type { ExtractedContent } from './types'
 
+function htmlToText(doc: Document, html: string): string {
+  const container = doc.createElement('div')
+  container.innerHTML = html
+  return container.textContent?.trim() || ''
+}
+
+function normalizeExtractedContent(
+  doc: Document,
+  url: string,
+  result: DefuddleResponse
+): ExtractedContent | null {
+  const content = result.content || ''
+  const textContent = htmlToText(doc, content)
+
+  if (!content && !textContent) {
+    return null
+  }
+
+  return {
+    title: result.title || doc.title || 'Untitled',
+    content,
+    textContent,
+    wordCount: result.wordCount || undefined,
+    excerpt: result.description || undefined,
+    byline: result.author || undefined,
+    siteName: result.site || undefined,
+    author: result.author || undefined,
+    published: result.published || undefined,
+    description: result.description || undefined,
+    image: result.image || undefined,
+    language: result.language || undefined,
+    domain: result.domain || undefined,
+    favicon: result.favicon || undefined,
+    url,
+    length: result.wordCount || textContent.length,
+    type: 'web',
+  }
+}
+
 /**
- * Extract content from a document using Readability
+ * Extract content from a document using defuddle.
  */
 export function extractFromDocument(doc: Document, url: string): ExtractedContent | null {
   try {
-    // Clone the document to avoid mutating the original
     const documentClone = doc.cloneNode(true) as Document
-
-    const reader = new Readability(documentClone, {
-      charThreshold: 20,
-      keepClasses: false,
-    })
-
-    const article = reader.parse()
-
-    if (!article) {
-      return null
-    }
-
-    return {
-      title: article.title || doc.title || 'Untitled',
-      content: article.content || '',
-      textContent: article.textContent || '',
-      excerpt: article.excerpt || undefined,
-      byline: article.byline || undefined,
-      siteName: article.siteName || undefined,
+    const extractor = new Defuddle(documentClone, {
       url,
-      length: article.length || 0,
-      type: 'web',
-    }
+      useAsync: false,
+    })
+    const result = extractor.parse()
+
+    return normalizeExtractedContent(doc, url, result)
   } catch (error) {
     console.error('[WebExtractor] Failed to extract content:', error)
     return null
@@ -42,7 +64,7 @@ export function extractFromDocument(doc: Document, url: string): ExtractedConten
 }
 
 /**
- * Extract content from HTML string
+ * Extract content from HTML string.
  */
 export function extractFromHTML(html: string, url: string): ExtractedContent | null {
   try {
@@ -56,43 +78,37 @@ export function extractFromHTML(html: string, url: string): ExtractedContent | n
 }
 
 /**
- * Get plain text content from a document
+ * Get plain text content from a document.
  */
 export function getPlainText(doc: Document): string {
-  // Remove script and style elements
-  const clone = doc.body.cloneNode(true) as HTMLElement
-  const scripts = clone.querySelectorAll('script, style, noscript')
-  scripts.forEach((el) => el.remove())
+  const extracted = extractFromDocument(doc, doc.URL || window.location.href)
+  if (extracted?.textContent) {
+    return extracted.textContent
+  }
 
-  // Get text content
-  return clone.textContent?.trim() || ''
+  return doc.body?.textContent?.trim() || ''
 }
 
 /**
- * Get page title
+ * Get page title.
  */
 export function getPageTitle(doc: Document): string {
-  // Try Open Graph title first
   const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content')
   if (ogTitle) return ogTitle
 
-  // Try Twitter title
   const twitterTitle = doc.querySelector('meta[name="twitter:title"]')?.getAttribute('content')
   if (twitterTitle) return twitterTitle
 
-  // Fall back to document title
   return doc.title || 'Untitled'
 }
 
 /**
- * Get page description
+ * Get page description.
  */
 export function getPageDescription(doc: Document): string | undefined {
-  // Try meta description
   const metaDesc = doc.querySelector('meta[name="description"]')?.getAttribute('content')
   if (metaDesc) return metaDesc
 
-  // Try Open Graph description
   const ogDesc = doc.querySelector('meta[property="og:description"]')?.getAttribute('content')
   if (ogDesc) return ogDesc
 

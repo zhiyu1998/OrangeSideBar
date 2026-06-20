@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useChat } from '@/composables/useChat'
 import { useContent } from '@/composables/useContent'
+import type { ExtractedContent } from '@/lib/content/types'
 import { AppHeader, FeatureGrid } from '@/components/layout'
 import { MessageList, InputGroup } from '@/components/chat'
 import ShareImageDialog from '@/components/share/ShareImageDialog.vue'
@@ -16,6 +17,7 @@ import {
 const settingsStore = useSettingsStore()
 const { sendMessage, stopStreaming, clearConversation, regenerate, isStreaming, messages } = useChat()
 const {
+  extractCurrentTab,
   extractCurrentTabText,
   extractLinuxDoThreadText,
   extractSubtitles,
@@ -27,6 +29,26 @@ const {
 const shareOpen = ref(false)
 const sharePageTitle = ref<string>('')
 const sharePageUrl = ref<string>('')
+
+function formatSummaryContext(extracted: ExtractedContent): string {
+  const metadataLines = [
+    ['title', extracted.title],
+    ['author', extracted.author || extracted.byline],
+    ['site', extracted.siteName],
+    ['published', extracted.published],
+    ['source', extracted.url],
+    ['domain', extracted.domain],
+    ['language', extracted.language],
+    ['description', extracted.description || extracted.excerpt],
+    ['word_count', extracted.wordCount?.toString()],
+  ].filter(([, value]) => value)
+
+  const frontmatter = metadataLines.length > 0
+    ? `---\n${metadataLines.map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join('\n')}\n---\n\n`
+    : ''
+
+  return `${frontmatter}${extracted.textContent}`.trim()
+}
 
 // Feature handlers
 async function handleSummary() {
@@ -47,9 +69,14 @@ async function handleSummary() {
     }
   })()
 
+  const extracted = isLinuxDoThread
+    ? null
+    : await extractCurrentTab()
   const content = isLinuxDoThread
     ? await extractLinuxDoThreadText({ maxPosts: 40, headPosts: 15, maxPostChars: 1200 })
-    : await extractCurrentTabText()
+    : extracted
+      ? formatSummaryContext(extracted)
+      : await extractCurrentTabText()
   if (content) {
     const truncatedContent = content.length > 15000
       ? content.slice(0, 15000) + '\n\n[Content truncated...]'

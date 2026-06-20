@@ -18,6 +18,26 @@ const props = withDefaults(defineProps<Props>(), {
 const renderedContent = ref('')
 const containerRef = ref<HTMLElement | null>(null)
 
+function formatMermaidError(error: unknown): unknown {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    }
+  }
+
+  if (error && typeof error === 'object') {
+    try {
+      return JSON.parse(JSON.stringify(error))
+    } catch {
+      return error
+    }
+  }
+
+  return error
+}
+
 function escapeHtml(text: string): string {
   return text
     .replaceAll('&', '&amp;')
@@ -34,6 +54,8 @@ function getMermaidTheme(): 'default' | 'dark' {
 }
 
 async function renderMermaid() {
+  if (props.isStreaming) return
+
   await nextTick()
   const container = containerRef.value
   if (!container) return
@@ -54,7 +76,7 @@ async function renderMermaid() {
 
     await mermaid.run({ nodes })
   } catch (error) {
-    console.warn('[MarkdownRenderer] Mermaid render failed:', error)
+    console.warn('[MarkdownRenderer] Mermaid render failed:', formatMermaidError(error))
   }
 }
 
@@ -99,7 +121,9 @@ async function renderContent(content: string) {
       ADD_TAGS: ['iframe'],
       ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling'],
     })
-    await renderMermaid()
+    if (!props.isStreaming) {
+      await renderMermaid()
+    }
   } catch (error) {
     console.error('Markdown render error:', error)
     renderedContent.value = content

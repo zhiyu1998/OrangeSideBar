@@ -6,9 +6,17 @@ export interface ExtractedContent {
   title: string
   content: string
   textContent: string
+  wordCount?: number
   excerpt?: string
   byline?: string
   siteName?: string
+  author?: string
+  published?: string
+  description?: string
+  image?: string
+  language?: string
+  domain?: string
+  favicon?: string
   url: string
   length: number
   type: ContentType
