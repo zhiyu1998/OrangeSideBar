@@ -3,7 +3,7 @@
  */
 
 import type { LayoutMode } from './chat'
-import type { ModelParameters, ProviderId, ProviderConfig, ReasoningEffort } from './provider'
+import type { ModelParameters, ProviderId, ProviderConfig, ReasoningEffort, OpenAIRequestMode } from './provider'
 
 export type Theme = 'light' | 'dark' | 'system'
 
@@ -21,6 +21,7 @@ export interface UserSettings {
   defaultModel: string
   modelParameters: ModelParameters
   reasoningEffort: ReasoningEffort
+  openAIRequestMode: OpenAIRequestMode
   systemPrompts: SystemPrompts
   enabledProviders: ProviderId[]
 }

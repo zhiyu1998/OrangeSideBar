@@ -4,6 +4,13 @@
  */
 
 import OpenAI from 'openai'
+import type {
+  Response,
+  ResponseCreateParamsBase,
+  ResponseInput,
+  ResponseInputMessageContentList,
+  ResponseStreamEvent,
+} from 'openai/resources/responses/responses'
 import { BaseLLMProvider } from './base'
 import type {
   ChatParams,
@@ -15,6 +22,7 @@ import type {
 } from './types'
 import type { ProviderId } from '@/types/provider'
 import type { ReasoningEffort } from '@/types/provider'
+import type { OpenAIRequestMode } from '@/types/provider'
 
 // Models that support vision
 const VISION_MODELS = [
@@ -107,6 +115,138 @@ export class OpenAIProvider extends BaseLLMProvider {
     return effort !== undefined && effort !== 'auto'
   }
 
+  private getRequestMode(mode?: OpenAIRequestMode): OpenAIRequestMode {
+    return mode || 'chat_completions'
+  }
+
+  private getResponsesReasoning(effort?: ReasoningEffort): ResponseCreateParamsBase['reasoning'] | undefined {
+    if (!this.shouldSendReasoningEffort(effort)) return undefined
+    return { effort }
+  }
+
+  private getResponsesInclude(effort?: ReasoningEffort): ResponseCreateParamsBase['include'] | undefined {
+    if (!this.shouldSendReasoningEffort(effort) || effort === 'none') return undefined
+    return ['reasoning.encrypted_content']
+  }
+
+  private convertMessagesToResponseInput(messages: ChatMessage[]): ResponseInput {
+    const input: ResponseInput = []
+
+    for (const msg of messages) {
+      if (msg.role === 'system') continue
+
+      if (msg.role === 'assistant') {
+        const text = typeof msg.content === 'string'
+          ? msg.content
+          : msg.content
+              .filter((part) => part.type === 'text')
+              .map((part) => part.text)
+              .join('\n')
+
+        if (!text) continue
+
+        input.push({
+          id: `msg_${input.length}`,
+          type: 'message',
+          role: 'assistant',
+          status: 'completed',
+          content: [
+            {
+              type: 'output_text',
+              text,
+              annotations: [],
+            },
+          ],
+        })
+        continue
+      }
+
+      const content: ResponseInputMessageContentList = []
+
+      if (typeof msg.content === 'string') {
+        if (msg.content) {
+          content.push({ type: 'input_text', text: msg.content })
+        }
+      } else {
+        for (const part of msg.content) {
+          if (part.type === 'text') {
+            content.push({ type: 'input_text', text: part.text })
+          } else {
+            content.push({
+              type: 'input_image',
+              detail: 'auto',
+              image_url: `data:${part.source.media_type};base64,${part.source.data}`,
+            })
+          }
+        }
+      }
+
+      if (content.length > 0) {
+        input.push({
+          type: 'message',
+          role: 'user',
+          content,
+        })
+      }
+    }
+
+    return input
+  }
+
+  private extractResponseOutputText(response: Response): string {
+    if (response.output_text) return response.output_text
+
+    const parts: string[] = []
+    for (const item of response.output || []) {
+      if (item.type !== 'message') continue
+      for (const content of item.content || []) {
+        if (content.type === 'output_text') {
+          parts.push(content.text)
+        }
+      }
+    }
+
+    return parts.join('')
+  }
+
+  private extractResponseReasoningText(response: Response): string {
+    const parts: string[] = []
+
+    for (const item of response.output || []) {
+      if (item.type !== 'reasoning') continue
+
+      for (const summary of item.summary || []) {
+        if (summary.type === 'summary_text' && summary.text) {
+          parts.push(summary.text)
+        }
+      }
+
+      for (const content of item.content || []) {
+        if (content.type === 'reasoning_text' && content.text) {
+          parts.push(content.text)
+        }
+      }
+    }
+
+    return parts.join('\n\n')
+  }
+
+  private getResponseErrorMessage(event: ResponseStreamEvent): string | null {
+    if (event.type === 'response.failed') {
+      return event.response.error?.message || 'Responses API request failed'
+    }
+
+    if (event.type === 'response.incomplete') {
+      return event.response.incomplete_details?.reason || 'Responses API response was incomplete'
+    }
+
+    if (event.type === 'error') {
+      return event.message || 'Responses API stream error'
+    }
+
+    return null
+  }
+
   private extractReasoningText(delta: unknown): string {
     if (!delta || typeof delta !== 'object') return ''
 
@@ -173,6 +313,11 @@ export class OpenAIProvider extends BaseLLMProvider {
    * Streaming chat completion
    */
   async *chatStream(params: ChatParams): AsyncGenerator<StreamChunk, void, unknown> {
+    if (this.getRequestMode(params.openAIRequestMode) === 'responses') {
+      yield* this.responseStream(params)
+      return
+    }
+
     const client = this.getClient()
     const messages = this.convertMessages(params.messages, params.systemPrompt)
 
@@ -240,10 +385,71 @@ export class OpenAIProvider extends BaseLLMProvider {
     }
   }
 
+  private async *responseStream(params: ChatParams): AsyncGenerator<StreamChunk, void, unknown> {
+    const client = this.getClient()
+    const input = this.convertMessagesToResponseInput(params.messages)
+
+    try {
+      const stream = await client.responses.create({
+        model: params.model,
+        input,
+        instructions: params.systemPrompt || undefined,
+        temperature: params.temperature,
+        top_p: params.topP,
+        max_output_tokens: params.maxTokens,
+        reasoning: this.getResponsesReasoning(params.reasoningEffort),
+        include: this.getResponsesInclude(params.reasoningEffort),
+        store: false,
+        stream: true,
+      }, {
+        signal: params.signal,
+      })
+
+      for await (const event of stream) {
+        if (event.type === 'response.output_text.delta') {
+          yield { type: 'text', content: event.delta }
+          continue
+        }
+
+        if (
+          event.type === 'response.reasoning_text.delta' ||
+          event.type === 'response.reasoning_summary_text.delta'
+        ) {
+          yield { type: 'thinking', content: event.delta }
+          continue
+        }
+
+        const errorMessage = this.getResponseErrorMessage(event)
+        if (errorMessage) {
+          yield { type: 'error', content: errorMessage }
+          continue
+        }
+
+        if (event.type === 'response.completed') {
+          yield { type: 'done', content: '' }
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          yield { type: 'done', content: '' }
+          return
+        }
+        yield { type: 'error', content: error.message }
+      } else {
+        yield { type: 'error', content: 'Unknown error occurred' }
+      }
+    }
+  }
+
   /**
    * Non-streaming chat completion
    */
   async chat(params: ChatParams): Promise<ChatCompletionResult> {
+    if (this.getRequestMode(params.openAIRequestMode) === 'responses') {
+      return this.response(params)
+    }
+
     const client = this.getClient()
     const messages = this.convertMessages(params.messages, params.systemPrompt)
 
@@ -272,6 +478,39 @@ export class OpenAIProvider extends BaseLLMProvider {
         ? {
             promptTokens: response.usage.prompt_tokens,
             completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
+    }
+  }
+
+  private async response(params: ChatParams): Promise<ChatCompletionResult> {
+    const client = this.getClient()
+    const input = this.convertMessagesToResponseInput(params.messages)
+
+    const response = await client.responses.create({
+      model: params.model,
+      input,
+      instructions: params.systemPrompt || undefined,
+      temperature: params.temperature,
+      top_p: params.topP,
+      max_output_tokens: params.maxTokens,
+      reasoning: this.getResponsesReasoning(params.reasoningEffort),
+      include: this.getResponsesInclude(params.reasoningEffort),
+      store: false,
+      stream: false,
+    }, {
+      signal: params.signal,
+    })
+
+    return {
+      content: this.extractResponseOutputText(response),
+      thinking: this.extractResponseReasoningText(response) || undefined,
+      finishReason: response.status === 'completed' ? 'stop' : null,
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.input_tokens,
+            completionTokens: response.usage.output_tokens,
             totalTokens: response.usage.total_tokens,
           }
         : undefined,

@@ -193,6 +193,7 @@ export function useChat(options: UseChatOptions = {}) {
         frequencyPenalty: settingsStore.modelParameters.frequencyPenalty,
         presencePenalty: settingsStore.modelParameters.presencePenalty,
         reasoningEffort: settingsStore.reasoningEffort,
+        openAIRequestMode: settingsStore.openAIRequestMode,
         signal: abortController.signal,
       })
 

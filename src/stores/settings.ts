@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { Theme, PromptMode, SystemPrompts } from '@/types/settings'
-import type { ApiSpec, ProviderId, ProviderConfig, ModelParameters, CustomProvider, ReasoningEffort } from '@/types/provider'
+import type { ApiSpec, ProviderId, ProviderConfig, ModelParameters, CustomProvider, ReasoningEffort, OpenAIRequestMode } from '@/types/provider'
 import type { ModelInfo } from '@/lib/llm/types'
 import { DEFAULT_SYSTEM_PROMPT, PAPER_SYSTEM_PROMPT, LEARNING_MODE_PROMPT } from '@/constants/prompts'
 
@@ -79,6 +79,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const currentPromptMode = ref<PromptMode>('default')
   const modelParameters = ref<ModelParameters>({ ...DEFAULT_MODEL_PARAMS })
   const reasoningEffort = ref<ReasoningEffort>('auto')
+  const openAIRequestMode = ref<OpenAIRequestMode>('chat_completions')
   const providers = ref<Record<ProviderId, ProviderConfig>>(
     JSON.parse(JSON.stringify(DEFAULT_PROVIDERS))
   )
@@ -151,6 +152,10 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function setReasoningEffort(value: ReasoningEffort) {
     reasoningEffort.value = value
+  }
+
+  function setOpenAIRequestMode(value: OpenAIRequestMode) {
+    openAIRequestMode.value = value
   }
 
   function resetModelParameters() {
@@ -335,6 +340,7 @@ export const useSettingsStore = defineStore('settings', () => {
     currentPromptMode,
     modelParameters,
     reasoningEffort,
+    openAIRequestMode,
     providers,
     customProviders,
     systemPrompts,
@@ -352,6 +358,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setPromptMode,
     updateModelParameters,
     setReasoningEffort,
+    setOpenAIRequestMode,
     resetModelParameters,
     getProviderConfig,
     updateProviderConfig,

@@ -4,6 +4,7 @@
 
 import type { ProviderId } from '@/types/provider'
 import type { ReasoningEffort } from '@/types/provider'
+import type { OpenAIRequestMode } from '@/types/provider'
 
 /**
  * Message role types
@@ -50,6 +51,7 @@ export interface ChatParams {
   frequencyPenalty?: number
   presencePenalty?: number
   reasoningEffort?: ReasoningEffort
+  openAIRequestMode?: OpenAIRequestMode
   stream?: boolean
   signal?: AbortSignal
 }
