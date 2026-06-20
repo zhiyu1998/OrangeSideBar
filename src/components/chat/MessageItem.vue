@@ -9,6 +9,7 @@ interface Props {
   id: string
   role: 'user' | 'assistant' | 'system'
   content: string
+  assistantLabel?: string
   thinking?: string
   thinkingStartedAt?: number
   thinkingFinishedAt?: number
@@ -147,7 +148,7 @@ onBeforeUnmount(() => {
     <div class="flex-1 min-w-0 space-y-2">
       <!-- Role Label -->
       <div class="text-xs font-medium text-muted-foreground">
-        {{ isUser ? 'You' : 'Assistant' }}
+        {{ isUser ? 'You' : role === 'assistant' ? (assistantLabel || 'Assistant') : 'System' }}
       </div>
 
       <!-- Images (for user messages) -->

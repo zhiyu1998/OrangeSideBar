@@ -156,6 +156,13 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  function setCurrentSessionModel(modelId: string) {
+    if (!currentSession.value) return
+
+    currentSession.value.modelId = modelId
+    currentSession.value.updatedAt = Date.now()
+  }
+
   function setStreaming(value: boolean) {
     isStreaming.value = value
   }
@@ -213,6 +220,7 @@ export const useChatStore = defineStore('chat', () => {
     deleteMessage,
     removeMessagesAfter,
     clearCurrentSession,
+    setCurrentSessionModel,
     setStreaming,
     setAbortController,
     stopStreaming,

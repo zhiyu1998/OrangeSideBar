@@ -246,6 +246,8 @@ export function useChat(options: UseChatOptions = {}) {
     // Create session if needed
     if (!chatStore.hasActiveSession) {
       chatStore.createSession(modelId.value)
+    } else {
+      chatStore.setCurrentSessionModel(modelId.value)
     }
 
     // Add user message (store display content and optionally llmContent)
@@ -335,6 +337,7 @@ export function useChat(options: UseChatOptions = {}) {
     }
 
     error.value = null
+    chatStore.setCurrentSessionModel(modelId.value)
     const snapshot = messages.value.slice()
 
     // Resolve which assistant message to regenerate

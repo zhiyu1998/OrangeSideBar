@@ -6,6 +6,7 @@ import type { Message } from '@/types/chat'
 
 interface Props {
   messages: Message[]
+  assistantLabel?: string
   isStreaming?: boolean
 }
 
@@ -84,6 +85,7 @@ function handleRegenerate(messageId: string) {
           :id="message.id"
           :role="message.role"
           :content="message.content"
+          :assistant-label="assistantLabel"
           :thinking="message.thinking"
           :thinking-started-at="message.thinkingStartedAt"
           :thinking-finished-at="message.thinkingFinishedAt"

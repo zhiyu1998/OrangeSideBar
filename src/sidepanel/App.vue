@@ -37,6 +37,7 @@ const actionNotice = ref<{ type: 'success' | 'error'; text: string } | null>(nul
 let actionNoticeTimer: number | null = null
 
 const sortedSessions = computed(() => chatStore.sortedSessions)
+const assistantLabel = computed(() => chatStore.currentSession?.modelId || settingsStore.defaultModel || 'Assistant')
 
 function formatSummaryContext(extracted: ExtractedContent): string {
   const metadataLines = [
@@ -395,6 +396,7 @@ onMounted(() => {
     <!-- Messages -->
     <MessageList
       :messages="messages"
+      :assistant-label="assistantLabel"
       :is-streaming="isStreaming"
       class="flex-1 min-h-0"
       @copy="handleCopy"
