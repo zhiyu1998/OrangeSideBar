@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
 
             <div class="min-w-0 flex-1 flex items-center justify-between gap-3">
               <div class="flex min-w-0 items-center gap-2">
-                <span class="thinking-badge relative inline-flex overflow-hidden rounded-full border border-white/80 bg-white/75 px-3 py-1 text-sm font-semibold shadow-sm dark:border-slate-600/80 dark:bg-slate-800/85">
+                <span class="thinking-text-wrap relative inline-flex text-sm font-semibold">
                   <span class="relative z-10 inline-block">
                     <span
                       class="thinking-text-base"
