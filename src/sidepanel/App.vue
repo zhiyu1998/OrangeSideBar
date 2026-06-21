@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useChatStore } from '@/stores/chat'
 import { useChat } from '@/composables/useChat'
@@ -38,6 +38,16 @@ const sharePageUrl = ref<string>('')
 const historyOpen = ref(false)
 const actionNotice = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 let actionNoticeTimer: number | null = null
+const PENDING_SIDE_PANEL_ACTION_KEY = 'orangesidebar_pending_sidepanel_action'
+const SETTINGS_STORAGE_KEY = 'orangesidebar_settings'
+let handledPendingActionId: string | null = null
+
+interface PendingSidePanelAction {
+  id?: string
+  type?: string
+  tabId?: number
+  createdAt?: number
+}
 
 const sortedSessions = computed(() => chatStore.sortedSessions)
 const assistantLabel = computed(() => chatStore.currentSession?.modelId || settingsStore.defaultModel || 'Assistant')
@@ -340,6 +350,44 @@ function handleToggleHistory() {
   historyOpen.value = !historyOpen.value
 }
 
+function hydrateSettingsFromStorage() {
+  return new Promise<void>((resolve) => {
+    chrome.storage.local.get(SETTINGS_STORAGE_KEY, (result) => {
+      const savedSettings = result[SETTINGS_STORAGE_KEY]
+      if (savedSettings && typeof savedSettings === 'object') {
+        settingsStore.$patch(savedSettings)
+      }
+      resolve()
+    })
+  })
+}
+
+async function consumePendingSidePanelAction(action: PendingSidePanelAction | null | undefined) {
+  if (!action || action.type !== 'summary' || !action.id || handledPendingActionId === action.id) {
+    return
+  }
+
+  handledPendingActionId = action.id
+  await chrome.storage.local.remove(PENDING_SIDE_PANEL_ACTION_KEY)
+  await hydrateSettingsFromStorage()
+
+  if (chatStore.isStreaming) {
+    stopStreaming()
+  }
+
+  chatStore.createSession(settingsStore.defaultModel, 'Page Summary', settingsStore.defaultModelProviderId)
+  await handleSummary()
+}
+
+function handlePendingActionStorageChange(
+  changes: Record<string, chrome.storage.StorageChange>,
+  areaName: string
+) {
+  if (areaName !== 'local') return
+  const action = changes[PENDING_SIDE_PANEL_ACTION_KEY]?.newValue as PendingSidePanelAction | undefined
+  void consumePendingSidePanelAction(action)
+}
+
 async function handleShareConversation() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -355,6 +403,14 @@ async function handleShareConversation() {
 
 onMounted(() => {
   settingsStore.applyTheme()
+  chrome.storage.local.get(PENDING_SIDE_PANEL_ACTION_KEY, (result) => {
+    void consumePendingSidePanelAction(result[PENDING_SIDE_PANEL_ACTION_KEY] as PendingSidePanelAction | undefined)
+  })
+  chrome.storage.onChanged.addListener(handlePendingActionStorageChange)
+})
+
+onBeforeUnmount(() => {
+  chrome.storage.onChanged.removeListener(handlePendingActionStorageChange)
 })
 </script>
 

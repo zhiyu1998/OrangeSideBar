@@ -4,7 +4,9 @@
  */
 
 const COPY_MARKDOWN_MENU_ID = 'copy-page-as-markdown'
+const SUMMARY_MENU_ID = 'summarize-page-with-default-model'
 const OFFSCREEN_DOCUMENT_PATH = 'src/offscreen/index.html'
+const PENDING_SIDE_PANEL_ACTION_KEY = 'orangesidebar_pending_sidepanel_action'
 
 function sleep(ms: number) {
   return new Promise((resolve) => globalThis.setTimeout(resolve, ms))
@@ -15,6 +17,12 @@ async function ensureContextMenu() {
   await chrome.contextMenus.create({
     id: COPY_MARKDOWN_MENU_ID,
     title: 'Copy Page as Markdown',
+    contexts: ['page'],
+    documentUrlPatterns: ['http://*/*', 'https://*/*'],
+  })
+  await chrome.contextMenus.create({
+    id: SUMMARY_MENU_ID,
+    title: 'Summarize Page',
     contexts: ['page'],
     documentUrlPatterns: ['http://*/*', 'https://*/*'],
   })
@@ -97,6 +105,20 @@ async function handleCopyPageAsMarkdown(tabId: number) {
   await notify('OrangeSideBar', `Markdown copied to clipboard (${markdownLength.toLocaleString()} chars)`)
 }
 
+async function handleSummarizePage(tabId: number) {
+  const openSidePanel = chrome.sidePanel.open({ tabId })
+
+  await chrome.storage.local.set({
+    [PENDING_SIDE_PANEL_ACTION_KEY]: {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      type: 'summary',
+      tabId,
+      createdAt: Date.now(),
+    },
+  })
+  await openSidePanel
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   void ensureContextMenu()
 })
@@ -113,17 +135,23 @@ chrome.action.onClicked.addListener((tab) => {
 })
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId !== COPY_MARKDOWN_MENU_ID || !tab?.id) {
+  if (!tab?.id) {
     return
   }
 
   void (async () => {
     try {
-      await handleCopyPageAsMarkdown(tab.id as number)
+      if (info.menuItemId === COPY_MARKDOWN_MENU_ID) {
+        await handleCopyPageAsMarkdown(tab.id as number)
+      } else if (info.menuItemId === SUMMARY_MENU_ID) {
+        await handleSummarizePage(tab.id as number)
+      }
     } catch (error) {
       await notify(
         'OrangeSideBar',
-        `Copy Markdown failed: ${error instanceof Error ? error.message : String(error)}`
+        `${info.menuItemId === SUMMARY_MENU_ID ? 'Summary' : 'Copy Markdown'} failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
       )
     }
   })()
