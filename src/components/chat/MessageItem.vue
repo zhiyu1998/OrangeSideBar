@@ -10,6 +10,7 @@ interface Props {
   role: 'user' | 'assistant' | 'system'
   content: string
   assistantLabel?: string
+  assistantAvatarSvg?: string
   thinking?: string
   thinkingStartedAt?: number
   thinkingFinishedAt?: number
@@ -138,9 +139,14 @@ onBeforeUnmount(() => {
     <!-- Avatar -->
     <div
       class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
-      :class="[isUser ? 'bg-primary text-primary-foreground' : 'bg-orange-500 text-white']"
+      :class="[isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground']"
     >
       <User v-if="isUser" class="w-4 h-4" />
+      <div
+        v-else-if="role === 'assistant' && assistantAvatarSvg"
+        class="h-4 w-4 flex items-center justify-center provider-avatar"
+        v-html="assistantAvatarSvg"
+      />
       <Bot v-else class="w-4 h-4" />
     </div>
 
@@ -259,6 +265,12 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+:deep(.provider-avatar svg) {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .thinking-badge::after {
   content: '';
   position: absolute;

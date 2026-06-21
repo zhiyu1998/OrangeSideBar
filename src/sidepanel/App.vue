@@ -5,9 +5,12 @@ import { useChatStore } from '@/stores/chat'
 import { useChat } from '@/composables/useChat'
 import { useContent } from '@/composables/useContent'
 import type { ExtractedContent } from '@/lib/content/types'
+import type { ProviderId } from '@/types/provider'
 import { AppHeader, FeatureGrid, SessionHistoryPanel } from '@/components/layout'
 import { MessageList, InputGroup } from '@/components/chat'
 import ShareImageDialog from '@/components/share/ShareImageDialog.vue'
+import { PROVIDER_ICONS } from '@/assets/icons/providerIcons'
+import { detectProvider } from '@/constants/providers'
 import {
   SUMMARY_PROMPT,
   LINUX_DO_SUMMARY_PROMPT,
@@ -38,6 +41,25 @@ let actionNoticeTimer: number | null = null
 
 const sortedSessions = computed(() => chatStore.sortedSessions)
 const assistantLabel = computed(() => chatStore.currentSession?.modelId || settingsStore.defaultModel || 'Assistant')
+const assistantAvatarSvg = computed(() => {
+  const modelId = chatStore.currentSession?.modelId || settingsStore.defaultModel
+  if (!modelId) return ''
+
+  for (const [providerId, models] of Object.entries(settingsStore.cachedModels) as Array<
+    [ProviderId, { id: string }[]]
+  >) {
+    if (models?.some((model) => model.id === modelId)) {
+      const customProvider = settingsStore.customProviders.find((provider) => provider.id === providerId)
+      return customProvider?.iconSvg || PROVIDER_ICONS[providerId] || ''
+    }
+  }
+
+  const detectedProviderId = detectProvider(modelId)
+  if (!detectedProviderId) return ''
+
+  const customProvider = settingsStore.customProviders.find((provider) => provider.id === detectedProviderId)
+  return customProvider?.iconSvg || PROVIDER_ICONS[detectedProviderId] || ''
+})
 
 function formatSummaryContext(extracted: ExtractedContent): string {
   const metadataLines = [
@@ -397,6 +419,7 @@ onMounted(() => {
     <MessageList
       :messages="messages"
       :assistant-label="assistantLabel"
+      :assistant-avatar-svg="assistantAvatarSvg"
       :is-streaming="isStreaming"
       class="flex-1 min-h-0"
       @copy="handleCopy"
