@@ -412,6 +412,67 @@ watch(onlyFreeModels, () => {
               </Button>
             </div>
 
+            <!-- Manual Models Section -->
+            <div class="space-y-6 pt-10 border-t border-muted/30">
+              <div class="rounded-2xl border border-dashed border-primary/20 bg-primary/[0.03] p-4 space-y-4">
+                <div class="flex items-center gap-2">
+                  <CirclePlus class="h-4 w-4 text-primary/80" />
+                  <Label class="text-sm font-semibold">Manual Models</Label>
+                  <Badge variant="outline" class="text-[9px] uppercase tracking-widest bg-background/70 px-2 py-0.5">
+                    Optional
+                  </Badge>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                  <Input
+                    :model-value="getManualModelDraft(selectedProviderId).id"
+                    placeholder="Model ID"
+                    class="h-11 bg-background/80"
+                    @update:model-value="(value) => updateManualModelId(selectedProviderId, String(value))"
+                  />
+                  <Input
+                    :model-value="getManualModelDraft(selectedProviderId).name"
+                    placeholder="Model Name"
+                    class="h-11 bg-background/80"
+                    @update:model-value="(value) => updateManualModelName(selectedProviderId, String(value))"
+                  />
+                  <Button
+                    variant="outline"
+                    class="h-11 px-4"
+                    :disabled="!getManualModelDraft(selectedProviderId).id.trim()"
+                    @click="addManualModel(selectedProviderId)"
+                  >
+                    Add
+                  </Button>
+                </div>
+
+                <p class="text-[10px] text-muted-foreground">
+                  Entering a Model ID will auto-fill the Model Name. You can edit the name before adding.
+                </p>
+
+                <div v-if="currentManualModels.length > 0" class="space-y-2">
+                  <div
+                    v-for="model in currentManualModels"
+                    :key="`manual:${model.id}`"
+                    class="flex items-center justify-between rounded-xl border bg-background/70 px-3 py-2"
+                  >
+                    <div class="min-w-0">
+                      <div class="truncate text-sm font-semibold">{{ model.name }}</div>
+                      <div class="truncate text-[10px] uppercase tracking-widest text-muted-foreground/60">{{ model.id }}</div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      class="rounded-lg text-muted-foreground hover:text-destructive"
+                      @click="removeManualModel(selectedProviderId, model.id)"
+                    >
+                      <Trash2 class="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Model Cache Section -->
             <transition name="fade">
               <div v-if="settingsStore.getProviderModels(selectedProviderId).length > 0" class="space-y-6 pt-10 border-t border-muted/30">
@@ -437,64 +498,6 @@ watch(onlyFreeModels, () => {
                   </div>
                 </div>
 
-                <div class="rounded-2xl border border-dashed border-primary/20 bg-primary/[0.03] p-4 space-y-4">
-                  <div class="flex items-center gap-2">
-                    <CirclePlus class="h-4 w-4 text-primary/80" />
-                    <Label class="text-sm font-semibold">Manual Models</Label>
-                    <Badge variant="outline" class="text-[9px] uppercase tracking-widest bg-background/70 px-2 py-0.5">
-                      Optional
-                    </Badge>
-                  </div>
-
-                  <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-                    <Input
-                      :model-value="getManualModelDraft(selectedProviderId).id"
-                      placeholder="Model ID"
-                      class="h-11 bg-background/80"
-                      @update:model-value="(value) => updateManualModelId(selectedProviderId, String(value))"
-                    />
-                    <Input
-                      :model-value="getManualModelDraft(selectedProviderId).name"
-                      placeholder="Model Name"
-                      class="h-11 bg-background/80"
-                      @update:model-value="(value) => updateManualModelName(selectedProviderId, String(value))"
-                    />
-                    <Button
-                      variant="outline"
-                      class="h-11 px-4"
-                      :disabled="!getManualModelDraft(selectedProviderId).id.trim()"
-                      @click="addManualModel(selectedProviderId)"
-                    >
-                      Add
-                    </Button>
-                  </div>
-
-                  <p class="text-[10px] text-muted-foreground">
-                    Entering a Model ID will auto-fill the Model Name. You can edit the name before adding.
-                  </p>
-
-                  <div v-if="currentManualModels.length > 0" class="space-y-2">
-                    <div
-                      v-for="model in currentManualModels"
-                      :key="`manual:${model.id}`"
-                      class="flex items-center justify-between rounded-xl border bg-background/70 px-3 py-2"
-                    >
-                      <div class="min-w-0">
-                        <div class="truncate text-sm font-semibold">{{ model.name }}</div>
-                        <div class="truncate text-[10px] uppercase tracking-widest text-muted-foreground/60">{{ model.id }}</div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        class="rounded-lg text-muted-foreground hover:text-destructive"
-                        @click="removeManualModel(selectedProviderId, model.id)"
-                      >
-                        <Trash2 class="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                
                 <div v-if="filteredProviderModels.length === 0" class="py-6 text-center text-xs text-muted-foreground/60">
                   没有匹配的模型（可关闭“只看免费模型”）
                 </div>
