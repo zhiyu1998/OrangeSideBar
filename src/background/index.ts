@@ -216,5 +216,54 @@ async function handleGetYouTubeSubtitles(sendResponse: (response: unknown) => vo
   }
 }
 
+// Proxy LLM requests from renderer to avoid browser-injected Sec-Fetch-* headers
+let _proxyRuleId = 2000
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'llm-proxy') return
+  port.onMessage.addListener(async ({ url, options }: { url: string; options: RequestInit & { headers?: Record<string, string> } }) => {
+    const ruleId = _proxyRuleId++
+    const { hostname } = new URL(url)
+
+    // Strip browser-injected headers that third-party API servers use to detect and block browser requests
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: [],
+      addRules: [{
+        id: ruleId,
+        priority: 2,
+        action: {
+          type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
+          requestHeaders: [
+            { header: 'sec-fetch-mode', operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE },
+            { header: 'sec-fetch-site', operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE },
+            { header: 'sec-fetch-dest', operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE },
+            { header: 'origin', operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE },
+          ],
+        },
+        condition: { requestDomains: [hostname] },
+      }],
+    })
+
+    try {
+      const res = await fetch(url, options)
+      const hdrs: Record<string, string> = {}
+      res.headers.forEach((v, k) => { hdrs[k] = v })
+      port.postMessage({ type: 'status', status: res.status, statusText: res.statusText, headers: hdrs })
+      if (!res.body) { port.postMessage({ type: 'done' }); return }
+      const reader = res.body.getReader()
+      const dec = new TextDecoder()
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) { port.postMessage({ type: 'done' }); break }
+        port.postMessage({ type: 'chunk', data: dec.decode(value, { stream: true }) })
+      }
+    } catch (e) {
+      port.postMessage({ type: 'error', message: String(e) })
+    } finally {
+      void chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: [ruleId], addRules: [] })
+    }
+  })
+})
+
 // Log when service worker is activated
 console.log('OrangeSideBar background service worker activated')

@@ -16,6 +16,60 @@ import type {
 import type { ProviderId } from '@/types/provider'
 import type { ReasoningEffort } from '@/types/provider'
 
+type ProxyMsg =
+  | { type: 'status'; status: number; statusText: string; headers: Record<string, string> }
+  | { type: 'chunk'; data: string }
+  | { type: 'done' }
+  | { type: 'error'; message: string }
+
+/**
+ * Route fetch through the background service worker to avoid browser-injected
+ * Sec-Fetch-* headers that cause third-party providers to return 403.
+ */
+function backgroundProxyFetch(url: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return new Promise<Response>((resolve, reject) => {
+    const port = chrome.runtime.connect({ name: 'llm-proxy' })
+    const enc = new TextEncoder()
+    let streamController: ReadableStreamDefaultController<Uint8Array>
+    const stream = new ReadableStream<Uint8Array>({ start: (c) => { streamController = c } })
+    let resolved = false
+
+    // Handle abort: disconnect port (background will clean up)
+    init?.signal?.addEventListener('abort', () => port.disconnect())
+
+    port.onDisconnect.addListener(() => {
+      if (!resolved) reject(new Error('Background proxy disconnected'))
+      else streamController?.close()
+    })
+
+    port.onMessage.addListener((msg: ProxyMsg) => {
+      if (msg.type === 'status') {
+        resolve(new Response(stream, { status: msg.status, statusText: msg.statusText, headers: msg.headers }))
+        resolved = true
+      } else if (msg.type === 'chunk') {
+        streamController.enqueue(enc.encode(msg.data))
+      } else if (msg.type === 'done') {
+        streamController.close()
+        port.disconnect()
+      } else if (msg.type === 'error') {
+        if (!resolved) reject(new Error(msg.message))
+        else streamController.error(new Error(msg.message))
+        port.disconnect()
+      }
+    })
+
+    const headers: Record<string, string> = {}
+    new Headers((init?.headers as HeadersInit) ?? {}).forEach((v, k) => {
+      // Strip headers that cause third-party providers to return 403
+      if (k === 'anthropic-dangerous-direct-browser-access' || k.startsWith('x-stainless-')) return
+      headers[k] = v
+    })
+    // Exclude non-serializable fields (signal, etc.) before posting to background
+    const { signal: _s, ...serializableInit } = init ?? {}
+    port.postMessage({ url: url.toString(), options: { ...serializableInit, headers } })
+  })
+}
+
 // Models that support vision
 const VISION_MODELS = [
   'claude-3-5-sonnet',
@@ -49,11 +103,17 @@ export class AnthropicProvider extends BaseLLMProvider {
 
     if (!this.client) {
       const apiKey = this.config!.apiKey.trim()
+      const baseUrl = this.config!.baseUrl
+      const isOfficialApi = !baseUrl || baseUrl.includes('api.anthropic.com')
 
       this.client = new Anthropic({
         apiKey,
-        baseURL: this.config!.baseUrl,
+        baseURL: baseUrl,
         dangerouslyAllowBrowser: true,
+        // Third-party providers return 403 for browser fetch due to Sec-Fetch-* headers (injected
+        // by browser, cannot be removed). Route through background service worker instead,
+        // which makes plain fetch calls without those headers.
+        ...(isOfficialApi ? {} : { fetch: backgroundProxyFetch }),
       })
     }
 

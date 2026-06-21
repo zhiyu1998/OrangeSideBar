@@ -40,6 +40,7 @@ export default defineManifest({
     'contextMenus',
     'notifications',
     'offscreen',
+    'declarativeNetRequest',
   ],
   host_permissions: ['<all_urls>'],
   side_panel: {

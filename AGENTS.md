@@ -181,3 +181,21 @@ Pinia stores：
 - `src/constants/prompts.ts` 独立存放三套系统提示词（Default/Paper/Learning），由 `src/stores/settings.ts` 引用。
 - `src/composables/useTabs.ts` 管理标签页提及和跨标签页通信。
 - `motion-v` 用于 Vue 动画效果。
+
+## 第三方 Anthropic 兼容提供商的 CORS/403 问题
+
+**背景**：使用非官方 Anthropic endpoint（如 `api.openmodel.ai`）时，浏览器扩展直接 `fetch` 会返回 403。
+
+**根本原因（三层）**：
+
+1. Anthropic SDK 自动添加 `anthropic-dangerous-direct-browser-access: true` 和 `x-stainless-*` headers → 第三方服务器不识别，CORS 预检失败或被拒。
+2. Chrome 对所有 `fetch`（含 background service worker）强制注入 `Sec-Fetch-Mode`、`Sec-Fetch-Site`、`Sec-Fetch-Dest` → JS 层无法删除，服务器据此识别浏览器来源返回 403。
+3. Extension origin 的 `Origin: chrome-extension://...` header → 服务器可能据此拦截。
+
+**解决方案**（见 `src/lib/llm/anthropic.ts` + `src/background/index.ts`）：
+
+- `isOfficialApi` 检测：仅对非 `api.anthropic.com` 的 endpoint 启用代理，官方 API 不受影响。
+- 在 JS 层（`backgroundProxyFetch`）剥掉 SDK 附加的 headers（`anthropic-dangerous-direct-browser-access`、`x-stainless-*`）以及不可序列化的 `signal`。
+- 请求路由到 background service worker（`chrome.runtime.connect` port 传流）。
+- background 在发请求前用 `declarativeNetRequest.updateDynamicRules` 动态添加规则，在网络栈层删除 `Sec-Fetch-*` 和 `Origin`，请求完成后立即清理规则。
+- 需在 `manifest.config.ts` 的 `permissions` 中声明 `declarativeNetRequest`。
