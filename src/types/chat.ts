@@ -19,6 +19,7 @@ export interface ChatSession {
   id: string
   title: string
   modelId: string
+  modelProviderId?: string | null
   messages: Message[]
   createdAt: number
   updatedAt: number

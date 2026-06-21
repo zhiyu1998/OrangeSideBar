@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Message, ChatSession, DualColumnState, LayoutMode } from '@/types/chat'
+import type { ProviderId } from '@/types/provider'
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
@@ -43,11 +44,12 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // Actions
-  function createSession(modelId: string, title?: string): ChatSession {
+  function createSession(modelId: string, title?: string, modelProviderId?: ProviderId | null): ChatSession {
     const session: ChatSession = {
       id: generateId(),
       title: title || `New Chat ${sessions.value.length + 1}`,
       modelId,
+      modelProviderId: modelProviderId ?? null,
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -156,10 +158,13 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function setCurrentSessionModel(modelId: string) {
+  function setCurrentSessionModel(modelId: string, modelProviderId?: ProviderId | null) {
     if (!currentSession.value) return
 
     currentSession.value.modelId = modelId
+    if (modelProviderId !== undefined) {
+      currentSession.value.modelProviderId = modelProviderId
+    }
     currentSession.value.updatedAt = Date.now()
   }
 

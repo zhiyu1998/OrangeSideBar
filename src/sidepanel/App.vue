@@ -43,11 +43,21 @@ const sortedSessions = computed(() => chatStore.sortedSessions)
 const assistantLabel = computed(() => chatStore.currentSession?.modelId || settingsStore.defaultModel || 'Assistant')
 const assistantAvatarSvg = computed(() => {
   const modelId = chatStore.currentSession?.modelId || settingsStore.defaultModel
+  const preferredProviderId = chatStore.currentSession?.modelProviderId || settingsStore.defaultModelProviderId
   if (!modelId) return ''
+
+  if (preferredProviderId) {
+    const customProvider = settingsStore.customProviders.find((provider) => provider.id === preferredProviderId)
+    const preferredIcon = customProvider?.iconSvg || PROVIDER_ICONS[preferredProviderId] || ''
+    if (preferredIcon) {
+      return preferredIcon
+    }
+  }
 
   for (const [providerId, models] of Object.entries(settingsStore.cachedModels) as Array<
     [ProviderId, { id: string }[]]
   >) {
+    if (preferredProviderId && providerId !== preferredProviderId) continue
     if (models?.some((model) => model.id === modelId)) {
       const customProvider = settingsStore.customProviders.find((provider) => provider.id === providerId)
       return customProvider?.iconSvg || PROVIDER_ICONS[providerId] || ''
@@ -322,7 +332,7 @@ function handleNewChat() {
   if (chatStore.isStreaming) {
     stopStreaming()
   }
-  chatStore.createSession(settingsStore.defaultModel)
+  chatStore.createSession(settingsStore.defaultModel, undefined, settingsStore.defaultModelProviderId)
   historyOpen.value = false
 }
 

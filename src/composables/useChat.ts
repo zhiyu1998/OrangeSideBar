@@ -25,6 +25,7 @@ export function useChat(options: UseChatOptions = {}) {
   const error = ref<string | null>(null)
   // Computed
   const modelId = computed(() => options.modelId || settingsStore.defaultModel)
+  const modelProviderId = computed(() => settingsStore.defaultModelProviderId)
   const isStreaming = computed(() => chatStore.isStreaming)
   const messages = computed(() => chatStore.currentMessages)
 
@@ -46,7 +47,28 @@ export function useChat(options: UseChatOptions = {}) {
    * Prefer the provider captured in the cached model list (supports OpenAI-compatible 3rd-party models
    * whose IDs don't match our prefix mapping), then fallback to prefix-based detection.
    */
-  function resolveProviderForModel(model: string) {
+  function resolveProviderForModel(model: string, preferredProviderId?: ProviderId | null) {
+    if (preferredProviderId) {
+      const config = settingsStore.getProviderConfig(preferredProviderId)
+      const providerStillExists = String(preferredProviderId).startsWith('custom_')
+        ? settingsStore.customProviders.some((provider) => provider.id === preferredProviderId)
+        : true
+
+      if (!providerStillExists) {
+        preferredProviderId = null
+      } else if (!config.enabled) {
+        return null
+      }
+
+      if (preferredProviderId) {
+        configureProvider(preferredProviderId)
+        const preferredProvider = llmFactory.getProvider(preferredProviderId)
+        if (preferredProvider) {
+          return preferredProvider
+        }
+      }
+    }
+
     // Find provider from cached model lists (including disabled providers)
     for (const [providerId, models] of Object.entries(settingsStore.cachedModels) as Array<
       [ProviderId, { id: string }[]]
@@ -73,7 +95,24 @@ export function useChat(options: UseChatOptions = {}) {
     return detected
   }
 
-  function getDisabledProviderForModel(model: string): ProviderId | null {
+  function getDisabledProviderForModel(model: string, preferredProviderId?: ProviderId | null): ProviderId | null {
+    if (
+      preferredProviderId &&
+      !String(preferredProviderId).startsWith('custom_')
+      && !settingsStore.getProviderConfig(preferredProviderId).enabled
+    ) {
+      return preferredProviderId
+    }
+
+    if (
+      preferredProviderId &&
+      String(preferredProviderId).startsWith('custom_') &&
+      settingsStore.customProviders.some((provider) => provider.id === preferredProviderId) &&
+      !settingsStore.getProviderConfig(preferredProviderId).enabled
+    ) {
+      return preferredProviderId
+    }
+
     for (const [providerId, models] of Object.entries(settingsStore.cachedModels) as Array<
       [ProviderId, { id: string }[]]
     >) {
@@ -153,10 +192,11 @@ export function useChat(options: UseChatOptions = {}) {
 
   async function streamAssistantResponse(assistantMessageId: string): Promise<void> {
     // Get provider for the model
-    const provider = resolveProviderForModel(modelId.value)
+    const selectedProviderId = chatStore.currentSession?.modelProviderId ?? modelProviderId.value
+    const provider = resolveProviderForModel(modelId.value, selectedProviderId)
 
     if (!provider) {
-      const disabledProvider = getDisabledProviderForModel(modelId.value)
+      const disabledProvider = getDisabledProviderForModel(modelId.value, selectedProviderId)
       error.value = disabledProvider
         ? `Provider "${disabledProvider}" is disabled. Please enable it in settings or choose another model.`
         : `No provider found for model: ${modelId.value}`
@@ -246,9 +286,9 @@ export function useChat(options: UseChatOptions = {}) {
     error.value = null
     // Create session if needed
     if (!chatStore.hasActiveSession) {
-      chatStore.createSession(modelId.value)
+      chatStore.createSession(modelId.value, undefined, modelProviderId.value)
     } else {
-      chatStore.setCurrentSessionModel(modelId.value)
+      chatStore.setCurrentSessionModel(modelId.value, modelProviderId.value)
     }
 
     // Add user message (store display content and optionally llmContent)
@@ -338,7 +378,7 @@ export function useChat(options: UseChatOptions = {}) {
     }
 
     error.value = null
-    chatStore.setCurrentSessionModel(modelId.value)
+    chatStore.setCurrentSessionModel(modelId.value, modelProviderId.value)
     const snapshot = messages.value.slice()
 
     // Resolve which assistant message to regenerate

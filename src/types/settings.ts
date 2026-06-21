@@ -19,6 +19,7 @@ export interface UserSettings {
   theme: Theme
   layoutMode: LayoutMode
   defaultModel: string
+  defaultModelProviderId?: ProviderId | null
   modelParameters: ModelParameters
   reasoningEffort: ReasoningEffort
   openAIRequestMode: OpenAIRequestMode

@@ -401,8 +401,8 @@ watch(onlyFreeModels, () => {
                     v-for="model in paginatedModels"
                     :key="model.id"
                     class="p-4 rounded-2xl border bg-background/50 hover:bg-primary/5 hover:border-primary/20 transition-all cursor-pointer group flex items-center justify-between shadow-sm relative overflow-hidden"
-                    :class="{ 'border-primary/50 bg-primary/5 ring-1 ring-primary/20': settingsStore.defaultModel === model.id }"
-                    @click="settingsStore.setDefaultModel(model.id)"
+                    :class="{ 'border-primary/50 bg-primary/5 ring-1 ring-primary/20': settingsStore.defaultModel === model.id && settingsStore.defaultModelProviderId === selectedProviderId }"
+                    @click="settingsStore.setDefaultModel(model.id, selectedProviderId)"
                   >
                     <div class="flex flex-col min-w-0 pr-3 z-10">
                       <span class="text-[13px] font-bold truncate leading-none text-foreground">{{ model.name }}</span>
@@ -418,9 +418,9 @@ watch(onlyFreeModels, () => {
                       </div>
                     </div>
                     <div class="flex items-center gap-1.5 z-10">
-                      <div v-if="settingsStore.defaultModel === model.id" class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                      <div v-if="settingsStore.defaultModel === model.id && settingsStore.defaultModelProviderId === selectedProviderId" class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                       <div class="w-8 h-8 rounded-lg bg-muted/20 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                        <Check v-if="settingsStore.defaultModel === model.id" class="h-4 w-4 text-primary" />
+                        <Check v-if="settingsStore.defaultModel === model.id && settingsStore.defaultModelProviderId === selectedProviderId" class="h-4 w-4 text-primary" />
                         <ChevronRight v-else class="h-4 w-4 text-muted-foreground/30 group-hover:text-primary transition-all group-hover:translate-x-0.5" />
                       </div>
                     </div>

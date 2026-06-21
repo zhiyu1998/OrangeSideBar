@@ -76,6 +76,7 @@ export const useSettingsStore = defineStore('settings', () => {
   // State
   const theme = ref<Theme>('system')
   const defaultModel = ref<string>('gpt-4o-mini')
+  const defaultModelProviderId = ref<ProviderId | null>('openai')
   const currentPromptMode = ref<PromptMode>('default')
   const modelParameters = ref<ModelParameters>({ ...DEFAULT_MODEL_PARAMS })
   const reasoningEffort = ref<ReasoningEffort>('auto')
@@ -123,6 +124,15 @@ export const useSettingsStore = defineStore('settings', () => {
     return all
   })
 
+  const hasSelectedDefaultModel = computed(() => {
+    if (!defaultModel.value) return false
+    if (!defaultModelProviderId.value) return false
+
+    return !!allCachedModels.value.find(
+      (model) => model.id === defaultModel.value && model.providerId === defaultModelProviderId.value
+    )
+  })
+
   // Actions
   function setTheme(newTheme: Theme) {
     theme.value = newTheme
@@ -138,8 +148,11 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  function setDefaultModel(modelId: string) {
+  function setDefaultModel(modelId: string, providerId?: ProviderId | null) {
     defaultModel.value = modelId
+    if (providerId !== undefined) {
+      defaultModelProviderId.value = providerId
+    }
   }
 
   function setPromptMode(mode: PromptMode) {
@@ -226,8 +239,9 @@ export const useSettingsStore = defineStore('settings', () => {
       clearProviderModels(providerId)
 
       // If current default model belongs to the disabled provider, switch to an enabled model if possible
-      if (disabledModelIds.has(defaultModel.value)) {
+      if (defaultModelProviderId.value === providerId || disabledModelIds.has(defaultModel.value)) {
         let nextModel: string | null = null
+        let nextProviderId: ProviderId | null = null
 
         for (const [pid, models] of Object.entries(cachedModels.value) as Array<
           [ProviderId, ModelInfo[]]
@@ -236,16 +250,19 @@ export const useSettingsStore = defineStore('settings', () => {
           const first = models[0]?.id
           if (first) {
             nextModel = first
+            nextProviderId = pid
             break
           }
         }
 
         if (!nextModel && providers.value.openai?.enabled) {
           nextModel = 'gpt-4o-mini'
+          nextProviderId = 'openai'
         }
 
         if (nextModel) {
           defaultModel.value = nextModel
+          defaultModelProviderId.value = nextProviderId
         }
       }
     }
@@ -271,6 +288,33 @@ export const useSettingsStore = defineStore('settings', () => {
   function removeCustomProvider(id: string) {
     customProviders.value = customProviders.value.filter(p => p.id !== id)
     clearProviderModels(id)
+
+    if (defaultModelProviderId.value === id) {
+      let nextModel: string | null = null
+      let nextProviderId: ProviderId | null = null
+
+      for (const providerId of enabledProviders.value) {
+        const models = cachedModels.value[providerId]
+        const firstModel = models?.[0]
+        if (firstModel) {
+          nextModel = firstModel.id
+          nextProviderId = providerId
+          break
+        }
+      }
+
+      if (!nextModel && providers.value.openai?.enabled) {
+        nextModel = 'gpt-4o-mini'
+        nextProviderId = 'openai'
+      }
+
+      if (nextModel) {
+        defaultModel.value = nextModel
+        defaultModelProviderId.value = nextProviderId
+      } else {
+        defaultModelProviderId.value = null
+      }
+    }
   }
 
   function updateCustomProvider(id: string, updates: Partial<CustomProvider>) {
@@ -323,6 +367,32 @@ export const useSettingsStore = defineStore('settings', () => {
     applyTheme()
   }, { immediate: true })
 
+  watch(
+    [defaultModel, defaultModelProviderId, enabledProviders, allCachedModels],
+    () => {
+      if (!defaultModel.value) return
+
+      if (hasSelectedDefaultModel.value) {
+        return
+      }
+
+      const fallbackModel = allCachedModels.value.find((model) => enabledProviders.value.includes(model.providerId))
+      if (fallbackModel) {
+        defaultModel.value = fallbackModel.id
+        defaultModelProviderId.value = fallbackModel.providerId
+        return
+      }
+
+      if (providers.value.openai?.enabled) {
+        defaultModel.value = 'gpt-4o-mini'
+        defaultModelProviderId.value = 'openai'
+      } else if (enabledProviders.value.length === 0) {
+        defaultModelProviderId.value = null
+      }
+    },
+    { deep: true, immediate: true }
+  )
+
   // Support real-time system theme changes
   if (typeof window !== 'undefined') {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -337,6 +407,7 @@ export const useSettingsStore = defineStore('settings', () => {
     // State
     theme,
     defaultModel,
+    defaultModelProviderId,
     currentPromptMode,
     modelParameters,
     reasoningEffort,

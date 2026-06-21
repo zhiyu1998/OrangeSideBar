@@ -24,6 +24,7 @@ const settingsStore = useSettingsStore()
 
 const params = computed(() => settingsStore.modelParameters)
 const defaultModel = computed(() => settingsStore.defaultModel)
+const defaultModelProviderId = computed(() => settingsStore.defaultModelProviderId)
 
 const MAX_TOKENS_LIMIT = 10000000
 
@@ -124,10 +125,18 @@ function resetParams() {
 }
 
 function selectModel(value: string | number | bigint | Record<string, unknown> | null) {
-  if (typeof value === 'string') {
-    settingsStore.setDefaultModel(value)
-  }
+  if (typeof value !== 'string') return
+
+  const [providerId, modelId] = value.split('::')
+  if (!providerId || !modelId) return
+
+  settingsStore.setDefaultModel(modelId, providerId as ProviderId)
 }
+
+const defaultModelSelectionValue = computed(() => {
+  if (!defaultModel.value || !defaultModelProviderId.value) return ''
+  return `${defaultModelProviderId.value}::${defaultModel.value}`
+})
 
 async function fetchModels() {
   isLoadingModels.value = true
@@ -192,7 +201,7 @@ onMounted(() => {
               <Badge variant="secondary" class="text-[10px]">Auto-Synced</Badge>
             </div>
             
-            <Select :model-value="defaultModel" @update:model-value="selectModel">
+            <Select :model-value="defaultModelSelectionValue" @update:model-value="selectModel">
               <SelectTrigger class="h-12 bg-background/50 border-muted">
                 <SelectValue placeholder="Select a model" />
               </SelectTrigger>
@@ -202,8 +211,8 @@ onMounted(() => {
                     <SelectLabel class="text-[10px] uppercase text-muted-foreground">{{ providerNames[providerId as ProviderId] || providerId }}</SelectLabel>
                     <SelectItem
                       v-for="model in models"
-                      :key="model.id"
-                      :value="model.id"
+                      :key="`${model.providerId}:${model.id}`"
+                      :value="`${model.providerId}::${model.id}`"
                     >
                       <div class="flex items-center gap-2">
                         <span class="text-sm">{{ model.name }}</span>
@@ -214,7 +223,7 @@ onMounted(() => {
                   </SelectGroup>
                 </template>
                 <template v-else>
-                  <SelectItem value="gpt-4o-mini">GPT-4o Mini (Fallback)</SelectItem>
+                  <SelectItem value="openai::gpt-4o-mini">GPT-4o Mini (Fallback)</SelectItem>
                 </template>
               </SelectContent>
             </Select>

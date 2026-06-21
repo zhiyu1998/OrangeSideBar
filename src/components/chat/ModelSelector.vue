@@ -20,6 +20,7 @@ const settingsStore = useSettingsStore()
 const isLoading = ref(false)
 
 const currentModel = computed(() => settingsStore.defaultModel)
+const currentProviderId = computed(() => settingsStore.defaultModelProviderId)
 
 // Use cached models from store, fallback to defaults
 const availableModels = computed(() => {
@@ -44,7 +45,9 @@ const availableModels = computed(() => {
 })
 
 const currentModelName = computed(() => {
-  const model = availableModels.value.find(m => m.id === currentModel.value)
+  const model = availableModels.value.find((m) =>
+    m.id === currentModel.value && (currentProviderId.value ? m.providerId === currentProviderId.value : true)
+  ) || availableModels.value.find(m => m.id === currentModel.value)
   return model?.name || currentModel.value || 'Select Model'
 })
 
@@ -105,8 +108,8 @@ function getDefaultModels(): ModelInfo[] {
   ]
 }
 
-function selectModel(modelId: string) {
-  settingsStore.setDefaultModel(modelId)
+function selectModel(modelId: string, providerId: ProviderId) {
+  settingsStore.setDefaultModel(modelId, providerId)
 }
 
 const providerNames: Record<ProviderId, string> = {
@@ -182,13 +185,13 @@ onMounted(() => {
         </DropdownMenuLabel>
         <DropdownMenuItem
           v-for="model in models"
-          :key="model.id"
+          :key="`${model.providerId}:${model.id}`"
           class="flex items-center justify-between cursor-pointer"
-          @select="selectModel(model.id)"
+          @select="selectModel(model.id, model.providerId)"
         >
           <span class="truncate text-sm">{{ model.name }}</span>
           <Check
-            v-if="model.id === currentModel"
+            v-if="model.id === currentModel && model.providerId === currentProviderId"
             class="h-4 w-4 text-primary flex-shrink-0"
           />
         </DropdownMenuItem>

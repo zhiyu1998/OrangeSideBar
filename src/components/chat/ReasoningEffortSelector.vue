@@ -32,10 +32,13 @@ const effortOptions: EffortOption[] = [
 ]
 
 const currentModel = computed(() => settingsStore.defaultModel)
+const currentProviderId = computed(() => settingsStore.defaultModelProviderId)
 const currentEffort = computed(() => settingsStore.reasoningEffort)
 
 const currentProvider = computed(() => {
-  const cachedModel = settingsStore.allCachedModels.find((model) => model.id === currentModel.value)
+  const cachedModel = settingsStore.allCachedModels.find((model) =>
+    model.id === currentModel.value && (currentProviderId.value ? model.providerId === currentProviderId.value : true)
+  ) || settingsStore.allCachedModels.find((model) => model.id === currentModel.value)
   if (cachedModel) {
     const config = settingsStore.getProviderConfig(cachedModel.providerId)
     llmFactory.configureProvider(
