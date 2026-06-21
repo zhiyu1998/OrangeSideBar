@@ -11,12 +11,23 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          # 拉取完整历史，确保能访问 before..after 范围内的所有 commit
+          fetch-depth: 0
 
       - name: Extract commit messages
         run: |
-          git log -1 --pretty=format:"%h %s" > commit_message.txt
-        id: get_commit
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.event.after }}"
+
+          # 首次推送 / 强制推送 / before 不可达时，只取最新一条
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            git log -1 --pretty=format:"%h %s" "$AFTER" > commit_message.txt
+          else
+            # 批量推送：取本次 push 的全部 commit（按时间正序，旧的在前）
+            git log --reverse --pretty=format:"%h %s" "$BEFORE..$AFTER" > commit_message.txt
+          fi
 
       - name: Update Draft Release
         uses: actions/github-script@v6
@@ -24,137 +35,105 @@ jobs:
           github-token: ${{ secrets.MINE_TOKEN }} # 显式使用 GITHUB_TOKEN
           script: |
             const fs = require('fs');
-            const commitMessage = fs.readFileSync('commit_message.txt', 'utf-8');
+            // 读取本次 push 的全部 commit（每行: "<hash> <subject>"）
+            const newCommits = fs.readFileSync('commit_message.txt', 'utf-8')
+              .split('\n')
+              .map(line => line.trim())
+              .filter(Boolean);
+
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            // 获取现有的 Draft Release
             const releases = await github.rest.repos.listReleases({ owner, repo });
             let draftRelease = releases.data.find(r => r.draft);
 
-            if (!draftRelease) {
-              // 获取最新的published release来生成changelog和contributors
-              const sortedReleases = releases.data.filter(r => !r.draft).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-              const previousTag = sortedReleases.length > 0 ? sortedReleases[0].tag_name : null;
-              
+            // 生成 Full Changelog 链接和 Contributors 列表（基于上一个已发布 release）
+            async function buildMeta() {
               let changelogContent = '';
               let contributorsContent = '';
-              
-              if (previousTag) {
-                // 生成Full Changelog链接
-                changelogContent = `\n\n**Full Changelog**: https://github.com/${owner}/${repo}/compare/${previousTag}...HEAD`;
-                
-                // 获取contributors
-                try {
-                  const comparison = await github.rest.repos.compareCommits({
-                    owner,
-                    repo,
-                    base: previousTag,
-                    head: 'main'
-                  });
-                  
-                  const contributors = new Set();
-                  comparison.data.commits.forEach(commit => {
-                    if (commit.author && commit.author.login) {
-                      contributors.add(commit.author.login);
-                    }
-                    if (commit.committer && commit.committer.login && commit.committer.login !== 'web-flow') {
-                      contributors.add(commit.committer.login);
-                    }
-                  });
-                  
-                  if (contributors.size > 0) {
-                    contributorsContent = '\n\n**Contributors:**\n' + Array.from(contributors).map(username => `@${username}`).join(', ');
+
+              const sortedReleases = releases.data
+                .filter(r => !r.draft)
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+              const previousTag = sortedReleases.length > 0 ? sortedReleases[0].tag_name : null;
+
+              if (!previousTag) return { changelogContent, contributorsContent };
+
+              changelogContent = `\n\n**Full Changelog**: https://github.com/${owner}/${repo}/compare/${previousTag}...HEAD`;
+
+              try {
+                const comparison = await github.rest.repos.compareCommits({
+                  owner,
+                  repo,
+                  base: previousTag,
+                  head: 'main'
+                });
+
+                const contributors = new Set();
+                comparison.data.commits.forEach(commit => {
+                  if (commit.author && commit.author.login) {
+                    contributors.add(commit.author.login);
                   }
-                } catch (error) {
-                  console.log('Could not generate contributors list:', error.message);
+                  if (commit.committer && commit.committer.login && commit.committer.login !== 'web-flow') {
+                    contributors.add(commit.committer.login);
+                  }
+                });
+
+                if (contributors.size > 0) {
+                  contributorsContent = '\n\n**Contributors:**\n' + Array.from(contributors).map(username => `@${username}`).join(', ');
                 }
+              } catch (error) {
+                console.log('Could not generate contributors list:', error.message);
               }
-              
+
+              return { changelogContent, contributorsContent };
+            }
+
+            const { changelogContent, contributorsContent } = await buildMeta();
+
+            if (!draftRelease) {
               // 如果没有 Draft Release，则创建一个新的
+              const changesSection = '### Changes:\n' + newCommits.map(c => `- ${c}`).join('\n');
               const newRelease = await github.rest.repos.createRelease({
                 owner,
                 repo,
                 tag_name: 'next-release', // 可修改为更有意义的 tag 名称
                 name: 'Next Release',    // Release 的标题
-                body: `### Changes:\n- ${commitMessage}${changelogContent}${contributorsContent}`,
+                body: changesSection + changelogContent + contributorsContent,
                 draft: true,
               });
               draftRelease = newRelease.data;
             } else {
               // 解析现有的 Draft Release 内容
-              let existingBody = draftRelease.body;
-              let changelogSection = '';
+              const existingBody = draftRelease.body || '';
 
               // 提取变更列表部分（### Changes: 到第一个 ** 之前，或到文档末尾）
-              const changesMatch = existingBody.match(/(### Changes:[\s\S]*?)(?=\n\n\*\*|$)/);
+              const changesMatch = existingBody.match(/### Changes:[\s\S]*?(?=\n\n\*\*|$)/);
+              let existingCommits;
               if (changesMatch) {
-                changelogSection = changesMatch[1];
+                existingCommits = changesMatch[0].match(/^- [a-f0-9]+ .*$/gm) || [];
               } else {
-                // 如果没有找到，整个 body 就是变更列表
-                changelogSection = existingBody;
+                // 如果没有找到 ### Changes 段，从整个 body 提取已有提交
+                existingCommits = existingBody.match(/^- [a-f0-9]+ .*$/gm) || [];
               }
 
-              // 解析现有的提交列表并添加新的提交
-              let newChangelog = '### Changes:\n';
-              const existingCommits = changelogSection.match(/^- [a-f0-9]+ .*$/gm) || [];
-
-              // 检查新提交是否已存在（通过哈希值判断）
-              const newCommitHash = commitMessage.match(/^([a-f0-9]+)/)?.[1];
-              const isDuplicate = newCommitHash && existingCommits.some(commit =>
-                commit.match(/^- ([a-f0-9]+)/)?.[1] === newCommitHash
+              // 收集已有提交的哈希，用于去重
+              const existingHashes = new Set(
+                existingCommits
+                  .map(commit => commit.match(/^- ([a-f0-9]+)/)?.[1])
+                  .filter(Boolean)
               );
 
-              // 如果不是重复提交，则添加
-              if (!isDuplicate) {
-                existingCommits.push(`- ${commitMessage}`);
-              }
-
-              // 按时间顺序添加所有提交（不排序，保持原有顺序）
-              existingCommits.forEach(commit => {
-                newChangelog += `${commit}\n`;
+              // 按时间顺序追加本次 push 的全部 commit（跳过已存在的）
+              newCommits.forEach(commit => {
+                const hash = commit.match(/^([a-f0-9]+)/)?.[1];
+                if (hash && !existingHashes.has(hash)) {
+                  existingCommits.push(`- ${commit}`);
+                }
               });
 
-              // 重新生成 Full Changelog 和 Contributors（每次都刷新）
-              const sortedReleases = releases.data.filter(r => !r.draft).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-              const previousTag = sortedReleases.length > 0 ? sortedReleases[0].tag_name : null;
-
-              let changelogContent = '';
-              let contributorsContent = '';
-
-              if (previousTag) {
-                // 生成 Full Changelog 链接
-                changelogContent = `\n\n**Full Changelog**: https://github.com/${owner}/${repo}/compare/${previousTag}...HEAD`;
-
-                // 重新获取所有 contributors
-                try {
-                  const comparison = await github.rest.repos.compareCommits({
-                    owner,
-                    repo,
-                    base: previousTag,
-                    head: 'main'
-                  });
-
-                  const contributors = new Set();
-                  comparison.data.commits.forEach(commit => {
-                    if (commit.author && commit.author.login) {
-                      contributors.add(commit.author.login);
-                    }
-                    if (commit.committer && commit.committer.login && commit.committer.login !== 'web-flow') {
-                      contributors.add(commit.committer.login);
-                    }
-                  });
-
-                  if (contributors.size > 0) {
-                    contributorsContent = '\n\n**Contributors:**\n' + Array.from(contributors).map(username => `@${username}`).join(', ');
-                  }
-                } catch (error) {
-                  console.log('Could not generate contributors list:', error.message);
-                }
-              }
-
               // 组合成新的 body（使用重新生成的 Full Changelog 和 Contributors）
-              const newBody = newChangelog + changelogContent + contributorsContent;
+              const newBody = '### Changes:\n' + existingCommits.join('\n') + '\n' + changelogContent + contributorsContent;
 
               // 更新 Draft Release
               await github.rest.repos.updateRelease({
