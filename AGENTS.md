@@ -1,111 +1,183 @@
-# Repository Guidelines
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working in this repository.
+## 项目概述
 
-## Project Overview
+OrangeSideBar 是一个 Chrome 浏览器扩展（Manifest V3），提供 AI 驱动的侧边栏，用于网页摘要和对话。基于 Vue 3 + TypeScript + Vite（CRXJS）构建，状态管理使用 Pinia。支持多 LLM 提供商（OpenAI、Anthropic 及多个 OpenAI 兼容接口）、多轮对话、双栏对比、多种系统提示词模式。助手消息的 Markdown 渲染支持 Mermaid 图表（含 `mindmap`）和 KaTeX 数学公式。
 
-OrangeSideBar is a Chrome extension (Manifest V3) that provides an AI-powered side panel for webpage summarization and chat. It is built with Vue 3 + TypeScript + Vite (CRXJS) and uses Pinia for state management. The extension supports multiple LLM providers (OpenAI, Anthropic, and several OpenAI-compatible endpoints), multi-turn chat, dual-column comparison, and multiple system-prompt modes. Assistant Markdown rendering supports Mermaid diagrams (including `mindmap`).
-
-## Development Commands
+## 开发命令
 
 ```bash
-# Install dependencies (uses Bun)
+# 安装依赖（使用 Bun）
 bun install
 
-# Start development server with hot reload
+# 启动开发服务器（热更新）
 bun run dev
 
-# Type-check and build for production
+# 类型检查 + 生产构建
 bun run build
 ```
 
-### Loading the extension for testing
+### 加载扩展进行测试
 
-1. Run `bun run build` to generate the `dist/` folder
-2. Open `chrome://extensions/`
-3. Enable “Developer mode”
-4. Click “Load unpacked” and select the `dist/` directory
+1. 运行 `bun run build` 生成 `dist/` 目录
+2. 打开 `chrome://extensions/`
+3. 开启「开发者模式」
+4. 点击「加载已解压的扩展程序」，选择 `dist/` 目录
 
-Note: Vite 7 recommends Node.js `20.19+` (or `22.12+`). Builds may still succeed on slightly older Node versions, but upgrading avoids warnings.
+注意：Vite 7 建议 Node.js `20.19+`（或 `22.12+`）。较旧版本可能仍可构建，但升级可避免警告。
 
-## Architecture Overview
+### CI/CD
 
-### Extension entrypoints
+- `.github/workflows/build-crx.yml` — 构建 crx 文件
+- `.github/workflows/release-draft.yml` — 草拟 Release
 
-- `src/background/index.ts` — MV3 service worker (message routing, tab management)
-- `src/content/main.ts` — content script (Readability-based extraction)
-- `src/sidepanel/main.ts` / `src/sidepanel/App.vue` — main side panel UI
-- `src/settings/main.ts` / `src/settings/App.vue` — settings page UI
-- `src/popup/main.ts` / `src/popup/App.vue` — browser action popup
+## 架构概览
 
-### State management and persistence
+### 扩展入口点
 
-Pinia stores:
+- `src/background/index.ts` — MV3 Service Worker（消息路由、标签页管理、右键菜单「Copy Page as Markdown」、YouTube 字幕读取）
+- `src/content/main.ts` — 内容脚本（基于 defuddle 的内容提取）
+- `src/content/youtube-injector.ts` — YouTube 字幕注入器（`world: 'MAIN'`，注入到页面主世界以拦截字幕数据）
+- `src/sidepanel/main.ts` / `src/sidepanel/App.vue` — 主侧边栏 UI
+- `src/settings/main.ts` / `src/settings/App.vue` — 设置页面 UI
+- `src/popup/main.ts` / `src/popup/App.vue` — 浏览器工具栏弹窗（提供「打开侧边栏」快捷入口）
+- `src/offscreen/main.ts` / `src/offscreen/index.html` — 离屏文档（用于剪切板写入，通过 `chrome.offscreen` API 创建）
 
-- `src/stores/settings.ts` — providers (API keys/base URLs/enabled), model parameters, prompt modes, per-provider model cache
-- `src/stores/chat.ts` — chat sessions/messages, streaming state, dual-column state
-- `src/stores/ui.ts` — UI state (dialogs/layout mode, etc.)
+### 内容提取管线
 
-Persistence + cross-context sync:
+`src/composables/useContent.ts` 提供统一的内容提取接口，根据 URL 自动选择提取方式：
 
-- `src/stores/plugins/chromeStorage.ts` syncs store state to `chrome.storage.local` under the key `orangesidebar_<storeId>`.
-- It also listens to `chrome.storage.onChanged` so changes from the Settings page reflect in the Side panel/Popup (and vice versa) without requiring a full reload.
-- Runtime-only keys excluded from persistence: `isStreaming`, `abortController`, `isLoadingModels`.
+- `src/lib/content/web.ts` — 网页内容，使用 `defuddle` 库提取正文
+- `src/lib/content/pdf.ts` — PDF 内容，使用 `pdfjs-dist` 解析（支持本地文件和远程 URL）
+- `src/lib/content/youtube.ts` — YouTube/Bilibili 字幕提取与格式化
+- `src/lib/content/types.ts` — 提取内容的类型定义
 
-Provider enable/disable behavior (important):
+后台右键菜单「Copy Page as Markdown」通过 `src/offscreen/main.ts` 将页面 HTML 转为 Markdown 后复制到剪切板。
 
-- Disabling a provider clears its cached models so model selectors stop showing them.
-- If the current `defaultModel` belongs to a disabled provider, the settings store will attempt to switch to an enabled model.
+### 状态管理与持久化
 
-### LLM provider system
+Pinia stores：
 
-Provider metadata (mostly UI/reference):
+- `src/stores/settings.ts` — 提供商（API 密钥/Base URL/启用状态）、模型参数、提示词模式、每提供商模型缓存、主题
+- `src/stores/chat.ts` — 聊天会话/消息、流式状态、双栏状态
+- `src/stores/ui.ts` — UI 状态（对话框/布局模式等）
 
-- `src/constants/providers.ts` contains `PROVIDERS` (name/icon/defaultBaseUrl/features) and helper utilities.
+持久化 + 跨上下文同步：
 
-Provider implementations:
+- `src/stores/plugins/chromeStorage.ts` 将 store 状态同步到 `chrome.storage.local`，键名为 `orangesidebar_<storeId>`。
+- 同时监听 `chrome.storage.onChanged`，使设置页的修改能即时反映到侧边栏/弹窗，无需手动刷新。
+- 从持久化中排除的运行时键：`isStreaming`、`abortController`、`isLoadingModels`。
 
-- `src/lib/llm/openai.ts` — OpenAI-compatible `/chat/completions` + `/models` client (used for OpenAI and most OpenAI-compatible providers)
-- `src/lib/llm/anthropic.ts` — Anthropic Claude client (static model list; no models endpoint)
+提供商启用/禁用行为（重要）：
 
-Provider factory and routing:
+- 禁用提供商会清除其缓存的模型列表，模型选择器不再显示。
+- 若当前 `defaultModel` 属于已禁用的提供商，settings store 会尝试切换到已启用的模型。
 
-- `src/lib/llm/factory.ts` manages provider instances and model→provider routing.
-- OpenAI-compatible providers are served by cloned `OpenAIProvider` instances (providerId overridden).
+### LLM 提供商系统
 
-Chat pipeline:
+提供商元数据（用于 UI 和参考）：
 
-- `src/composables/useChat.ts` builds API messages + system prompt, resolves the provider, verifies the provider is enabled/configured, then streams responses.
-- Provider resolution prefers the cached model list (more reliable for 3rd‑party model IDs that don’t match simple prefixes).
+- `src/constants/providers.ts` 包含 `PROVIDERS`（名称/图标/defaultBaseUrl/features）和辅助工具函数。
 
-### Settings UI (providers/models/prompts)
+内置提供商（11 个）：
+
+| 提供商 ID | 名称 | API 规范 |
+|---|---|---|
+| `openai` | OpenAI | openai |
+| `anthropic` | Anthropic | anthropic |
+| `zhipu` | 智谱清言 (GLM) | openai (兼容) |
+| `deepseek` | DeepSeek | openai (兼容) |
+| `moonshot` | Moonshot (Kimi) | openai (兼容) |
+| `siliconflow` | SiliconFlow | openai (兼容) |
+| `openrouter` | OpenRouter | openai (兼容) |
+| `groq` | Groq | openai (兼容) |
+| `grok` | Grok | openai (兼容) |
+| `mistral` | Mistral | openai (兼容) |
+| `ollama` | Ollama | openai (兼容) |
+
+此外支持自定义提供商（`AddProviderDialog`），可选择 `openai`/`anthropic`/`google` 三种 API 规范。
+
+提供商实现：
+
+- `src/lib/llm/openai.ts` — OpenAI 兼容 `/chat/completions` + `/models` 客户端（用于 OpenAI 及大多数 OpenAI 兼容提供商）
+- `src/lib/llm/anthropic.ts` — Anthropic Claude 客户端（静态模型列表；无 models 端点）
+
+工厂与路由：
+
+- `src/lib/llm/factory.ts` 管理提供商实例和模型→提供商路由。
+- OpenAI 兼容提供商通过克隆 `OpenAIProvider` 实例实现（重写 `providerId`）。
+
+聊天管线：
+
+- `src/composables/useChat.ts` 构建 API 消息 + 系统提示词，解析提供商，验证提供商已启用/已配置，然后流式返回响应。
+- 提供商解析优先使用缓存的模型列表（对前缀不匹配的第三方模型 ID 更可靠）。
+
+推理强度（Reasoning Effort）：
+
+- `src/components/chat/ReasoningEffortSelector.vue` 允许用户选择推理强度（`auto`/`none`/`minimal`/`low`/`medium`/`high`/`xhigh`），通过 `ChatParams.reasoningEffort` 传递给 LLM。
+- `src/lib/llm/openai.ts` 中针对 OpenAI 兼容接口处理 `reasoning_effort` 和 `OpenAIRequestMode`（`chat_completions` / `responses`）。
+
+注意：提供商定义目前存在于多处（`constants/providers.ts`、store 默认值、设置 UI 列表）。添加/移除提供商时需更新所有相关位置。
+
+### 设置 UI（提供商/模型/提示词）
 
 - `src/components/settings/ProviderSettings.vue`
-  - Enables/disables providers (reka-ui `Switch` uses `modelValue` / `update:modelValue`)
-  - Configures API key + base URL per provider
-  - “Test Connection” fetches models and caches them into `settingsStore.cachedModels[providerId]`
-- `src/components/settings/ModelConfig.vue` fetches models from enabled providers and selects the global `defaultModel`
-- `src/components/settings/PromptEditor.vue` edits the 3 system prompts (Default/Paper/Learning)
+  - 启用/禁用提供商（reka-ui `Switch` 使用 `modelValue` / `update:modelValue`）
+  - 配置 API 密钥 + Base URL
+  - 「测试连接」获取模型并缓存到 `settingsStore.cachedModels[providerId]`
+- `src/components/settings/AddProviderDialog.vue` — 添加自定义提供商
+- `src/components/settings/ModelConfig.vue` — 从已启用提供商获取模型，选择全局 `defaultModel`
+- `src/components/settings/PromptEditor.vue` — 编辑系统提示词（Default/Paper/Learning）
+- `src/components/settings/GeneralSettings.vue` — 通用设置
 
-Note: provider definitions currently exist in multiple places (constants, store defaults, settings UI list). When adding/removing a provider, update all relevant lists.
+### UI 体系
 
-### Markdown rendering (Side panel)
+组件库基于 **shadcn-vue**（底层使用 reka-ui），配置在 `components.json`，样式使用 **Tailwind CSS v4** + `tw-animate-css`。
 
-- `src/components/chat/MarkdownRenderer.vue` renders assistant messages via:
-  - `marked` (Markdown → HTML)
-  - `highlight.js` (code highlighting)
-  - `DOMPurify` (sanitization)
-- Mermaid is supported via fenced code blocks:
-  - ```mermaid
-  - ```mindmap (treated as Mermaid `mindmap`)
+`src/components/ui/` 下包含 12 类 UI 组件：accordion、avatar、badge、button、card、dialog、dropdown-menu、input、pagination、scroll-area、select、separator、slider、switch、tabs、textarea、tooltip。
 
-## Code Style Guidelines
+其他功能组件：
 
-- 2-space indentation
-- Prefer small, focused changes (avoid unrelated refactors)
-- Vue Composition API with `<script setup lang="ts">`
-- Use path alias `@/` for imports from `src/`
+- `src/components/chat/` — 聊天相关组件：`MessageItem`、`MessageList`、`InputGroup`、`ModelSelector`、`ReasoningEffortSelector`、`TabMentionPopover`
+- `src/components/layout/` — 布局组件：`AppHeader`、`FeatureGrid`、`SessionHistoryPanel`
+- `src/components/share/` — 分享组件：`ShareImageDialog`（基于 `html2canvas-pro` 的截图分享）、`ConversationShareCard`
+- `src/components/settings/` — 设置页组件（见上文）
+- `src/components/inspira/ui/` — 装饰性 UI 组件（BorderBeam、GlareCard、InteractiveGridPattern）
+- `src/components/features/` — 特性展示组件
 
-## Build & Release
+主题系统（`src/composables/useTheme.ts`）：支持 light / dark / system 三态切换，通过 `src/settings/settingsStore.applyTheme()` 在 `<html>` 上切换 `.dark` 类。
 
-- `bun run build` outputs `dist/` (load as unpacked extension) and also creates a ZIP under `release/` (via `vite-plugin-zip-pack`).
+图标管理：`src/assets/icons/providerIcons.ts` 以 base64 SVG 字符串导出所有提供商图标。
+
+### Markdown 渲染（侧边栏）
+
+`src/components/chat/MarkdownRenderer.vue` 渲染助手消息，管线：
+
+- `marked`（Markdown → HTML）
+- `highlight.js`（代码高亮）
+- `DOMPurify`（安全净化）
+- `mermaid`（Mermaid 图表客户端渲染）
+- `katex`（数学公式渲染）
+- Mermaid 支持 fenced code blocks：
+  - ` ```mermaid `
+  - ` ```mindmap `（视为 Mermaid `mindmap`）
+
+## 代码风格约定
+
+- 2 空格缩进
+- 优先小步、聚焦的改动（避免无关的重构）
+- Vue Composition API + `<script setup lang="ts">`
+- 使用 `@/` 路径别名导入 `src/` 下的文件
+- `components.json` 为 shadcn-vue 的组件注册表
+
+## 构建与发布
+
+- `bun run build` 输出 `dist/`（作为未打包扩展加载），同时通过 `vite-plugin-zip-pack` 在 `release/` 下生成 ZIP。
+- 扩展图标位于 `public/logo_*.png`。
+
+## 备注
+
+- `src/lib/markdown/` 和 `src/lib/share/` 目前为空目录，预留扩展。
+- `src/constants/prompts.ts` 独立存放三套系统提示词（Default/Paper/Learning），由 `src/stores/settings.ts` 引用。
+- `src/composables/useTabs.ts` 管理标签页提及和跨标签页通信。
+- `motion-v` 用于 Vue 动画效果。
