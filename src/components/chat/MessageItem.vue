@@ -95,9 +95,10 @@ function toggleThinking() {
 
 function startTimer() {
   if (timer !== null) return
+  // 每 100ms 刷新一次，让秒数的小数位（toFixed(1)）实时滚动
   timer = window.setInterval(() => {
     now.value = Date.now()
-  }, 1000)
+  }, 100)
 }
 
 function stopTimer() {
