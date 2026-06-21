@@ -274,49 +274,10 @@ export class AnthropicProvider extends BaseLLMProvider {
         return models
       }
     } catch (error) {
-      console.warn('[AnthropicProvider] Failed to fetch models from /v1/models, falling back to built-in list:', error)
+      console.warn('[AnthropicProvider] Failed to fetch models from /v1/models:', error)
     }
 
-    return [
-      {
-        id: 'claude-sonnet-4-20250514',
-        name: 'Claude Sonnet 4',
-        providerId: this.providerId,
-        supportsVision: true,
-        isThinkingModel: true,
-      },
-      {
-        id: 'claude-3-5-sonnet-20241022',
-        name: 'Claude 3.5 Sonnet',
-        providerId: this.providerId,
-        supportsVision: true,
-        isThinkingModel: true,
-      },
-      {
-        id: 'claude-3-5-haiku-20241022',
-        name: 'Claude 3.5 Haiku',
-        providerId: this.providerId,
-        supportsVision: true,
-      },
-      {
-        id: 'claude-3-opus-20240229',
-        name: 'Claude 3 Opus',
-        providerId: this.providerId,
-        supportsVision: true,
-      },
-      {
-        id: 'claude-3-sonnet-20240229',
-        name: 'Claude 3 Sonnet',
-        providerId: this.providerId,
-        supportsVision: true,
-      },
-      {
-        id: 'claude-3-haiku-20240307',
-        name: 'Claude 3 Haiku',
-        providerId: this.providerId,
-        supportsVision: true,
-      },
-    ]
+    return []
   }
 
   /**

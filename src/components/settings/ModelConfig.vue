@@ -146,19 +146,27 @@ async function fetchModels() {
     const enabledProviders = settingsStore.enabledProviders
     for (const providerId of enabledProviders) {
       const config = settingsStore.getProviderConfig(providerId)
-      if (!config.apiKey) continue
-      try {
-        llmFactory.configureProvider(providerId, {
-          apiKey: settingsStore.getApiKey(providerId),
-          baseUrl: config.baseUrl,
-        }, settingsStore.getProviderApiSpec(providerId))
-        const provider = llmFactory.getProvider(providerId)
-        if (provider) {
-          const models = await provider.getModels()
-          grouped[providerId] = models
+      const manualModels = settingsStore.manualModels[providerId] || []
+
+      if (config.apiKey) {
+        try {
+          llmFactory.configureProvider(providerId, {
+            apiKey: settingsStore.getApiKey(providerId),
+            baseUrl: config.baseUrl,
+          }, settingsStore.getProviderApiSpec(providerId))
+          const provider = llmFactory.getProvider(providerId)
+          if (provider) {
+            const models = await provider.getModels()
+            settingsStore.setProviderModels(providerId, models)
+          }
+        } catch (error) {
+          console.error(error)
         }
-      } catch (error) {
-        console.error(error)
+      }
+
+      const combinedModels = settingsStore.getProviderModels(providerId)
+      if (combinedModels.length > 0 || manualModels.length > 0) {
+        grouped[providerId] = combinedModels
       }
     }
     modelsByProvider.value = grouped
@@ -223,7 +231,9 @@ onMounted(() => {
                   </SelectGroup>
                 </template>
                 <template v-else>
-                  <SelectItem value="openai::gpt-4o-mini">GPT-4o Mini (Fallback)</SelectItem>
+                  <div class="px-3 py-2 text-xs text-muted-foreground">
+                    No models available. Add a manual model or refresh an enabled provider.
+                  </div>
                 </template>
               </SelectContent>
             </Select>

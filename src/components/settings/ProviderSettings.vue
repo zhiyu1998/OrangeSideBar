@@ -3,6 +3,8 @@ import { ref, computed, watch } from 'vue'
 import { 
   Check, 
   ChevronRight,
+  CirclePlus,
+  Trash2,
   Eye, 
   EyeOff, 
   Loader2, 
@@ -11,6 +13,7 @@ import {
   ExternalLink,
   Plus,
   Cpu,
+  BarChart3,
 } from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
 import { llmFactory } from '@/lib/llm/factory'
@@ -78,6 +81,7 @@ watch(selectedProviderId, () => {
 const showApiKey = ref<Record<ProviderId, boolean>>({} as Record<ProviderId, boolean>)
 const testingProvider = ref<ProviderId | null>(null)
 const testResult = ref<Record<ProviderId, 'success' | 'error' | null>>({} as Record<ProviderId, 'success' | 'error' | null>)
+const manualModelDrafts = ref<Record<ProviderId, { id: string; name: string }>>({} as Record<ProviderId, { id: string; name: string }>)
 
 const selectedProvider = computed(() => allProviders.value.find(p => p.id === selectedProviderId.value))
 
@@ -162,6 +166,46 @@ function updateCustomProviderName(id: string, name: string) {
   settingsStore.updateCustomProvider(id, { name })
 }
 
+function getManualModelDraft(providerId: ProviderId) {
+  if (!manualModelDrafts.value[providerId]) {
+    manualModelDrafts.value[providerId] = { id: '', name: '' }
+  }
+
+  return manualModelDrafts.value[providerId]
+}
+
+function updateManualModelId(providerId: ProviderId, value: string) {
+  const draft = getManualModelDraft(providerId)
+  const previousId = draft.id
+  draft.id = value
+  if (!draft.name || draft.name === previousId || draft.name.trim().length === 0) {
+    draft.name = value
+  }
+}
+
+function updateManualModelName(providerId: ProviderId, value: string) {
+  getManualModelDraft(providerId).name = value
+}
+
+function addManualModel(providerId: ProviderId) {
+  const draft = getManualModelDraft(providerId)
+  const modelId = draft.id.trim()
+  const modelName = draft.name.trim() || modelId
+
+  if (!modelId) return
+
+  settingsStore.addManualModel(providerId, {
+    id: modelId,
+    name: modelName,
+  })
+
+  manualModelDrafts.value[providerId] = { id: '', name: '' }
+}
+
+function removeManualModel(providerId: ProviderId, modelId: string) {
+  settingsStore.removeManualModel(providerId, modelId)
+}
+
 const onlyFreeModels = ref(false)
 
 const ZHIPU_FREE_MODELS = new Set(['glm-4.7-flash', 'glm-4.5-flash', 'glm-4-flash-250414'])
@@ -176,6 +220,7 @@ function isFreeModel(providerId: ProviderId, modelId: string): boolean {
 }
 
 const currentProviderModels = computed(() => settingsStore.getProviderModels(selectedProviderId.value))
+const currentManualModels = computed(() => settingsStore.manualModels[selectedProviderId.value] || [])
 
 const filteredProviderModels = computed(() => {
   const models = currentProviderModels.value
@@ -389,6 +434,64 @@ watch(onlyFreeModels, () => {
                     />
                     <span class="text-xs font-semibold text-muted-foreground">只看免费模型</span>
                     <Badge variant="outline" class="text-[9px] uppercase tracking-widest bg-muted/20 px-2 py-0.5 border-muted/50">Zhipu</Badge>
+                  </div>
+                </div>
+
+                <div class="rounded-2xl border border-dashed border-primary/20 bg-primary/[0.03] p-4 space-y-4">
+                  <div class="flex items-center gap-2">
+                    <CirclePlus class="h-4 w-4 text-primary/80" />
+                    <Label class="text-sm font-semibold">Manual Models</Label>
+                    <Badge variant="outline" class="text-[9px] uppercase tracking-widest bg-background/70 px-2 py-0.5">
+                      Optional
+                    </Badge>
+                  </div>
+
+                  <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                    <Input
+                      :model-value="getManualModelDraft(selectedProviderId).id"
+                      placeholder="Model ID"
+                      class="h-11 bg-background/80"
+                      @update:model-value="(value) => updateManualModelId(selectedProviderId, String(value))"
+                    />
+                    <Input
+                      :model-value="getManualModelDraft(selectedProviderId).name"
+                      placeholder="Model Name"
+                      class="h-11 bg-background/80"
+                      @update:model-value="(value) => updateManualModelName(selectedProviderId, String(value))"
+                    />
+                    <Button
+                      variant="outline"
+                      class="h-11 px-4"
+                      :disabled="!getManualModelDraft(selectedProviderId).id.trim()"
+                      @click="addManualModel(selectedProviderId)"
+                    >
+                      Add
+                    </Button>
+                  </div>
+
+                  <p class="text-[10px] text-muted-foreground">
+                    Entering a Model ID will auto-fill the Model Name. You can edit the name before adding.
+                  </p>
+
+                  <div v-if="currentManualModels.length > 0" class="space-y-2">
+                    <div
+                      v-for="model in currentManualModels"
+                      :key="`manual:${model.id}`"
+                      class="flex items-center justify-between rounded-xl border bg-background/70 px-3 py-2"
+                    >
+                      <div class="min-w-0">
+                        <div class="truncate text-sm font-semibold">{{ model.name }}</div>
+                        <div class="truncate text-[10px] uppercase tracking-widest text-muted-foreground/60">{{ model.id }}</div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        class="rounded-lg text-muted-foreground hover:text-destructive"
+                        @click="removeManualModel(selectedProviderId, model.id)"
+                      >
+                        <Trash2 class="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 

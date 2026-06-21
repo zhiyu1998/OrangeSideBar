@@ -93,6 +93,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   // Cached models per provider
   const cachedModels = ref<Record<ProviderId, ModelInfo[]>>({} as Record<ProviderId, ModelInfo[]>)
+  const manualModels = ref<Record<ProviderId, ModelInfo[]>>({} as Record<ProviderId, ModelInfo[]>)
   const isLoadingModels = ref<Record<ProviderId, boolean>>({} as Record<ProviderId, boolean>)
 
   // Getters
@@ -118,8 +119,14 @@ export const useSettingsStore = defineStore('settings', () => {
   // Get all cached models across all providers
   const allCachedModels = computed(() => {
     const all: ModelInfo[] = []
-    for (const models of Object.values(cachedModels.value)) {
-      all.push(...models)
+
+    const providerIds = new Set<ProviderId>([
+      ...(Object.keys(cachedModels.value) as ProviderId[]),
+      ...(Object.keys(manualModels.value) as ProviderId[]),
+    ])
+
+    for (const providerId of providerIds) {
+      all.push(...mergeProviderModels(providerId))
     }
     return all
   })
@@ -341,13 +348,77 @@ export const useSettingsStore = defineStore('settings', () => {
     return providerId === 'anthropic' ? 'anthropic' : 'openai'
   }
 
+  function mergeProviderModels(providerId: ProviderId): ModelInfo[] {
+    const merged = new Map<string, ModelInfo>()
+
+    for (const model of cachedModels.value[providerId] || []) {
+      merged.set(model.id, model)
+    }
+
+    for (const model of manualModels.value[providerId] || []) {
+      merged.set(model.id, model)
+    }
+
+    return Array.from(merged.values())
+  }
+
   // Model cache actions
   function setProviderModels(providerId: ProviderId, models: ModelInfo[]) {
     cachedModels.value[providerId] = models
   }
 
   function getProviderModels(providerId: ProviderId): ModelInfo[] {
-    return cachedModels.value[providerId] || []
+    return mergeProviderModels(providerId)
+  }
+
+  function addManualModel(providerId: ProviderId, model: Pick<ModelInfo, 'id' | 'name'>) {
+    const normalizedId = model.id.trim()
+    const normalizedName = model.name.trim() || normalizedId
+
+    if (!normalizedId) return
+
+    const providerModels = manualModels.value[providerId] || []
+    const existingIndex = providerModels.findIndex((item) => item.id === normalizedId)
+    const nextModel: ModelInfo = {
+      id: normalizedId,
+      name: normalizedName,
+      providerId,
+    }
+
+    if (existingIndex === -1) {
+      manualModels.value[providerId] = [...providerModels, nextModel]
+      return
+    }
+
+    const updated = providerModels.slice()
+    updated[existingIndex] = {
+      ...updated[existingIndex],
+      ...nextModel,
+    }
+    manualModels.value[providerId] = updated
+  }
+
+  function removeManualModel(providerId: ProviderId, modelId: string) {
+    const providerModels = manualModels.value[providerId] || []
+    const nextModels = providerModels.filter((model) => model.id !== modelId)
+
+    if (nextModels.length === 0) {
+      delete manualModels.value[providerId]
+    } else {
+      manualModels.value[providerId] = nextModels
+    }
+
+    if (
+      defaultModel.value === modelId &&
+      defaultModelProviderId.value === providerId &&
+      !getProviderModels(providerId).some((model) => model.id === modelId)
+    ) {
+      const fallbackModel = allCachedModels.value.find((model) => enabledProviders.value.includes(model.providerId))
+      if (fallbackModel) {
+        defaultModel.value = fallbackModel.id
+        defaultModelProviderId.value = fallbackModel.providerId
+      }
+    }
   }
 
   function setProviderLoadingModels(providerId: ProviderId, loading: boolean) {
@@ -416,6 +487,7 @@ export const useSettingsStore = defineStore('settings', () => {
     customProviders,
     systemPrompts,
     cachedModels,
+    manualModels,
     isLoadingModels,
     // Getters
     enabledProviders,
@@ -441,6 +513,8 @@ export const useSettingsStore = defineStore('settings', () => {
     // Model cache actions
     setProviderModels,
     getProviderModels,
+    addManualModel,
+    removeManualModel,
     setProviderLoadingModels,
     isProviderLoadingModels,
     clearProviderModels,

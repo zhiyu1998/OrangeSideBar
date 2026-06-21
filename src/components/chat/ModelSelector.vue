@@ -22,26 +22,10 @@ const isLoading = ref(false)
 const currentModel = computed(() => settingsStore.defaultModel)
 const currentProviderId = computed(() => settingsStore.defaultModelProviderId)
 
-// Use cached models from store, fallback to defaults
 const availableModels = computed(() => {
   const enabledProviders = settingsStore.enabledProviders
   const enabled = new Set(enabledProviders)
-
-  const cached = settingsStore.allCachedModels.filter((m) => enabled.has(m.providerId))
-  const defaults = getDefaultModels().filter((m) => enabled.has(m.providerId))
-
-  // If some providers have cached models, still show defaults for other enabled providers
-  // (e.g. show Claude defaults even if only OpenAI models are cached).
-  const providersWithCachedModels = new Set(cached.map((m) => m.providerId))
-  const merged = [...cached]
-
-  for (const model of defaults) {
-    if (!providersWithCachedModels.has(model.providerId)) {
-      merged.push(model)
-    }
-  }
-
-  return merged.length > 0 ? merged : defaults
+  return settingsStore.allCachedModels.filter((m) => enabled.has(m.providerId))
 })
 
 const currentModelName = computed(() => {
@@ -51,7 +35,6 @@ const currentModelName = computed(() => {
   return model?.name || currentModel.value || 'Select Model'
 })
 
-// Fetch models from all enabled providers
 async function fetchModels() {
   isLoading.value = true
 
@@ -83,29 +66,6 @@ async function fetchModels() {
   } finally {
     isLoading.value = false
   }
-}
-
-function getDefaultModels(): ModelInfo[] {
-  return [
-    { id: 'gpt-4o', name: 'GPT-4o', providerId: 'openai', supportsVision: true },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', providerId: 'openai', supportsVision: true },
-    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', providerId: 'openai', supportsVision: true },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', providerId: 'openai' },
-    { id: 'glm-4.7', name: 'GLM-4.7', providerId: 'zhipu' },
-    { id: 'glm-4.7-flash', name: 'GLM-4.7-Flash (Free)', providerId: 'zhipu' },
-    { id: 'glm-4.7-flashx', name: 'GLM-4.7-FlashX', providerId: 'zhipu' },
-    { id: 'glm-4.6', name: 'GLM-4.6', providerId: 'zhipu' },
-    { id: 'glm-4.5-air', name: 'GLM-4.5-Air', providerId: 'zhipu' },
-    { id: 'glm-4.5-airx', name: 'GLM-4.5-AirX', providerId: 'zhipu' },
-    { id: 'glm-4-long', name: 'GLM-4-Long', providerId: 'zhipu' },
-    { id: 'glm-4-flashx-250414', name: 'GLM-4-FlashX-250414', providerId: 'zhipu' },
-    { id: 'glm-4-flash-250414', name: 'GLM-4-Flash-250414 (Free)', providerId: 'zhipu' },
-    { id: 'glm-4.5-flash', name: 'GLM-4.5-Flash (Free)', providerId: 'zhipu' },
-    { id: 'glm-4-air-250414', name: 'GLM-4-Air-250414', providerId: 'zhipu' },
-    { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', providerId: 'anthropic', supportsVision: true },
-    { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', providerId: 'anthropic', supportsVision: true },
-    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', providerId: 'anthropic', supportsVision: true },
-  ]
 }
 
 function selectModel(modelId: string, providerId: ProviderId) {
@@ -157,8 +117,7 @@ watch(
 )
 
 onMounted(() => {
-  // Fetch models if not cached
-  if (settingsStore.allCachedModels.length === 0) {
+  if (settingsStore.enabledProviders.length > 0) {
     fetchModels()
   }
 })

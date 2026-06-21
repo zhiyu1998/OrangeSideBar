@@ -562,8 +562,10 @@ export class OpenAIProvider extends BaseLLMProvider {
       return apiModels.sort((a, b) => a.id.localeCompare(b.id))
     } catch (error) {
       console.error('Failed to fetch models:', error)
-      // Return default models if API call fails
-      return this.getDefaultModels()
+      if (this.providerId === 'zhipu') {
+        return this.getDefaultModels()
+      }
+      return []
     }
   }
 
