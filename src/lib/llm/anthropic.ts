@@ -48,8 +48,10 @@ export class AnthropicProvider extends BaseLLMProvider {
     this.ensureConfigured()
 
     if (!this.client) {
+      const apiKey = this.config!.apiKey.trim()
+
       this.client = new Anthropic({
-        apiKey: this.config!.apiKey,
+        apiKey,
         baseURL: this.config!.baseUrl,
         dangerouslyAllowBrowser: true,
       })
@@ -64,6 +66,19 @@ export class AnthropicProvider extends BaseLLMProvider {
   configure(config: { apiKey: string; baseUrl: string }): void {
     super.configure(config)
     this.client = null
+  }
+
+  private toModelInfo(model: {
+    id: string
+    display_name?: string
+  }): ModelInfo {
+    return {
+      id: model.id,
+      name: model.display_name || model.id,
+      providerId: this.providerId,
+      supportsVision: this.supportsVision(model.id),
+      isThinkingModel: this.supportsThinking(model.id),
+    }
   }
 
   /**
@@ -247,9 +262,21 @@ export class AnthropicProvider extends BaseLLMProvider {
 
   /**
    * Fetch available models
-   * Anthropic doesn't have a models endpoint, so we return a static list
    */
   async getModels(): Promise<ModelInfo[]> {
+    const client = this.getClient()
+
+    try {
+      const page = await client.models.list()
+      const models = page.data.map((model) => this.toModelInfo(model))
+
+      if (models.length > 0) {
+        return models
+      }
+    } catch (error) {
+      console.warn('[AnthropicProvider] Failed to fetch models from /v1/models, falling back to built-in list:', error)
+    }
+
     return [
       {
         id: 'claude-sonnet-4-20250514',
