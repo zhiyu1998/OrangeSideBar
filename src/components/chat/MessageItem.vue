@@ -181,8 +181,18 @@ onBeforeUnmount(() => {
 
             <div class="min-w-0 flex-1 flex items-center justify-between gap-3">
               <div class="flex min-w-0 items-center gap-2">
-                <span class="thinking-badge relative inline-flex overflow-hidden rounded-full border border-white/80 bg-white/75 px-3 py-1 text-sm font-semibold text-slate-600 shadow-sm dark:border-slate-600/80 dark:bg-slate-800/85 dark:text-slate-200">
-                  <span class="relative z-10">深度思考</span>
+                <span class="thinking-badge relative inline-flex overflow-hidden rounded-full border border-white/80 bg-white/75 px-3 py-1 text-sm font-semibold shadow-sm dark:border-slate-600/80 dark:bg-slate-800/85">
+                  <span class="relative z-10 inline-block">
+                    <span
+                      class="thinking-text-base"
+                      :class="{ 'is-hidden': isThinkingStreaming }"
+                    >深度思考</span>
+                    <span
+                      class="thinking-text-shimmer"
+                      :class="{ 'is-active': isThinkingStreaming }"
+                      aria-hidden="true"
+                    >深度思考</span>
+                  </span>
                 </span>
                 <span class="text-sm text-slate-400 dark:text-slate-400">({{ formattedThinkingDuration }})</span>
               </div>
@@ -271,36 +281,50 @@ onBeforeUnmount(() => {
   display: block;
 }
 
-.thinking-badge::after {
-  content: '';
+.thinking-text-base {
+  color: #475569;
+  transition: opacity 0.3s ease;
+}
+
+.dark .thinking-text-base {
+  color: #e2e8f0;
+}
+
+.thinking-text-base.is-hidden {
+  opacity: 0;
+}
+
+.thinking-text-shimmer {
   position: absolute;
-  inset: -20%;
-  background: linear-gradient(
-    110deg,
-    transparent 15%,
-    rgba(255, 255, 255, 0.18) 35%,
-    rgba(255, 255, 255, 0.88) 50%,
-    rgba(255, 255, 255, 0.18) 65%,
-    transparent 85%
+  inset: 0;
+  background-image: linear-gradient(
+    100deg,
+    #475569 25%,
+    #475569 42%,
+    #f8fafc 50%,
+    #475569 58%,
+    #475569 75%
   );
-  transform: translateX(-140%);
-  animation: thinking-shimmer 2.8s linear infinite;
+  background-size: 220% 100%;
+  background-position: 100% 0;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: thinking-text-shimmer 2.6s linear infinite;
+  opacity: 0;
+  transition: opacity 0.55s ease;
 }
 
-:global(.dark) .thinking-badge::after {
-  background: linear-gradient(
-    110deg,
-    transparent 15%,
-    rgba(148, 163, 184, 0.04) 35%,
-    rgba(226, 232, 240, 0.28) 50%,
-    rgba(148, 163, 184, 0.06) 65%,
-    transparent 85%
-  );
+.thinking-text-shimmer.is-active {
+  opacity: 1;
 }
 
-@keyframes thinking-shimmer {
-  to {
-    transform: translateX(140%);
+@keyframes thinking-text-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -120% 0;
   }
 }
 </style>
