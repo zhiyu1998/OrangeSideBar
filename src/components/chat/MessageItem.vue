@@ -29,6 +29,8 @@ const emit = defineEmits<{
 const showThinking = ref(false)
 const copied = ref(false)
 const now = ref(Date.now())
+const thinkingIconRef = ref<SVGSVGElement | null>(null)
+let spinAnimation: Animation | null = null
 let timer: number | null = null
 
 const isUser = computed(() => props.role === 'user')
@@ -120,6 +122,47 @@ watchEffect(() => {
   }
 })
 
+// 思考时图标持续旋转，停止时从当前角度平滑归位
+watchEffect(() => {
+  const el = thinkingIconRef.value
+  if (!el) return
+
+  if (isThinkingStreaming.value) {
+    // 开始/继续持续旋转（linear infinite）
+    if (!spinAnimation) {
+      spinAnimation = el.animate(
+        [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
+        { duration: 2400, iterations: Infinity, easing: 'linear' },
+      )
+    }
+    if (spinAnimation.playState !== 'running') {
+      spinAnimation.play()
+    }
+  } else if (spinAnimation) {
+    // 停止：读取当前旋转角度，以此为起点用 transition 缓慢归位
+    const angle = (() => {
+      try {
+        const matrix = new DOMMatrix(getComputedStyle(el).transform)
+        return Math.atan2(matrix.b, matrix.a) * (180 / Math.PI)
+      } catch {
+        return 0
+      }
+    })()
+
+    spinAnimation.cancel()
+    spinAnimation = null
+
+    // 用一个新的短动画从当前角度回到 0，实现平滑归位
+    el.animate(
+      [
+        { transform: `rotate(${angle}deg)`, offset: 0 },
+        { transform: 'rotate(0deg)', offset: 1 },
+      ],
+      { duration: 900, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
+    )
+  }
+})
+
 watchEffect(() => {
   if (isThinkingComplete.value && !isThinkingStreaming.value) {
     showThinking.value = false
@@ -128,6 +171,10 @@ watchEffect(() => {
 
 onBeforeUnmount(() => {
   stopTimer()
+  if (spinAnimation) {
+    spinAnimation.cancel()
+    spinAnimation = null
+  }
 })
 </script>
 
@@ -175,7 +222,12 @@ onBeforeUnmount(() => {
             class="flex w-full items-center gap-3 text-left"
             @click="toggleThinking"
           >
-            <svg viewBox="0 0 1024 1024" class="h-5 w-5 flex-shrink-0 text-slate-500 dark:text-slate-300" aria-hidden="true">
+            <svg
+              ref="thinkingIconRef"
+              viewBox="0 0 1024 1024"
+              class="thinking-icon h-5 w-5 flex-shrink-0 text-slate-500 dark:text-slate-300"
+              aria-hidden="true"
+            >
               <path d="M180.138667 180.138667C248.704 111.573333 378.24 121.813333 512 194.133333c133.717333-72.32 263.253333-82.56 331.818667-13.994666 68.565333 68.565333 58.325333 198.101333-13.994667 331.904 72.32 133.717333 82.56 263.253333 13.994667 331.818666-68.565333 68.565333-198.101333 58.325333-331.904-13.994666-133.717333 72.32-263.253333 82.56-331.818667 13.994666-68.565333-68.565333-58.325333-198.101333 13.994667-331.904-72.32-133.717333-82.56-263.253333-13.994667-331.818666z m596.181333 416.085333l-4.096 5.546667a844.16 844.16 0 0 1-79.189333 91.264 841.472 841.472 0 0 1-96.810667 83.285333c83.882667 36.266667 155.306667 39.210667 187.306667 7.210667 32-32 29.056-103.424-7.253334-187.306667zM391.338667 391.338667A740.608 740.608 0 0 0 293.205333 512c26.026667 40.277333 58.794667 81.365333 98.133334 120.661333 39.296 39.338667 80.384 72.106667 120.661333 98.133334a740.778667 740.778667 0 0 0 120.661333-98.133334 740.608 740.608 0 0 0 98.133334-120.661333 740.778667 740.778667 0 0 0-98.133334-120.661333A740.608 740.608 0 0 0 512 293.205333a740.778667 740.778667 0 0 0-120.661333 98.133334z m-143.658667 204.885333c-36.266667 84.096-39.168 155.349333-7.210667 187.306667 32 32 103.424 29.056 187.306667-7.253334a838.4 838.4 0 0 1-96.810667-83.242666 841.472 841.472 0 0 1-83.285333-96.810667z m348.544-348.544l5.546667 4.096c31.146667 23.296 61.781333 49.749333 91.264 79.189333a841.472 841.472 0 0 1 83.285333 96.810667c36.266667-83.882667 39.210667-155.306667 7.210667-187.306667-32-32-103.424-29.056-187.306667 7.253334zM426.666667 512a85.333333 85.333333 0 1 1 170.666666 0 85.333333 85.333333 0 0 1-170.666666 0zM240.469333 240.469333c-32 32-29.056 103.424 7.253334 187.306667a838.4 838.4 0 0 1 83.242666-96.810667 841.472 841.472 0 0 1 96.810667-83.285333c-83.882667-36.266667-155.306667-39.210667-187.306667-7.210667z" fill="currentColor" />
             </svg>
 
@@ -317,6 +369,10 @@ onBeforeUnmount(() => {
 
 .thinking-text-shimmer.is-active {
   opacity: 1;
+}
+
+.thinking-icon {
+  transform-origin: 50% 50%;
 }
 
 @keyframes thinking-text-shimmer {
