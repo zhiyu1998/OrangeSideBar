@@ -72,6 +72,20 @@ const DEFAULT_MODEL_PARAMS: ModelParameters = {
   presencePenalty: 0,
 }
 
+const BUILTIN_PROVIDER_NAMES: Record<ProviderId, string> = {
+  openai: 'OpenAI',
+  zhipu: '智谱清言',
+  anthropic: 'Anthropic',
+  deepseek: 'DeepSeek',
+  moonshot: 'Moonshot',
+  siliconflow: 'SiliconFlow',
+  openrouter: 'OpenRouter',
+  groq: 'Groq',
+  grok: 'Grok',
+  mistral: 'Mistral',
+  ollama: 'Ollama',
+}
+
 export const useSettingsStore = defineStore('settings', () => {
   // State
   const theme = ref<Theme>('system')
@@ -348,6 +362,17 @@ export const useSettingsStore = defineStore('settings', () => {
     return providerId === 'anthropic' ? 'anthropic' : 'openai'
   }
 
+  function getProviderName(providerId: ProviderId): string {
+    // Check if it's a custom provider
+    if (String(providerId).startsWith('custom_')) {
+      const custom = customProviders.value.find(p => p.id === providerId)
+      return custom?.name || providerId
+    }
+
+    // Look up built-in provider name
+    return BUILTIN_PROVIDER_NAMES[providerId] || providerId
+  }
+
   function mergeProviderModels(providerId: ProviderId): ModelInfo[] {
     const merged = new Map<string, ModelInfo>()
 
@@ -510,6 +535,7 @@ export const useSettingsStore = defineStore('settings', () => {
     resetSystemPrompt,
     getApiKey,
     getProviderApiSpec,
+    getProviderName,
     // Model cache actions
     setProviderModels,
     getProviderModels,

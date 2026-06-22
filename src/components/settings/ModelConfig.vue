@@ -83,18 +83,8 @@ const paramConfigs: ParamConfig[] = [
   },
 ]
 
-const providerNames: Record<ProviderId, string> = {
-  openai: 'OpenAI',
-  zhipu: 'Zhipu',
-  anthropic: 'Anthropic',
-  deepseek: 'DeepSeek',
-  moonshot: 'Moonshot',
-  siliconflow: 'SiliconFlow',
-  openrouter: 'OpenRouter',
-  groq: 'Groq',
-  grok: 'Grok',
-  mistral: 'Mistral',
-  ollama: 'Ollama',
+function getProviderDisplayName(providerId: ProviderId): string {
+  return settingsStore.getProviderName(providerId)
 }
 
 const selectedMaxTokensPreset = computed(() => {
@@ -216,7 +206,7 @@ onMounted(() => {
               <SelectContent>
                 <template v-if="Object.keys(modelsByProvider).length > 0">
                   <SelectGroup v-for="(models, providerId) in modelsByProvider" :key="providerId">
-                    <SelectLabel class="text-[10px] uppercase text-muted-foreground">{{ providerNames[providerId as ProviderId] || providerId }}</SelectLabel>
+                    <SelectLabel class="text-[10px] uppercase text-muted-foreground">{{ getProviderDisplayName(providerId as ProviderId) }}</SelectLabel>
                     <SelectItem
                       v-for="model in models"
                       :key="`${model.providerId}:${model.id}`"

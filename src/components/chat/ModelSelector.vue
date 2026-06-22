@@ -72,22 +72,8 @@ function selectModel(modelId: string, providerId: ProviderId) {
   settingsStore.setDefaultModel(modelId, providerId)
 }
 
-const providerNames: Record<ProviderId, string> = {
-  openai: 'OpenAI',
-  zhipu: '智谱清言',
-  anthropic: 'Anthropic',
-  deepseek: 'DeepSeek',
-  moonshot: 'Moonshot',
-  siliconflow: 'SiliconFlow',
-  openrouter: 'OpenRouter',
-  groq: 'Groq',
-  grok: 'Grok',
-  mistral: 'Mistral',
-  ollama: 'Ollama',
-}
-
 function getProviderLabel(providerId: string): string {
-  return providerNames[providerId as ProviderId] || providerId
+  return settingsStore.getProviderName(providerId as ProviderId)
 }
 
 // Group models by provider
