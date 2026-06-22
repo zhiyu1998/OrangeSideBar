@@ -32,6 +32,7 @@ import {
 import BorderBeam from '@/components/inspira/ui/BorderBeam.vue'
 import type { ProviderId, CustomProvider } from '@/types/provider'
 import { PROVIDER_ICONS } from '@/assets/icons/providerIcons'
+import { PROVIDERS } from '@/constants/providers'
 import AddProviderDialog from './AddProviderDialog.vue'
 
 const settingsStore = useSettingsStore()
@@ -84,6 +85,51 @@ const testResult = ref<Record<ProviderId, 'success' | 'error' | null>>({} as Rec
 const manualModelDrafts = ref<Record<ProviderId, { id: string; name: string }>>({} as Record<ProviderId, { id: string; name: string }>)
 
 const selectedProvider = computed(() => allProviders.value.find(p => p.id === selectedProviderId.value))
+
+// Compute the actual request URL based on current base URL and API spec
+const actualRequestUrl = computed(() => {
+  if (!selectedProvider.value) return ''
+
+  const config = settingsStore.getProviderConfig(selectedProviderId.value)
+  const baseUrl = config.baseUrl || selectedProvider.value.defaultBaseUrl
+
+  // Remove trailing slash from base URL
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '')
+
+  // Get API path from provider info
+  const providerInfo = PROVIDERS[selectedProviderId.value]
+  if (!providerInfo) {
+    // For custom providers, determine path based on API spec
+    const customProvider = settingsStore.customProviders.find(p => p.id === selectedProviderId.value)
+    if (customProvider) {
+      if (customProvider.apiSpec === 'anthropic') {
+        return `${cleanBaseUrl}/v1/messages`
+      } else if (customProvider.apiSpec === 'google') {
+        return `${cleanBaseUrl}/v1beta/models`
+      } else {
+        // OpenAI spec - check request mode
+        const mode = settingsStore.openAIRequestMode
+        return mode === 'responses'
+          ? `${cleanBaseUrl}/responses`
+          : `${cleanBaseUrl}/chat/completions`
+      }
+    }
+    return cleanBaseUrl
+  }
+
+  // For built-in providers
+  if (providerInfo.id === 'anthropic') {
+    return `${cleanBaseUrl}${providerInfo.apiPath}`
+  }
+
+  // For OpenAI-compatible providers, check request mode
+  const mode = settingsStore.openAIRequestMode
+  if (mode === 'responses') {
+    return `${cleanBaseUrl}/responses`
+  }
+
+  return `${cleanBaseUrl}${providerInfo.apiPath}`
+})
 
 function toggleShowApiKey(providerId: ProviderId) {
   showApiKey.value[providerId] = !showApiKey.value[providerId]
@@ -386,8 +432,8 @@ watch(onlyFreeModels, () => {
                   @update:model-value="(value) => updateBaseUrl(selectedProviderId, String(value))"
                 />
                 <div class="flex items-center gap-2 px-1">
-                  <span class="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.1em]">Recommended:</span>
-                  <span class="text-[10px] font-mono text-muted-foreground/60 break-all">{{ selectedProvider.defaultBaseUrl }}</span>
+                  <span class="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.1em]">Request URL:</span>
+                  <span class="text-[10px] font-mono text-muted-foreground/60 break-all">{{ actualRequestUrl }}</span>
                 </div>
               </div>
             </div>
