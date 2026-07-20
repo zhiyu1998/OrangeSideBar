@@ -1,40 +1,94 @@
 <div align="center">
-<a href="https://v2.nonebot.dev/store"><img src="https://s2.loli.net/2025/12/14/eTM6BG78Q2kRujH.png" width="180" height="180" alt="NoneBotPluginLogo"></a>
+  <img src="https://s2.loli.net/2025/12/14/eTM6BG78Q2kRujH.png" width="180" height="180" alt="OrangeSideBar logo" />
 
-# OrangeSideBar - 网页总结助手
+# OrangeSideBar
 
-_✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 OpenAI、Gemini、Anthropic 规范的 API，支持自动摘要、网页及视频翻译、多轮对话等功能✨_
+An open-source Chrome extension that adds an AI side panel for page summarization and chat.
 
+[中文说明](./README.zh-CN.md)
 </div>
 
-<img width="2425" height="1284" alt="PixPin_2026-01-19_23-01-09" src="https://github.com/user-attachments/assets/c4693ad8-de38-45ac-add3-e4461122fd76" />
+<img width="2425" height="1284" alt="OrangeSideBar screenshot" src="https://github.com/user-attachments/assets/c4693ad8-de38-45ac-add3-e4461122fd76" />
 
-## 📖 使用方式
+## Overview
 
-> 等待测试完成后会发布 Chrome 商店
+OrangeSideBar is a Manifest V3 Chrome extension built with Vue 3, TypeScript, Vite, and Pinia. It can extract content from web pages, PDFs, and video transcripts, then send that content to your preferred LLM in a side panel for summarization or multi-turn chat.
 
-1. 从 `Release` 下载最新的插件（从 `1.4.6`开始可以直接下载 `crx`文件）
+## Features
 
-> https://github.com/zhiyu1998/OrangeSideBar/releases
+- One-click page summarization
+- Multi-turn chat in the side panel
+- Content extraction for web pages, PDFs, YouTube, and Bilibili
+- Dual-panel comparison mode
+- Multiple system prompt modes for different reading workflows
+- Mermaid and KaTeX rendering in assistant messages
+- Share conversation snapshots as images
+- Support for OpenAI, Anthropic, and multiple OpenAI-compatible providers
+- Custom providers with configurable API base URLs and keys
 
-2. 进入插件页面
+## Built-in Providers
 
-> chrome://extensions/
+- OpenAI
+- Anthropic
+- Zhipu GLM
+- DeepSeek
+- Moonshot (Kimi)
+- SiliconFlow
+- OpenRouter
+- Groq
+- Grok
+- Mistral
+- Ollama
 
-3. 点击 `Load unpacked`，将解压后的文件打开
+You can also add custom providers that follow OpenAI, Anthropic, or Google-style APIs.
 
-## 🚀 功能支持
+## Development
 
-- [X] 一键自动摘要
-- [X] 一键网页翻译
-- [X] 一键 PDF 翻译
-- [X] 自定义模型/API密钥/API代理地址
-- [X] 支持常见LLM系列模型
-- [X] 支持多轮对话
-- [X] 支持图片分享
-- [ ] 支持联网搜索
-- [X] OpenAI 规范 API 支持（中转服务商、硅基流动等）
-- [X] 支持本地 PDF 读取总结
-- [X] 论文模式，为阅读论文增效
+### Requirements
 
-> PDF 读取总结需要到插件设置开启 `Allow access to file URLs`
+- Bun
+- Node.js 20.19+ recommended by Vite 7
+
+### Install
+
+```bash
+bun install
+```
+
+### Start development server
+
+```bash
+bun run dev
+```
+
+### Type-check and build
+
+```bash
+bun run build
+```
+
+## Load the Extension in Chrome
+
+1. Run `bun run build`.
+2. Open `chrome://extensions/`.
+3. Enable `Developer mode`.
+4. Click `Load unpacked`.
+5. Select the `dist/` directory.
+
+If you want to read local PDF files, enable `Allow access to file URLs` for the extension in Chrome.
+
+## Releases
+
+Download packaged builds from the GitHub releases page:
+
+https://github.com/zhiyu1998/OrangeSideBar/releases
+
+## Tech Stack
+
+- Vue 3
+- TypeScript
+- Vite + CRXJS
+- Pinia
+- Tailwind CSS v4
+- shadcn-vue / reka-ui
+
