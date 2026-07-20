@@ -1,94 +1,41 @@
 <div align="center">
-  <img src="https://s2.loli.net/2025/12/14/eTM6BG78Q2kRujH.png" width="180" height="180" alt="OrangeSideBar logo" />
+<a href="https://v2.nonebot.dev/store"><img src="https://s2.loli.net/2025/12/14/eTM6BG78Q2kRujH.png" width="180" height="180" alt="NoneBotPluginLogo"></a>
 
-# OrangeSideBar
+# OrangeSideBar - Web Summary Assistant
 
-An open-source Chrome extension that adds an AI side panel for page summarization and chat.
+_✨ OrangeSideBar is an open-source Chrome extension with an AI side panel for page summarization and chat, supporting OpenAI-compatible and Anthropic-compatible APIs, automatic summaries, page and video translation, and multi-turn conversations ✨_
 
 [中文说明](./README.zh-CN.md)
 </div>
 
-<img width="2425" height="1284" alt="OrangeSideBar screenshot" src="https://github.com/user-attachments/assets/c4693ad8-de38-45ac-add3-e4461122fd76" />
+<img width="2425" height="1284" alt="PixPin_2026-01-19_23-01-09" src="https://github.com/user-attachments/assets/c4693ad8-de38-45ac-add3-e4461122fd76" />
 
-## Overview
+## 📖 Usage
 
-OrangeSideBar is a Manifest V3 Chrome extension built with Vue 3, TypeScript, Vite, and Pinia. It can extract content from web pages, PDFs, and video transcripts, then send that content to your preferred LLM in a side panel for summarization or multi-turn chat.
+> The Chrome Web Store release will be published after testing is complete
 
-## Features
+1. Download the latest release from `Releases` (`.crx` packages are available starting from `1.4.6`)
 
-- One-click page summarization
-- Multi-turn chat in the side panel
-- Content extraction for web pages, PDFs, YouTube, and Bilibili
-- Dual-panel comparison mode
-- Multiple system prompt modes for different reading workflows
-- Mermaid and KaTeX rendering in assistant messages
-- Share conversation snapshots as images
-- Support for OpenAI, Anthropic, and multiple OpenAI-compatible providers
-- Custom providers with configurable API base URLs and keys
+> https://github.com/zhiyu1998/OrangeSideBar/releases
 
-## Built-in Providers
+2. Open the extensions page
 
-- OpenAI
-- Anthropic
-- Zhipu GLM
-- DeepSeek
-- Moonshot (Kimi)
-- SiliconFlow
-- OpenRouter
-- Groq
-- Grok
-- Mistral
-- Ollama
+> chrome://extensions/
 
-You can also add custom providers that follow OpenAI, Anthropic, or Google-style APIs.
+3. Click `Load unpacked` and select the extracted extension folder
 
-## Development
+## 🚀 Features
 
-### Requirements
+- [X] One-click automatic summarization
+- [X] One-click page translation
+- [X] One-click PDF translation
+- [X] Custom model / API key / API proxy URL
+- [X] Support for common LLM model families
+- [X] Multi-turn conversations
+- [X] Image sharing
+- [ ] Web search
+- [X] OpenAI-compatible API support (proxy providers, SiliconFlow, and more)
+- [X] Local PDF reading and summarization
+- [X] Paper mode for research reading
 
-- Bun
-- Node.js 20.19+ recommended by Vite 7
-
-### Install
-
-```bash
-bun install
-```
-
-### Start development server
-
-```bash
-bun run dev
-```
-
-### Type-check and build
-
-```bash
-bun run build
-```
-
-## Load the Extension in Chrome
-
-1. Run `bun run build`.
-2. Open `chrome://extensions/`.
-3. Enable `Developer mode`.
-4. Click `Load unpacked`.
-5. Select the `dist/` directory.
-
-If you want to read local PDF files, enable `Allow access to file URLs` for the extension in Chrome.
-
-## Releases
-
-Download packaged builds from the GitHub releases page:
-
-https://github.com/zhiyu1998/OrangeSideBar/releases
-
-## Tech Stack
-
-- Vue 3
-- TypeScript
-- Vite + CRXJS
-- Pinia
-- Tailwind CSS v4
-- shadcn-vue / reka-ui
-
+> To summarize local PDF files, enable `Allow access to file URLs` in the extension settings
