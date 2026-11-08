@@ -249,12 +249,12 @@ function removeImage(index: number) {
 
     <!-- Input Area -->
     <div class="relative group">
-      <div class="flex gap-2 items-end relative z-10">
+      <div class="relative z-10 flex items-end gap-1.5 rounded-2xl border border-border/60 bg-muted/30 px-2 py-1.5 transition-colors duration-200 group-focus-within:border-primary/50 group-focus-within:bg-background">
         <!-- Image Upload -->
         <Button
           variant="ghost"
           size="icon"
-          class="h-9 w-9 flex-shrink-0"
+          class="h-9 w-9 flex-shrink-0 rounded-xl text-muted-foreground hover:text-foreground"
           :disabled="images.length >= 4 || isStreaming"
           @click="handleImageUpload"
         >
@@ -266,7 +266,7 @@ function removeImage(index: number) {
           ref="textareaRef"
           v-model="inputText"
           :placeholder="$t('chat.inputPlaceholder')"
-          class="min-h-[40px] max-h-[200px] resize-none py-2.5 bg-transparent border-none focus-visible:ring-0 shadow-none"
+          class="min-h-[36px] max-h-[200px] flex-1 resize-none border-none bg-transparent px-2 py-2 shadow-none focus-visible:ring-0 dark:bg-transparent"
           rows="1"
           :disabled="disabled"
           @keydown="handleKeydown"
@@ -278,7 +278,7 @@ function removeImage(index: number) {
           v-if="isStreaming"
           variant="destructive"
           size="icon"
-          class="h-9 w-9 flex-shrink-0"
+          class="h-9 w-9 flex-shrink-0 rounded-full"
           @click="handleStop"
         >
           <Square class="w-4 h-4" />
@@ -286,7 +286,7 @@ function removeImage(index: number) {
         <Button
           v-else
           size="icon"
-          class="h-9 w-9 flex-shrink-0"
+          class="h-9 w-9 flex-shrink-0 rounded-full shadow-sm"
           :disabled="!canSend"
           @click="handleSend"
         >
@@ -295,9 +295,7 @@ function removeImage(index: number) {
       </div>
 
       <!-- Border Beam Effect -->
-      <div
-        class="absolute inset-0 rounded-md border bg-background pointer-events-none transition-colors group-focus-within:border-primary/50"
-      >
+      <div class="absolute inset-0 rounded-2xl pointer-events-none overflow-hidden">
         <BorderBeam
           v-if="!disabled"
           :size="150"
