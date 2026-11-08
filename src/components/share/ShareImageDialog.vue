@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Copy, Download, ExternalLink, RefreshCcw } from 'lucide-vue-next'
 import type { Message } from '@/types/chat'
+import { t } from '@/locales'
 import ConversationShareCard from './ConversationShareCard.vue'
 
 const props = defineProps<{
@@ -77,7 +78,7 @@ function canvasToPngBlob(canvas: HTMLCanvasElement) {
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => {
       if (!b) {
-        reject(new Error('Failed to encode PNG'))
+        reject(new Error(t('share.failedEncode')))
         return
       }
       resolve(b)
@@ -114,7 +115,7 @@ async function generateImage() {
     if (imageUrl.value) URL.revokeObjectURL(imageUrl.value)
     imageUrl.value = URL.createObjectURL(blob)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Failed to generate image'
+    const message = e instanceof Error ? e.message : t('share.failedGenerate')
     error.value = message
   } finally {
     isGenerating.value = false
@@ -133,7 +134,7 @@ function downloadPng() {
 async function copyPng() {
   if (!imageBlob.value) return
   if (!canUseClipboardImage.value) {
-    error.value = 'Copy image is not supported in this environment.'
+    error.value = t('share.copyUnsupported')
     return
   }
 
@@ -141,7 +142,7 @@ async function copyPng() {
     const ClipboardItemCtor = (window as any).ClipboardItem
     await navigator.clipboard.write([new ClipboardItemCtor({ 'image/png': imageBlob.value })])
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Failed to copy image'
+    const message = e instanceof Error ? e.message : t('share.copyFailed')
     error.value = message
   }
 }
@@ -171,18 +172,18 @@ onBeforeUnmount(() => {
     <DialogContent class="sm:max-w-[520px] p-0 overflow-hidden">
       <div class="p-6 space-y-4">
         <DialogHeader>
-          <DialogTitle>Share as image</DialogTitle>
+          <DialogTitle>{{ $t('share.title') }}</DialogTitle>
           <DialogDescription>
-            Generate a PNG snapshot of the current conversation.
+            {{ $t('share.description') }}
           </DialogDescription>
         </DialogHeader>
 
         <div v-if="isGenerating" class="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
-          Generating image…
+          {{ $t('share.generating') }}
         </div>
 
         <div v-else-if="imageUrl" class="rounded-xl border bg-muted/10 p-2">
-          <img :src="imageUrl" alt="Conversation image preview" class="w-full rounded-lg">
+          <img :src="imageUrl" :alt="$t('share.previewAlt')" class="w-full rounded-lg">
         </div>
 
         <div v-if="error" class="text-sm text-destructive">
@@ -193,20 +194,20 @@ onBeforeUnmount(() => {
       <DialogFooter class="p-4 border-t gap-2">
         <Button variant="ghost" class="gap-2" :disabled="isGenerating" @click="generateImage">
           <RefreshCcw class="h-4 w-4" />
-          Regenerate
+          {{ $t('common.regenerate') }}
         </Button>
         <div class="flex-1" />
         <Button variant="ghost" class="gap-2" :disabled="!imageUrl || isGenerating" @click="openInNewTab">
           <ExternalLink class="h-4 w-4" />
-          Open
+          {{ $t('common.open') }}
         </Button>
         <Button variant="ghost" class="gap-2" :disabled="!imageUrl || isGenerating" @click="downloadPng">
           <Download class="h-4 w-4" />
-          Download
+          {{ $t('common.download') }}
         </Button>
         <Button class="gap-2" :disabled="!imageUrl || isGenerating || !canUseClipboardImage" @click="copyPng">
           <Copy class="h-4 w-4" />
-          Copy
+          {{ $t('common.copy') }}
         </Button>
       </DialogFooter>
 

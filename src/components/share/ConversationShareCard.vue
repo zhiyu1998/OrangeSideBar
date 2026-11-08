@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Message } from '@/types/chat'
 import MarkdownRenderer from '@/components/chat/MarkdownRenderer.vue'
+import { getAppLocale, t } from '@/locales'
 
 interface Props {
   messages: Message[]
@@ -11,10 +13,16 @@ interface Props {
 
 defineProps<Props>()
 
+const roleLabels = computed(() => ({
+  user: t('common.you'),
+  assistant: t('common.assistant'),
+  system: t('common.system'),
+}))
+
 function formatTimestamp(ts?: number) {
   if (!ts) return ''
   try {
-    return new Date(ts).toLocaleString()
+    return new Date(ts).toLocaleString(getAppLocale())
   } catch {
     return ''
   }
@@ -29,10 +37,10 @@ function formatTimestamp(ts?: number) {
     <!-- Header -->
     <div class="px-6 pt-6 pb-4">
       <div class="flex items-start gap-3">
-        <img src="/logo_48.png" class="w-8 h-8 rounded-md" alt="OrangeSideBar">
+        <img src="/logo_48.png" class="w-8 h-8 rounded-md" :alt="$t('share.brand')">
         <div class="min-w-0 flex-1">
           <h1 class="text-lg font-semibold leading-snug break-words">
-            {{ pageTitle || 'Conversation' }}
+            {{ pageTitle || $t('share.conversationFallback') }}
           </h1>
           <p v-if="pageUrl" class="mt-1 text-xs" style="color: rgba(31, 41, 55, 0.75);">
             {{ pageUrl }}
@@ -62,7 +70,7 @@ function formatTimestamp(ts?: number) {
 
           <div class="min-w-0 flex-1">
             <div class="text-[11px] font-medium" style="color: rgba(31, 41, 55, 0.7);">
-              {{ m.role === 'user' ? 'You' : m.role === 'assistant' ? 'Assistant' : 'System' }}
+              {{ m.role === 'user' ? roleLabels.user : m.role === 'assistant' ? roleLabels.assistant : roleLabels.system }}
               <span v-if="m.timestamp" class="ml-2" style="color: rgba(31, 41, 55, 0.5);">
                 {{ formatTimestamp(m.timestamp) }}
               </span>
@@ -81,7 +89,7 @@ function formatTimestamp(ts?: number) {
                   :src="img"
                   class="max-w-[220px] max-h-[160px] rounded-md border object-cover"
                   style="border-color: rgba(17, 24, 39, 0.12);"
-                  alt="Uploaded image"
+                  :alt="$t('common.uploadedImage')"
                 >
               </div>
 
@@ -113,9 +121,9 @@ function formatTimestamp(ts?: number) {
       style="border-color: rgba(17, 24, 39, 0.10); color: rgba(31, 41, 55, 0.7);"
     >
       <div class="flex items-center gap-2">
-        <span class="font-semibold" style="color: rgba(31, 41, 55, 0.85);">OrangeSideBar</span>
+        <span class="font-semibold" style="color: rgba(31, 41, 55, 0.85);">{{ $t('share.brand') }}</span>
         <span style="color: rgba(31, 41, 55, 0.45);">·</span>
-        <span>Share as image</span>
+        <span>{{ $t('share.footer') }}</span>
       </div>
       <span v-if="generatedAt">
         {{ formatTimestamp(generatedAt) }}

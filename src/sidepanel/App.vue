@@ -11,6 +11,8 @@ import { MessageList, InputGroup } from '@/components/chat'
 import ShareImageDialog from '@/components/share/ShareImageDialog.vue'
 import { PROVIDER_ICONS } from '@/assets/icons/providerIcons'
 import { detectProvider } from '@/constants/providers'
+import { useLocaleSync } from '@/locales/sync'
+import { t } from '@/locales'
 import {
   SUMMARY_PROMPT,
   LINUX_DO_SUMMARY_PROMPT,
@@ -20,6 +22,9 @@ import {
 
 const settingsStore = useSettingsStore()
 const chatStore = useChatStore()
+
+// Keep vue-i18n locale in sync with the language setting
+useLocaleSync()
 const { sendMessage, stopStreaming, clearConversation, regenerate, isStreaming, messages } = useChat()
 const {
   extractCurrentTab,
@@ -50,7 +55,7 @@ interface PendingSidePanelAction {
 }
 
 const sortedSessions = computed(() => chatStore.sortedSessions)
-const assistantLabel = computed(() => chatStore.currentSession?.modelId || settingsStore.defaultModel || 'Assistant')
+const assistantLabel = computed(() => chatStore.currentSession?.modelId || settingsStore.defaultModel || t('common.assistant'))
 const assistantAvatarSvg = computed(() => {
   const modelId = chatStore.currentSession?.modelId || settingsStore.defaultModel
   const preferredProviderId = chatStore.currentSession?.modelProviderId || settingsStore.defaultModelProviderId
@@ -162,30 +167,36 @@ async function handleSummary() {
       : await extractCurrentTabText()
   if (content) {
     const truncatedContent = content.length > 15000
-      ? content.slice(0, 15000) + '\n\n[Content truncated...]'
+      ? content.slice(0, 15000) + '\n\n' + t('sidepanel.contentTruncated')
       : content
     const prompt = isLinuxDoThread ? LINUX_DO_SUMMARY_PROMPT : SUMMARY_PROMPT
     const llmContent = `${prompt}${truncatedContent}`
     const displayContent = isLinuxDoThread
-      ? `请帮我总结当前 Linux.do 帖子 [已提取 ${truncatedContent.length.toLocaleString()} 字符]`
-      : `请帮我总结当前网页内容 [已提取 ${truncatedContent.length.toLocaleString()} 字符]`
+      ? t('sidepanel.summaryLinuxDoDisplay', { n: truncatedContent.length.toLocaleString() })
+      : t('sidepanel.summaryWebDisplay', { n: truncatedContent.length.toLocaleString() })
     sendMessage(displayContent, undefined, llmContent)
   } else {
-    sendMessage(`无法提取页面内容${contentError.value ? `：${contentError.value}` : '，请确保页面已完全加载。'}`)
+    sendMessage(t('sidepanel.extractPageFailed', { detail: extractFailedDetail() }))
   }
+}
+
+function extractFailedDetail(): string {
+  return contentError.value
+    ? t('sidepanel.failedReason', { error: contentError.value })
+    : t('sidepanel.extractPageFailedHint')
 }
 
 async function handleTranslate() {
   const content = await extractCurrentTabText()
   if (content) {
     const truncatedContent = content.length > 15000
-      ? content.slice(0, 15000) + '\n\n[Content truncated...]'
+      ? content.slice(0, 15000) + '\n\n' + t('sidepanel.contentTruncated')
       : content
     const llmContent = `请将以下内容翻译成中文：\n\n${truncatedContent}`
-    const displayContent = `请将当前网页内容翻译成中文 [已提取 ${truncatedContent.length.toLocaleString()} 字符]`
+    const displayContent = t('sidepanel.translateDisplay', { n: truncatedContent.length.toLocaleString() })
     sendMessage(displayContent, undefined, llmContent)
   } else {
-    sendMessage(`无法提取页面内容${contentError.value ? `：${contentError.value}` : '，请确保页面已完全加载。'}`)
+    sendMessage(t('sidepanel.extractPageFailed', { detail: extractFailedDetail() }))
   }
 }
 
@@ -193,13 +204,16 @@ async function handlePdf() {
   const content = await extractCurrentTabText()
   if (content) {
     const truncatedContent = content.length > 20000
-      ? content.slice(0, 20000) + '\n\n[Content truncated...]'
+      ? content.slice(0, 20000) + '\n\n' + t('sidepanel.contentTruncated')
       : content
     const llmContent = `请帮我分析以下 PDF 文档内容：\n\n${truncatedContent}`
-    const displayContent = `请帮我分析 PDF 文档 [已提取 ${truncatedContent.length.toLocaleString()} 字符]`
+    const displayContent = t('sidepanel.pdfDisplay', { n: truncatedContent.length.toLocaleString() })
     sendMessage(displayContent, undefined, llmContent)
   } else {
-    sendMessage(`无法提取 PDF 内容${contentError.value ? `：${contentError.value}` : '，请确保 PDF 已加载。'}`)
+    const detail = contentError.value
+      ? t('sidepanel.failedReason', { error: contentError.value })
+      : t('sidepanel.extractPdfFailedHint')
+    sendMessage(t('sidepanel.extractPdfFailed', { detail }))
   }
 }
 
@@ -207,7 +221,7 @@ async function handleSubtitles() {
   const subtitles = await extractSubtitles('text_with_timestamps')
   if (subtitles) {
     const truncatedSubtitles = subtitles.length > 20000
-      ? subtitles.slice(0, 20000) + '\n\n[Subtitles truncated...]'
+      ? subtitles.slice(0, 20000) + '\n\n' + t('sidepanel.subtitlesTruncated')
       : subtitles
 
     const url = await getCurrentUrl()
@@ -218,10 +232,16 @@ async function handleSubtitles() {
 
     const llmContent = `${subtitlePrompt}${truncatedSubtitles}`
     const platformName = isBilibili ? 'Bilibili' : 'YouTube'
-    const displayContent = `请帮我总结 ${platformName}视频字幕 [已提取 ${truncatedSubtitles.length.toLocaleString()} 字符]`
+    const displayContent = t('sidepanel.subtitlesDisplay', {
+      platform: platformName,
+      n: truncatedSubtitles.length.toLocaleString(),
+    })
     sendMessage(displayContent, undefined, llmContent)
   } else {
-    sendMessage(`无法提取字幕${contentError.value ? `：${contentError.value}` : '，请确保视频正在播放或已开启字幕。'}`)
+    const detail = contentError.value
+      ? t('sidepanel.failedReason', { error: contentError.value })
+      : t('sidepanel.extractSubtitlesFailedHint')
+    sendMessage(t('sidepanel.extractSubtitlesFailed', { detail }))
   }
 }
 
@@ -229,12 +249,12 @@ async function handleMarkdown() {
   const markdown = await extractCurrentTabMarkdown()
   if (markdown) {
     await copyToClipboard(markdown)
-    showActionNotice('success', `Markdown copied to clipboard · ${markdown.length.toLocaleString()} chars`)
+    showActionNotice('success', t('sidepanel.markdownCopied', { n: markdown.length.toLocaleString() }))
   } else {
-    showActionNotice(
-      'error',
-      `Failed to extract Markdown${contentError.value ? `: ${contentError.value}` : '. Please refresh the page and try again.'}`
-    )
+    const detail = contentError.value
+      ? t('sidepanel.failedReason', { error: contentError.value })
+      : t('sidepanel.markdownFailedHint')
+    showActionNotice('error', t('sidepanel.markdownFailed', { detail }))
   }
 }
 
@@ -253,9 +273,9 @@ async function handleSend(content: string, images?: string[], selectedTabs?: Sel
 
     if (selectedTabs[0].type === 'all') {
       const allTabs = await chrome.tabs.query({ currentWindow: true })
-      tabsToProcess = allTabs.map(t => ({ id: t.id, title: t.title || 'Untitled' }))
+      tabsToProcess = allTabs.map(t2 => ({ id: t2.id, title: t2.title || t('common.untitled') }))
     } else {
-      tabsToProcess = selectedTabs.map(t => ({ id: t.tabId, title: t.tabTitle || 'Untitled' }))
+      tabsToProcess = selectedTabs.map(t2 => ({ id: t2.tabId, title: t2.tabTitle || t('common.untitled') }))
     }
 
     // Extract content from each tab sequentially
@@ -270,21 +290,21 @@ async function handleSend(content: string, images?: string[], selectedTabs?: Sel
           })
           
           if (text) {
-            const truncated = text.length > 8000 
-              ? text.slice(0, 8000) + '... [Tab content truncated]' 
+            const truncated = text.length > 8000
+              ? text.slice(0, 8000) + '... ' + t('sidepanel.tabContentTruncated')
               : text
-            combinedContent += `\n\n--- Content from Tab: ${tab.title} ---\n${truncated}\n`
+            combinedContent += `\n\n${t('sidepanel.contentFromTab', { title: tab.title })}\n${truncated}\n`
           }
         } catch (err) {
           console.warn(`Could not extract content from tab ${tab.id}:`, err)
-          combinedContent += `\n\n--- Could not extract content from Tab: ${tab.title} ---\n`
+          combinedContent += `\n\n${t('sidepanel.contentFromTabFailed', { title: tab.title })}\n`
         }
       }
     }
 
     if (combinedContent) {
-      llmContent = `${content}\n\n[Context from ${tabsToProcess.length} tabs]:\n${combinedContent}`
-      const displayContent = `${content} [Context: ${tabsToProcess.length} tabs]`
+      llmContent = `${content}\n\n${t('sidepanel.contextFromTabs', { n: tabsToProcess.length })}\n${combinedContent}`
+      const displayContent = `${content} ${t('sidepanel.contextBadge', { n: tabsToProcess.length })}`
       
       // Send the message with full context
       await sendMessage(displayContent, images, llmContent)
@@ -296,8 +316,8 @@ async function handleSend(content: string, images?: string[], selectedTabs?: Sel
       if (lastUserMsg && lastUserMsg.llmContent) {
         const { useChatStore } = await import('@/stores/chat')
         const chatStore = useChatStore()
-        chatStore.updateMessage(lastUserMsg.id, { 
-          llmContent: `${content}\n\n[Tab context used once]` 
+        chatStore.updateMessage(lastUserMsg.id, {
+          llmContent: `${content}\n\n${t('sidepanel.tabContextUsedOnce')}`
         })
       }
       return
@@ -375,7 +395,7 @@ async function consumePendingSidePanelAction(action: PendingSidePanelAction | nu
     stopStreaming()
   }
 
-  chatStore.createSession(settingsStore.defaultModel, 'Page Summary', settingsStore.defaultModelProviderId)
+  chatStore.createSession(settingsStore.defaultModel, t('sidepanel.pageSummary'), settingsStore.defaultModelProviderId)
   await handleSummary()
 }
 
@@ -391,10 +411,10 @@ function handlePendingActionStorageChange(
 async function handleShareConversation() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    sharePageTitle.value = tab?.title || 'Untitled'
+    sharePageTitle.value = tab?.title || t('common.untitled')
     sharePageUrl.value = tab?.url || ''
   } catch {
-    sharePageTitle.value = 'Untitled'
+    sharePageTitle.value = t('common.untitled')
     sharePageUrl.value = ''
   } finally {
     shareOpen.value = true
@@ -452,7 +472,7 @@ onBeforeUnmount(() => {
     <button
       v-if="historyOpen"
       class="absolute inset-x-0 bottom-0 top-[4rem] z-20 bg-transparent"
-      aria-label="Close history"
+      :aria-label="$t('layout.closeHistory')"
       @click="historyOpen = false"
     />
 

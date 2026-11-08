@@ -1,4 +1,5 @@
 import path from 'node:path'
+import vueI18n from '@intlify/unplugin-vue-i18n/vite'
 import { crx } from '@crxjs/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
@@ -25,6 +26,9 @@ export default defineConfig({
   plugins: [
     vue(),
     tailwindcss(),
+    vueI18n({
+      include: [path.resolve(__dirname, 'src/locales/*.json')],
+    }),
     crx({ manifest }),
     zip({ outDir: 'release', outFileName: `crx-${name}-${version}.zip` }),
   ],

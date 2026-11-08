@@ -234,7 +234,7 @@ function removeImage(index: number) {
         <img
           :src="img"
           class="w-16 h-16 rounded-md border object-cover"
-          alt="Upload preview"
+          :alt="$t('chat.uploadPreview')"
         >
         <Button
           variant="destructive"
@@ -265,7 +265,7 @@ function removeImage(index: number) {
         <Textarea
           ref="textareaRef"
           v-model="inputText"
-          placeholder="Ask anything... (Enter to send, Shift+Enter for new line)"
+          :placeholder="$t('chat.inputPlaceholder')"
           class="min-h-[40px] max-h-[200px] resize-none py-2.5 bg-transparent border-none focus-visible:ring-0 shadow-none"
           rows="1"
           :disabled="disabled"

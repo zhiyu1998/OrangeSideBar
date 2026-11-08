@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import type { ModelInfo } from '@/lib/llm/types'
 import type { ProviderId } from '@/types/provider'
+import { t } from '@/locales'
 
 const settingsStore = useSettingsStore()
 
@@ -34,8 +35,8 @@ const modelsByProvider = ref<Record<string, ModelInfo[]>>({})
 
 interface ParamConfig {
   key: keyof typeof params.value
-  label: string
-  description: string
+  labelKey: string
+  descriptionKey: string
   min: number
   max: number
   step: number
@@ -45,40 +46,40 @@ interface ParamConfig {
 interface MaxTokensPreset {
   label: string
   value: number
-  description: string
+  descriptionKey: string
 }
 
 const maxTokensPresets: MaxTokensPreset[] = [
-  { label: '1k', value: 1000, description: 'about 750 English words or 500-600 Chinese characters' },
-  { label: '2k', value: 2000, description: 'about 1,500 English words' },
-  { label: '4k', value: 4000, description: 'about 3,000 English words' },
-  { label: '8k', value: 8000, description: 'about 6,000 English words' },
-  { label: '16k', value: 16000, description: 'about 12,000 English words' },
-  { label: '32k', value: 32000, description: 'about 24,000 English words' },
-  { label: '64k', value: 64000, description: 'about 48,000 English words' },
-  { label: '128k', value: 128000, description: 'about 96,000 English words' },
-  { label: '200k', value: 200000, description: 'about 150,000 English words' },
-  { label: '1M', value: 1000000, description: 'about 750,000 English words' },
-  { label: '10M', value: 10000000, description: 'about 7.5 million English words' },
+  { label: '1k', value: 1000, descriptionKey: 'settings.modelConfig.preset1k' },
+  { label: '2k', value: 2000, descriptionKey: 'settings.modelConfig.preset2k' },
+  { label: '4k', value: 4000, descriptionKey: 'settings.modelConfig.preset4k' },
+  { label: '8k', value: 8000, descriptionKey: 'settings.modelConfig.preset8k' },
+  { label: '16k', value: 16000, descriptionKey: 'settings.modelConfig.preset16k' },
+  { label: '32k', value: 32000, descriptionKey: 'settings.modelConfig.preset32k' },
+  { label: '64k', value: 64000, descriptionKey: 'settings.modelConfig.preset64k' },
+  { label: '128k', value: 128000, descriptionKey: 'settings.modelConfig.preset128k' },
+  { label: '200k', value: 200000, descriptionKey: 'settings.modelConfig.preset200k' },
+  { label: '1M', value: 1000000, descriptionKey: 'settings.modelConfig.preset1M' },
+  { label: '10M', value: 10000000, descriptionKey: 'settings.modelConfig.preset10M' },
 ]
 
 const paramConfigs: ParamConfig[] = [
   {
     key: 'temperature',
-    label: 'Temperature',
-    description: 'Controls randomness. Lower values are more deterministic.',
+    labelKey: 'settings.modelConfig.temperature',
+    descriptionKey: 'settings.modelConfig.temperatureDesc',
     min: 0, max: 2, step: 0.1, useSlider: true,
   },
   {
     key: 'topP',
-    label: 'Top P',
-    description: 'Alternative to temperature, called nucleus sampling.',
+    labelKey: 'settings.modelConfig.topP',
+    descriptionKey: 'settings.modelConfig.topPDesc',
     min: 0, max: 1, step: 0.05, useSlider: true,
   },
   {
     key: 'maxTokens',
-    label: 'Max Tokens',
-    description: 'Maximum response length.',
+    labelKey: 'settings.modelConfig.maxTokens',
+    descriptionKey: 'settings.modelConfig.maxTokensDesc',
     min: 1, max: MAX_TOKENS_LIMIT, step: 1, useSlider: false,
   },
 ]
@@ -93,7 +94,7 @@ const selectedMaxTokensPreset = computed(() => {
 })
 
 const selectedMaxTokensLabel = computed(() => {
-  return maxTokensPresets.find((preset) => preset.value === params.value.maxTokens)?.label || 'Custom'
+  return maxTokensPresets.find((preset) => preset.value === params.value.maxTokens)?.label || t('settings.modelConfig.customLabel')
 })
 
 function updateParam(key: keyof typeof params.value, value: number) {
@@ -175,9 +176,9 @@ onMounted(() => {
     <!-- Default Model Section -->
     <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
       <div class="space-y-2">
-        <h3 class="text-sm font-bold tracking-tight">Active Engine</h3>
+        <h3 class="text-sm font-bold tracking-tight">{{ $t('settings.modelConfig.activeEngine') }}</h3>
         <p class="text-xs text-muted-foreground leading-relaxed">
-          Select the primary model that will power your general conversations. You can always override this in specific function settings.
+          {{ $t('settings.modelConfig.activeEngineDesc') }}
         </p>
         <Button
           variant="outline"
@@ -187,21 +188,21 @@ onMounted(() => {
           @click="fetchModels"
         >
           <RefreshCw :class="['mr-1 h-3 w-3', isLoadingModels ? 'animate-spin' : '']" />
-          Update Model List
+          {{ $t('settings.modelConfig.updateModelList') }}
         </Button>
       </div>
-      
+
       <div class="lg:col-span-2">
         <div class="bg-muted/20 border rounded-2xl p-6 flex flex-col gap-6">
           <div class="space-y-4">
             <div class="flex items-center justify-between">
-              <Label class="text-sm font-semibold">Global Default Model</Label>
-              <Badge variant="secondary" class="text-[10px]">Auto-Synced</Badge>
+              <Label class="text-sm font-semibold">{{ $t('settings.modelConfig.globalDefaultModel') }}</Label>
+              <Badge variant="secondary" class="text-[10px]">{{ $t('settings.modelConfig.autoSynced') }}</Badge>
             </div>
-            
+
             <Select :model-value="defaultModelSelectionValue" @update:model-value="selectModel">
               <SelectTrigger class="h-12 bg-background/50 border-muted">
-                <SelectValue placeholder="Select a model" />
+                <SelectValue :placeholder="$t('settings.modelConfig.selectModel')" />
               </SelectTrigger>
               <SelectContent>
                 <template v-if="Object.keys(modelsByProvider).length > 0">
@@ -214,20 +215,20 @@ onMounted(() => {
                     >
                       <div class="flex items-center gap-2">
                         <span class="text-sm">{{ model.name }}</span>
-                        <Badge v-if="model.supportsVision" variant="secondary" class="text-[9px] h-4 px-1">Vision</Badge>
-                        <Badge v-if="model.isThinkingModel" variant="outline" class="text-[9px] h-4 px-1">Thinking</Badge>
+                        <Badge v-if="model.supportsVision" variant="secondary" class="text-[9px] h-4 px-1">{{ $t('common.vision') }}</Badge>
+                        <Badge v-if="model.isThinkingModel" variant="outline" class="text-[9px] h-4 px-1">{{ $t('common.thinking') }}</Badge>
                       </div>
                     </SelectItem>
                   </SelectGroup>
                 </template>
                 <template v-else>
                   <div class="px-3 py-2 text-xs text-muted-foreground">
-                    No models available. Add a manual model or refresh an enabled provider.
+                    {{ $t('settings.modelConfig.noModels') }}
                   </div>
                 </template>
               </SelectContent>
             </Select>
-            <p class="text-[10px] text-muted-foreground">Don't see your models? Check your API Providers configuration.</p>
+            <p class="text-[10px] text-muted-foreground">{{ $t('settings.modelConfig.checkProvidersHint') }}</p>
           </div>
         </div>
       </div>
@@ -238,14 +239,14 @@ onMounted(() => {
       <div class="space-y-4">
         <div class="flex items-center gap-2">
           <Sliders class="h-4 w-4 text-orange-500" />
-          <h3 class="text-sm font-bold tracking-tight">Fine-tuning</h3>
+          <h3 class="text-sm font-bold tracking-tight">{{ $t('settings.modelConfig.fineTuning') }}</h3>
         </div>
         <p class="text-xs text-muted-foreground leading-relaxed">
-          Adjust how the model generates text. These parameters affect creativity, length, and coherence.
+          {{ $t('settings.modelConfig.fineTuningDesc') }}
         </p>
         <Button variant="ghost" size="sm" class="h-7 text-[10px] text-muted-foreground" @click="resetParams">
           <RotateCcw class="mr-1 h-3 w-3" />
-          Reset to Factory Defaults
+          {{ $t('settings.modelConfig.resetDefaults') }}
         </Button>
       </div>
       
@@ -258,8 +259,8 @@ onMounted(() => {
           >
             <div class="flex items-center justify-between">
               <div class="space-y-0.5">
-                <Label :for="config.key" class="text-sm font-semibold">{{ config.label }}</Label>
-                <p class="text-[10px] text-muted-foreground pr-4">{{ config.description }}</p>
+                <Label :for="config.key" class="text-sm font-semibold">{{ $t(config.labelKey) }}</Label>
+                <p class="text-[10px] text-muted-foreground pr-4">{{ $t(config.descriptionKey) }}</p>
               </div>
               <div class="bg-background/80 border rounded px-2 py-1 min-w-[3rem] text-center">
                 <span class="text-xs font-bold tabular-nums">{{ params[config.key] }}</span>
@@ -291,15 +292,15 @@ onMounted(() => {
                 />
                 <Select :model-value="selectedMaxTokensPreset" @update:model-value="selectMaxTokensPreset">
                   <SelectTrigger class="h-10 w-full min-w-0 bg-background/50 border-muted">
-                    <SelectValue as-child placeholder="Quick pick">
+                    <SelectValue as-child :placeholder="$t('settings.modelConfig.quickPickPlaceholder')">
                       <span class="truncate">{{ selectedMaxTokensLabel }}</span>
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent position="item-aligned" class="max-h-80 w-80 max-w-[calc(100vw-2rem)]">
                     <SelectGroup>
-                      <SelectLabel class="text-[10px] uppercase text-muted-foreground">Quick Pick</SelectLabel>
+                      <SelectLabel class="text-[10px] uppercase text-muted-foreground">{{ $t('settings.modelConfig.quickPick') }}</SelectLabel>
                       <SelectItem value="custom" disabled>
-                        Custom value
+                        {{ $t('settings.modelConfig.customValue') }}
                       </SelectItem>
                       <SelectItem
                         v-for="preset in maxTokensPresets"
@@ -309,9 +310,9 @@ onMounted(() => {
                         <div class="flex flex-col gap-0.5 py-1">
                           <div class="flex items-center gap-2">
                             <span class="text-sm font-semibold tabular-nums">{{ preset.label }}</span>
-                            <span class="text-[10px] text-muted-foreground tabular-nums">{{ preset.value.toLocaleString() }} tokens</span>
+                            <span class="text-[10px] text-muted-foreground tabular-nums">{{ $t('settings.modelConfig.tokens', { n: preset.value.toLocaleString() }) }}</span>
                           </div>
-                          <span class="text-[10px] text-muted-foreground">{{ preset.description }}</span>
+                          <span class="text-[10px] text-muted-foreground">{{ $t(preset.descriptionKey) }}</span>
                         </div>
                       </SelectItem>
                     </SelectGroup>

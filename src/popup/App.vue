@@ -9,10 +9,10 @@ import { Button } from '@/components/ui/button'
       <h1 class="text-lg font-semibold">OrangeSideBar</h1>
     </div>
     <p class="text-sm text-muted-foreground mb-4">
-      AI-powered sidebar for webpage summarization
+      {{ $t('popup.subtitle') }}
     </p>
     <Button class="w-full" @click="openSidePanel">
-      Open Side Panel
+      {{ $t('popup.openSidePanel') }}
     </Button>
   </div>
 </template>

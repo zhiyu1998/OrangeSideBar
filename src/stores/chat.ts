@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Message, ChatSession, DualColumnState, LayoutMode } from '@/types/chat'
 import type { ProviderId } from '@/types/provider'
+import { t } from '@/locales'
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
@@ -37,7 +38,7 @@ export const useChatStore = defineStore('chat', () => {
   function deriveSessionTitleFromMessage(content: string): string {
     const normalized = content.replace(/\s+/g, ' ').trim()
     if (!normalized) {
-      return `New Chat ${sessions.value.length + 1}`
+      return t('chatStore.newChat', { n: sessions.value.length + 1 })
     }
 
     return normalized.length > 32 ? `${normalized.slice(0, 32)}...` : normalized
@@ -47,7 +48,7 @@ export const useChatStore = defineStore('chat', () => {
   function createSession(modelId: string, title?: string, modelProviderId?: ProviderId | null): ChatSession {
     const session: ChatSession = {
       id: generateId(),
-      title: title || `New Chat ${sessions.value.length + 1}`,
+      title: title || t('chatStore.newChat', { n: sessions.value.length + 1 }),
       modelId,
       modelProviderId: modelProviderId ?? null,
       messages: [],

@@ -7,6 +7,11 @@ import type { ModelParameters, ProviderId, ProviderConfig, ReasoningEffort, Open
 
 export type Theme = 'light' | 'dark' | 'system'
 
+export type Language = 'auto' | 'en' | 'zh-CN'
+
+/** Resolved locale code used by vue-i18n / Intl APIs. */
+export type Locale = 'en' | 'zh-CN'
+
 export type PromptMode = 'default' | 'paper' | 'learning'
 
 export interface SystemPrompts {
@@ -17,6 +22,7 @@ export interface SystemPrompts {
 
 export interface UserSettings {
   theme: Theme
+  language: Language
   layoutMode: LayoutMode
   defaultModel: string
   defaultModelProviderId?: ProviderId | null

@@ -5,7 +5,8 @@ export default defineManifest({
   manifest_version: 3,
   name: pkg.name,
   version: pkg.version,
-  description: '✨大橘侧边栏：一个开源的网页侧边栏对话总结工具，支持 OpenAI、Gemini、Anthropic 规范的 API，支持自动摘要、网页及视频翻译、多轮对话等功能✨',
+  default_locale: 'en',
+  description: '__MSG_manifestDescription__',
   icons: {
     16: 'public/logo_16.png',
     32: 'public/logo_32.png',
@@ -16,6 +17,7 @@ export default defineManifest({
     default_icon: {
       48: 'public/logo_48.png',
     },
+    default_title: '__MSG_actionTitle__',
     // No popup - clicking icon opens side panel via background.js
   },
   content_scripts: [

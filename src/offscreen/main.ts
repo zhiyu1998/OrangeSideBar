@@ -1,4 +1,8 @@
 import Defuddle, { createMarkdownContent } from 'defuddle/full'
+import { hostT, initHostLocale } from '@/locales/host'
+
+// Load the user's language preference for localized error messages
+void initHostLocale()
 
 function quoteFrontmatter(value: string) {
   return JSON.stringify(value)
@@ -41,7 +45,7 @@ function htmlToMarkdown(html: string, url: string): string | null {
     return null
   }
 
-  const title = result.title || doc.title || 'Untitled'
+  const title = result.title || doc.title || hostT('common.untitled')
   const header = [
     formatFrontmatter(result, url),
     `# ${title}`,
@@ -69,7 +73,7 @@ function copyText(text: string) {
   try {
     const copied = document.execCommand('copy')
     if (!copied) {
-      throw new Error('Clipboard copy command was rejected')
+      throw new Error(hostT('errors.clipboardRejected'))
     }
   } finally {
     document.body.removeChild(textarea)
@@ -90,7 +94,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       text = htmlToMarkdown(html, url) || ''
 
       if (!text) {
-        throw new Error('No content was extracted')
+        throw new Error(hostT('errors.noContentExtracted'))
       }
 
       copyText(text)

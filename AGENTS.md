@@ -128,7 +128,32 @@ Pinia stores：
 - `src/components/settings/AddProviderDialog.vue` — 添加自定义提供商
 - `src/components/settings/ModelConfig.vue` — 从已启用提供商获取模型，选择全局 `defaultModel`
 - `src/components/settings/PromptEditor.vue` — 编辑系统提示词（Default/Paper/Learning）
-- `src/components/settings/GeneralSettings.vue` — 通用设置
+- `src/components/settings/GeneralSettings.vue` — 通用设置（含界面语言切换）
+
+### 国际化（i18n）
+
+界面支持中文/英文双语，基于 **vue-i18n**（Composition API，`legacy: false`）+ `@intlify/unplugin-vue-i18n`（构建期预编译消息，配置在 `vite.config.ts`）。
+
+消息目录：
+
+- `src/locales/en.json` / `src/locales/zh-CN.json` — 全部 UI 文案，按命名空间组织（`common` / `layout` / `features` / `sidepanel` / `chat` / `share` / `settings` / `popup` / `background` / `content` / `errors` / `chatStore`）。两份文件 key 必须完全对齐。
+- `src/locales/index.ts` — vue-i18n 单例与 `resolveLocale()`；导出 `t()` 供 stores/composables（非组件 setup 上下文）使用，组件模板用全局 `$t`。
+- `src/locales/host.ts` — 非 Vue 上下文（background SW / content script / offscreen）的 `hostT()`：从 `chrome.storage.local` 的 `orangesidebar_settings` 读取用户语言设置，fallback 到 `chrome.i18n.getUILanguage()`。
+- `src/locales/sync.ts` — `useLocaleSync()`，在 `src/sidepanel/App.vue` 与 `src/settings/App.vue` 根组件调用，把 settings store 的 `resolvedLanguage` 同步到 vue-i18n 与 `<html lang>`。
+
+语言设置：
+
+- `Language` 类型（`'auto' | 'en' | 'zh-CN'`）定义在 `src/types/settings.ts`；状态存于 settings store 的 `language` ref（默认 `'auto'`，跟随浏览器语言），经 chromeStorage 插件自动持久化与跨上下文同步，设置入口在 `GeneralSettings.vue`。
+- background 通过 `chrome.storage.onChanged` 监听语言变化并重建右键菜单标题。
+
+Manifest 层使用 Chrome 原生 `_locales`（跟随浏览器语言）：`manifest.config.ts` 声明 `default_locale: 'en'`，`description` / `action.default_title` 使用 `__MSG_...__` 占位，消息文件在 `public/_locales/{en,zh_CN}/messages.json`（构建时拷贝到 `dist/_locales/`）。
+
+约定：
+
+- 新增文案必须同时写入 `en.json` 与 `zh-CN.json`；遗漏的 key 会回退英文（`fallbackLocale`）。
+- LLM 提示词（`src/constants/prompts.ts` 与功能区任务提示词的 LLM 部分）**不做** i18n，保持原语言；聊天气泡中展示用的提示词文本走 i18n。
+- 消息里的字面量 `@`、`|` 需按 vue-i18n 语法转义为 `{'@'}`、`{'|'}`。
+- 日期格式化跟随当前 locale（如 `SessionHistoryPanel` / `ConversationShareCard` 使用 `getAppLocale()`）。
 
 ### UI 体系
 

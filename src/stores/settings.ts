@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import type { Theme, PromptMode, SystemPrompts } from '@/types/settings'
+import type { Theme, Language, Locale, PromptMode, SystemPrompts } from '@/types/settings'
 import type { ApiSpec, ProviderId, ProviderConfig, ModelParameters, CustomProvider, ReasoningEffort, OpenAIRequestMode } from '@/types/provider'
 import type { ModelInfo } from '@/lib/llm/types'
 import { DEFAULT_SYSTEM_PROMPT, PAPER_SYSTEM_PROMPT, LEARNING_MODE_PROMPT } from '@/constants/prompts'
+import { resolveLocale } from '@/locales'
 
 // Default provider configurations
 const DEFAULT_PROVIDERS: Record<ProviderId, ProviderConfig> = {
@@ -89,6 +90,7 @@ const BUILTIN_PROVIDER_NAMES: Record<ProviderId, string> = {
 export const useSettingsStore = defineStore('settings', () => {
   // State
   const theme = ref<Theme>('system')
+  const language = ref<Language>('auto')
   const defaultModel = ref<string>('gpt-4o-mini')
   const defaultModelProviderId = ref<ProviderId | null>('openai')
   const currentPromptMode = ref<PromptMode>('default')
@@ -130,6 +132,8 @@ export const useSettingsStore = defineStore('settings', () => {
     return theme.value === 'dark'
   })
 
+  const resolvedLanguage = computed<Locale>(() => resolveLocale(language.value))
+
   // Get all cached models across all providers
   const allCachedModels = computed(() => {
     const all: ModelInfo[] = []
@@ -167,6 +171,10 @@ export const useSettingsStore = defineStore('settings', () => {
     } else {
       root.classList.remove('dark')
     }
+  }
+
+  function setLanguage(value: Language) {
+    language.value = value
   }
 
   function setDefaultModel(modelId: string, providerId?: ProviderId | null) {
@@ -502,6 +510,7 @@ export const useSettingsStore = defineStore('settings', () => {
   return {
     // State
     theme,
+    language,
     defaultModel,
     defaultModelProviderId,
     currentPromptMode,
@@ -518,10 +527,12 @@ export const useSettingsStore = defineStore('settings', () => {
     enabledProviders,
     currentSystemPrompt,
     isDarkMode,
+    resolvedLanguage,
     allCachedModels,
     // Actions
     setTheme,
     applyTheme,
+    setLanguage,
     setDefaultModel,
     setPromptMode,
     updateModelParameters,

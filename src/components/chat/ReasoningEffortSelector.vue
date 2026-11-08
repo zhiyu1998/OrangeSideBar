@@ -11,25 +11,41 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useSettingsStore } from '@/stores/settings'
 import { llmFactory } from '@/lib/llm/factory'
+import { t } from '@/locales'
 import type { ReasoningEffort } from '@/types/provider'
 
 interface EffortOption {
   value: ReasoningEffort
-  label: string
-  description: string
 }
 
 const settingsStore = useSettingsStore()
 
 const effortOptions: EffortOption[] = [
-  { value: 'auto', label: 'Auto', description: 'Only send when needed by the selected model/provider mapping.' },
-  { value: 'none', label: 'None', description: 'Fastest response, minimal internal reasoning.' },
-  { value: 'minimal', label: 'Minimal', description: 'Very light reasoning.' },
-  { value: 'low', label: 'Low', description: 'Lower latency and cost.' },
-  { value: 'medium', label: 'Medium', description: 'Balanced quality and speed.' },
-  { value: 'high', label: 'High', description: 'More deliberate reasoning.' },
-  { value: 'xhigh', label: 'XHigh', description: 'Deepest reasoning, highest latency.' },
+  { value: 'auto' },
+  { value: 'none' },
+  { value: 'minimal' },
+  { value: 'low' },
+  { value: 'medium' },
+  { value: 'high' },
+  { value: 'xhigh' },
 ]
+
+function effortLabel(value: ReasoningEffort): string {
+  return `chat.reasoning.${value}`
+}
+
+function effortDescription(value: ReasoningEffort): string {
+  const descKeys: Record<ReasoningEffort, string> = {
+    auto: 'chat.reasoning.descAuto',
+    none: 'chat.reasoning.descNone',
+    minimal: 'chat.reasoning.descMinimal',
+    low: 'chat.reasoning.descLow',
+    medium: 'chat.reasoning.descMedium',
+    high: 'chat.reasoning.descHigh',
+    xhigh: 'chat.reasoning.descXhigh',
+  }
+  return descKeys[value]
+}
 
 const currentModel = computed(() => settingsStore.defaultModel)
 const currentProviderId = computed(() => settingsStore.defaultModelProviderId)
@@ -62,7 +78,9 @@ const supportsReasoningControl = computed(() => {
 })
 
 const currentLabel = computed(() => {
-  return effortOptions.find((option) => option.value === currentEffort.value)?.label || 'Auto'
+  return effortOptions.find((option) => option.value === currentEffort.value)
+    ? t(effortLabel(currentEffort.value))
+    : t(effortLabel('auto'))
 })
 
 const isThinkingDisabled = computed(() => currentEffort.value === 'none')
@@ -79,7 +97,7 @@ function selectEffort(value: ReasoningEffort) {
         variant="outline"
         size="sm"
         class="h-7 w-9 px-0"
-        :title="supportsReasoningControl ? `Reasoning: ${currentLabel}` : 'Reasoning control unavailable for current model'"
+        :title="supportsReasoningControl ? $t('chat.reasoning.title', { label: currentLabel }) : $t('chat.reasoning.unavailable')"
       >
         <svg
           v-if="isThinkingDisabled"
@@ -103,7 +121,7 @@ function selectEffort(value: ReasoningEffort) {
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" class="w-[260px]">
-      <DropdownMenuLabel class="text-xs">Reasoning Effort</DropdownMenuLabel>
+      <DropdownMenuLabel class="text-xs">{{ $t('chat.reasoning.label') }}</DropdownMenuLabel>
       <DropdownMenuItem
         v-for="option in effortOptions"
         :key="option.value"
@@ -112,8 +130,8 @@ function selectEffort(value: ReasoningEffort) {
         @select="selectEffort(option.value)"
       >
         <div class="min-w-0">
-          <div class="text-sm">{{ option.label }}</div>
-          <div class="text-[10px] text-muted-foreground leading-relaxed">{{ option.description }}</div>
+          <div class="text-sm">{{ $t(effortLabel(option.value)) }}</div>
+          <div class="text-[10px] text-muted-foreground leading-relaxed">{{ $t(effortDescription(option.value)) }}</div>
         </div>
         <Check
           v-if="option.value === currentEffort"

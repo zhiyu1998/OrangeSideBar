@@ -1,4 +1,5 @@
 import { ref, onMounted } from 'vue'
+import { t } from '@/locales'
 
 export interface TabInfo {
     id: number
@@ -21,12 +22,12 @@ export function useTabs() {
                 .filter(tab => tab.id !== undefined && tab.title !== undefined)
                 .map(tab => ({
                     id: tab.id!,
-                    title: tab.title || 'Untitled',
+                    title: tab.title || t('common.untitled'),
                     url: tab.url || '',
                     favIconUrl: tab.favIconUrl
                 }))
         } catch (err) {
-            error.value = err instanceof Error ? err.message : 'Failed to fetch tabs'
+            error.value = err instanceof Error ? err.message : t('errors.failedFetchTabs')
             console.error('[useTabs] Error:', err)
         } finally {
             isLoading.value = false

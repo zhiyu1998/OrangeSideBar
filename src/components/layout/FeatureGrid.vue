@@ -23,18 +23,27 @@ const emit = defineEmits<{
 interface Feature {
   key: FeatureKey
   icon: string
-  label: string
-  shortLabel: string
-  description: string
 }
 
 const features: Feature[] = [
-  { key: 'summary', icon: '/summary.webp', label: 'Summary', shortLabel: 'Summ', description: 'Summarize the current page content' },
-  { key: 'translate', icon: '/trans.webp', label: 'Translate', shortLabel: 'Trans', description: 'Translate content to Chinese' },
-  { key: 'pdf', icon: '/fileAnalyze.webp', label: 'PDF', shortLabel: 'PDF', description: 'Analyze PDF documents' },
-  { key: 'subtitles', icon: '/subtitles.webp', label: 'Subtitles', shortLabel: 'Subs', description: 'Extract and summarize video subtitles' },
-  { key: 'markdown', icon: '/markdown.webp', label: 'Markdown', shortLabel: 'MD', description: 'Convert the current page to Markdown' },
+  { key: 'summary', icon: '/summary.webp' },
+  { key: 'translate', icon: '/trans.webp' },
+  { key: 'pdf', icon: '/fileAnalyze.webp' },
+  { key: 'subtitles', icon: '/subtitles.webp' },
+  { key: 'markdown', icon: '/markdown.webp' },
 ]
+
+function featureLabel(key: FeatureKey): string {
+  return `features.${key}.label`
+}
+
+function featureShortLabel(key: FeatureKey): string {
+  return `features.${key}.shortLabel`
+}
+
+function featureDescription(key: FeatureKey): string {
+  return `features.${key}.description`
+}
 
 function handleFeatureClick(key: FeatureKey) {
   if (key === 'summary') emit('summary')
@@ -59,9 +68,9 @@ function handleFeatureClick(key: FeatureKey) {
         >
           <div class="relative">
             <Loader2 v-if="loading" class="h-4 w-4 animate-spin text-primary" />
-            <img v-else :src="feature.icon" :alt="feature.label" class="h-5 w-5 object-contain group-hover:scale-110 transition-transform" />
+            <img v-else :src="feature.icon" :alt="$t(featureLabel(feature.key))" class="h-5 w-5 object-contain group-hover:scale-110 transition-transform" />
           </div>
-          <span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 group-hover:text-foreground">{{ feature.shortLabel }}</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 group-hover:text-foreground">{{ $t(featureShortLabel(feature.key)) }}</span>
         </button>
       </div>
 
@@ -78,11 +87,11 @@ function handleFeatureClick(key: FeatureKey) {
           >
             <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
               <Loader2 v-if="loading" class="h-6 w-6 animate-spin text-primary" />
-              <img v-else :src="feature.icon" :alt="feature.label" class="h-6 w-6 object-contain" />
+              <img v-else :src="feature.icon" :alt="$t(featureLabel(feature.key))" class="h-6 w-6 object-contain" />
             </div>
             <div class="flex-1 text-left">
-              <h4 class="text-sm font-bold text-foreground tracking-tight">{{ feature.label }}</h4>
-              <p class="text-[10px] text-muted-foreground line-clamp-1 uppercase tracking-tight opacity-70">{{ feature.description }}</p>
+              <h4 class="text-sm font-bold text-foreground tracking-tight">{{ $t(featureLabel(feature.key)) }}</h4>
+              <p class="text-[10px] text-muted-foreground line-clamp-1 uppercase tracking-tight opacity-70">{{ $t(featureDescription(feature.key)) }}</p>
             </div>
           </div>
         </GlareCard>

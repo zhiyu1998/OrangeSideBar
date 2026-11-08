@@ -9,6 +9,7 @@ import type { ChatMessage, ContentPart, StreamChunk } from '@/lib/llm/types'
 import { useChatStore } from '@/stores/chat'
 import { useSettingsStore } from '@/stores/settings'
 import { getSystemPrompt } from '@/constants/prompts'
+import { t } from '@/locales'
 import type { ProviderId } from '@/types/provider'
 
 export interface UseChatOptions {
@@ -198,14 +199,14 @@ export function useChat(options: UseChatOptions = {}) {
     if (!provider) {
       const disabledProvider = getDisabledProviderForModel(modelId.value, selectedProviderId)
       error.value = disabledProvider
-        ? `Provider "${disabledProvider}" is disabled. Please enable it in settings or choose another model.`
-        : `No provider found for model: ${modelId.value}`
+        ? t('errors.providerDisabled', { name: settingsStore.getProviderName(disabledProvider) })
+        : t('errors.noProviderForModel', { model: modelId.value })
       chatStore.updateMessage(assistantMessageId, { error: error.value })
       return
     }
 
     if (!provider.isConfigured()) {
-      error.value = `Provider "${provider.providerName}" is not configured. Please set API key in settings.`
+      error.value = t('errors.providerNotConfigured', { name: provider.providerName })
       chatStore.updateMessage(assistantMessageId, { error: error.value })
       return
     }
@@ -252,8 +253,8 @@ export function useChat(options: UseChatOptions = {}) {
           chatStore.updateMessage(assistantMessageId, { error: err.message })
         }
       } else {
-        error.value = 'Unknown error occurred'
-        chatStore.updateMessage(assistantMessageId, { error: 'Unknown error occurred' })
+        error.value = t('errors.unknownErrorOccurred')
+        chatStore.updateMessage(assistantMessageId, { error: t('errors.unknownErrorOccurred') })
       }
     } finally {
       // Always reset streaming state

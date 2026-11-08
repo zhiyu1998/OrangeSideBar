@@ -1,0 +1,8 @@
+{
+  "manifestDescription": {
+    "message": "✨OrangeSideBar: An open-source AI sidebar for webpage summarization and chat. Supports OpenAI, Gemini and Anthropic compatible APIs, auto summary, webpage & video translation, multi-turn chat and more✨"
+  },
+  "actionTitle": {
+    "message": "OrangeSideBar"
+  }
+}

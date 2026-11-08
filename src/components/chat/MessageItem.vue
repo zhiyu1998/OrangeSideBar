@@ -202,7 +202,7 @@ onBeforeUnmount(() => {
     <div class="flex-1 min-w-0 space-y-2">
       <!-- Role Label -->
       <div class="text-xs font-medium text-muted-foreground">
-        {{ isUser ? 'You' : role === 'assistant' ? (assistantLabel || 'Assistant') : 'System' }}
+        {{ isUser ? $t('common.you') : role === 'assistant' ? (assistantLabel || $t('common.assistant')) : $t('common.system') }}
       </div>
 
       <!-- Images (for user messages) -->
@@ -212,7 +212,7 @@ onBeforeUnmount(() => {
           :key="idx"
           :src="img"
           class="max-w-[200px] max-h-[150px] rounded-md border object-cover"
-          alt="Uploaded image"
+          :alt="$t('common.uploadedImage')"
         >
       </div>
 
@@ -239,12 +239,12 @@ onBeforeUnmount(() => {
                     <span
                       class="thinking-text-base"
                       :class="{ 'is-hidden': isThinkingStreaming }"
-                    >深度思考</span>
+                    >{{ $t('chat.thinking') }}</span>
                     <span
                       class="thinking-text-shimmer"
                       :class="{ 'is-active': isThinkingStreaming }"
                       aria-hidden="true"
-                    >深度思考</span>
+                    >{{ $t('chat.thinking') }}</span>
                   </span>
                 </span>
                 <span class="text-sm text-slate-400 dark:text-slate-400">({{ formattedThinkingDuration }})</span>
@@ -295,7 +295,7 @@ onBeforeUnmount(() => {
       <!-- Streaming Indicator -->
       <div v-if="isStreaming && !isUser" class="flex items-center gap-1 text-xs text-muted-foreground">
         <span class="inline-block w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
-        Generating...
+        {{ $t('chat.generating') }}
       </div>
 
       <!-- Actions (shown on hover for assistant messages) -->
@@ -311,7 +311,7 @@ onBeforeUnmount(() => {
           @click="copyContent"
         >
           <component :is="copied ? Check : Copy" class="w-3 h-3 mr-1" />
-          {{ copied ? 'Copied!' : 'Copy' }}
+          {{ copied ? $t('common.copied') : $t('common.copy') }}
         </Button>
         <Button
           variant="ghost"
@@ -320,7 +320,7 @@ onBeforeUnmount(() => {
           @click="regenerate"
         >
           <RotateCcw class="w-3 h-3 mr-1" />
-          Regenerate
+          {{ $t('common.regenerate') }}
         </Button>
       </div>
     </div>

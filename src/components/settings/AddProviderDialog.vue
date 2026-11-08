@@ -35,9 +35,9 @@ const customIconSvg = ref('')
 const baseUrl = ref('https://api.openai.com/v1')
 
 const specs = [
-  { id: 'openai', name: 'OpenAI', description: 'Compatible with standard /chat/completions', icon: Globe, enabled: true },
-  { id: 'anthropic', name: 'Claude', description: 'Anthropic Claude Messages API', icon: Bot, enabled: true },
-  { id: 'google', name: 'Google', description: 'Google Gemini API', icon: Cpu, enabled: false },
+  { id: 'openai', name: 'OpenAI', descriptionKey: 'settings.addProvider.specOpenaiDesc', icon: Globe, enabled: true },
+  { id: 'anthropic', name: 'Claude', descriptionKey: 'settings.addProvider.specAnthropicDesc', icon: Bot, enabled: true },
+  { id: 'google', name: 'Google', descriptionKey: 'settings.addProvider.specGoogleDesc', icon: Cpu, enabled: false },
 ]
 
 function handleSelectSpec(specId: ApiSpec) {
@@ -85,15 +85,15 @@ function handleSave() {
       <div class="p-8 pb-4">
         <div class="flex items-center gap-2 mb-2">
           <Badge variant="outline" class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-primary/5 border-primary/20 text-primary">
-            Step {{ step }} of 2
+            {{ $t('settings.addProvider.stepOf', { step }) }}
           </Badge>
           <div class="flex-1 h-[1px] bg-muted/30" />
         </div>
         <h2 class="text-2xl font-black tracking-tighter text-foreground">
-          {{ step === 1 ? 'Select API Specification' : 'Provider Details' }}
+          {{ step === 1 ? $t('settings.addProvider.selectSpec') : $t('settings.addProvider.providerDetails') }}
         </h2>
         <p class="text-sm text-muted-foreground mt-1">
-          {{ step === 1 ? 'Choose the protocol your provider uses' : 'Customize your new endpoint connection' }}
+          {{ step === 1 ? $t('settings.addProvider.selectSpecDesc') : $t('settings.addProvider.providerDetailsDesc') }}
         </p>
       </div>
 
@@ -118,9 +118,9 @@ function handleSave() {
               <div class="flex flex-col">
                 <span class="text-base font-bold tracking-tight text-foreground flex items-center gap-2">
                   {{ spec.name }}
-                  <Badge v-if="!spec.enabled" variant="secondary" class="text-[8px] h-4 uppercase">Coming Soon</Badge>
+                  <Badge v-if="!spec.enabled" variant="secondary" class="text-[8px] h-4 uppercase">{{ $t('settings.addProvider.comingSoon') }}</Badge>
                 </span>
-                <span class="text-xs text-muted-foreground/60 leading-tight mt-0.5">{{ spec.description }}</span>
+                <span class="text-xs text-muted-foreground/60 leading-tight mt-0.5">{{ $t(spec.descriptionKey) }}</span>
               </div>
             </div>
             <ChevronRight v-if="spec.enabled" class="h-5 w-5 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition-all" />
@@ -131,11 +131,11 @@ function handleSave() {
         <div v-else class="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
           <div class="space-y-4">
             <div class="space-y-2">
-              <Label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Provider Name</Label>
+              <Label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">{{ $t('settings.addProvider.providerName') }}</Label>
               <div class="relative group">
-                <Input 
+                <Input
                   v-model="providerName"
-                  placeholder="e.g., My Private API"
+                  :placeholder="$t('settings.addProvider.providerNamePlaceholder')"
                   class="h-14 bg-background border-muted/30 group-focus-within:border-primary/50 group-focus-within:ring-4 group-focus-within:ring-primary/10 transition-all rounded-2xl text-base pr-12"
                 />
                 <Hash class="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30 pointer-events-none" />
@@ -143,21 +143,21 @@ function handleSave() {
             </div>
 
             <div class="space-y-2">
-              <Label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Custom SVG Icon (Optional)</Label>
+              <Label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">{{ $t('settings.addProvider.customIcon') }}</Label>
               <div class="relative group">
-                <Input 
+                <Input
                   v-model="customIconSvg"
-                  placeholder="Paste SVG code from iconfont.cn..."
+                  :placeholder="$t('settings.addProvider.customIconPlaceholder')"
                   class="h-14 bg-background border-muted/30 group-focus-within:border-primary/50 group-focus-within:ring-4 group-focus-within:ring-primary/10 transition-all rounded-2xl text-xs font-mono pr-12"
                 />
                 <Cpu v-if="!customIconSvg" class="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30 pointer-events-none" />
                 <div v-else v-html="customIconSvg" class="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center opacity-50 provider-logo pointer-events-none" />
               </div>
-              <p class="text-[9px] text-muted-foreground/40 px-1 italic">Leave empty to use default engine icon</p>
+              <p class="text-[9px] text-muted-foreground/40 px-1 italic">{{ $t('settings.addProvider.customIconHint') }}</p>
             </div>
 
             <div class="space-y-2">
-              <Label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Base Endpoint</Label>
+              <Label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">{{ $t('settings.addProvider.baseEndpoint') }}</Label>
               <div class="relative group">
                 <Input 
                   v-model="baseUrl"
@@ -173,29 +173,29 @@ function handleSave() {
 
       <!-- Footer -->
       <DialogFooter class="p-8 bg-muted/10 border-t border-muted/30 gap-3">
-        <Button 
+        <Button
           v-if="step === 2"
-          variant="ghost" 
+          variant="ghost"
           class="h-12 rounded-2xl font-bold transition-all px-6 hover:bg-background/50"
           @click="step = 1"
         >
-          Back
+          {{ $t('common.back') }}
         </Button>
         <div class="flex-1" />
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           class="h-12 rounded-2xl font-bold transition-all px-6 text-muted-foreground"
           @click="emit('update:open', false); reset()"
         >
-          Cancel
+          {{ $t('common.cancel') }}
         </Button>
-        <Button 
+        <Button
           v-if="step === 2"
           class="h-12 px-8 rounded-2xl font-black text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
           :disabled="!providerName"
           @click="handleSave"
         >
-          Create Provider
+          {{ $t('settings.addProvider.create') }}
         </Button>
       </DialogFooter>
     </DialogContent>

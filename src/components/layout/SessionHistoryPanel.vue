@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { Clock3, MessageSquarePlus, Trash2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { getAppLocale } from '@/locales'
 import type { ChatSession } from '@/types/chat'
 
 interface Props {
@@ -22,7 +23,7 @@ const emit = defineEmits<{
 const sessions = computed(() => props.sessions)
 
 function formatTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleString('zh-CN', {
+  return new Date(timestamp).toLocaleString(getAppLocale(), {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
@@ -36,7 +37,7 @@ function formatTime(timestamp: number): string {
     <div class="flex items-center justify-between px-4 py-2.5 border-b bg-muted/20">
       <div class="flex items-center gap-2">
         <Clock3 class="h-4 w-4 text-muted-foreground" />
-        <span class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">History</span>
+        <span class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{{ $t('layout.history') }}</span>
       </div>
       <Button
         variant="ghost"
@@ -46,13 +47,13 @@ function formatTime(timestamp: number): string {
         @click="emit('create')"
       >
         <MessageSquarePlus class="h-3.5 w-3.5" />
-        New
+        {{ $t('layout.new') }}
       </Button>
     </div>
 
     <ScrollArea class="h-[min(18rem,calc(100vh-8rem))]">
       <div v-if="sessions.length === 0" class="px-4 py-6 text-center text-xs text-muted-foreground">
-        No conversations yet
+        {{ $t('layout.noConversations') }}
       </div>
 
       <div v-else class="p-2 space-y-1.5">
@@ -72,7 +73,7 @@ function formatTime(timestamp: number): string {
           >
             <div class="truncate text-sm font-medium">{{ session.title }}</div>
             <div class="mt-0.5 truncate text-[10px] text-muted-foreground">
-              {{ formatTime(session.updatedAt) }} - {{ session.messages.length }} msgs
+              {{ formatTime(session.updatedAt) }} - {{ $t('layout.msgs', { n: session.messages.length }) }}
             </div>
           </button>
 

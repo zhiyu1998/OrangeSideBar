@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useTabs } from '@/composables/useTabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { t } from '@/locales'
 import { Layers, Globe, Search } from 'lucide-vue-next'
 
 const { tabs, isLoading, refreshTabs } = useTabs()
@@ -10,16 +11,18 @@ const activeIndex = ref(0)
 
 const filteredTabs = computed(() => {
   const query = searchQuery.value.toLowerCase()
-  const baseTabs = tabs.value.filter(tab => 
-    tab.title.toLowerCase().includes(query) || 
+  const baseTabs = tabs.value.filter(tab =>
+    tab.title.toLowerCase().includes(query) ||
     tab.url.toLowerCase().includes(query)
   )
   return baseTabs
 })
 
+const allOpenTabsTitle = computed(() => t('chat.tabs.allOpenTabs'))
+
 const allOptions = computed(() => {
   return [
-    { type: 'all', tabTitle: 'All Open Tabs' },
+    { type: 'all', tabTitle: allOpenTabsTitle.value },
     ...filteredTabs.value.map(tab => ({ type: 'single', tabId: tab.id, tabTitle: tab.title }))
   ]
 })
@@ -41,7 +44,7 @@ const emit = defineEmits<{
 }>()
 
 function selectAll() {
-  emit('select', { type: 'all', tabTitle: 'All Open Tabs' })
+  emit('select', { type: 'all', tabTitle: allOpenTabsTitle.value })
 }
 
 function selectTab(tab: any) {
@@ -84,16 +87,16 @@ defineExpose({
   <div class="absolute bottom-full mb-2 left-0 w-80 bg-background/95 backdrop-blur-xl border rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
     <div class="p-3 border-b space-y-3">
       <div class="flex items-center justify-between px-1">
-        <h4 class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Select Context</h4>
-        <button @click="refreshTabs" class="text-[10px] text-primary hover:underline font-bold">Refresh</button>
+        <h4 class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{{ $t('chat.tabs.selectContext') }}</h4>
+        <button @click="refreshTabs" class="text-[10px] text-primary hover:underline font-bold">{{ $t('chat.tabs.refresh') }}</button>
       </div>
-      
+
       <div class="relative group">
         <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-        <input 
+        <input
           v-model="searchQuery"
-          type="text" 
-          placeholder="Search tabs..." 
+          type="text"
+          :placeholder="$t('chat.tabs.searchPlaceholder')"
           class="w-full h-8 pl-8 pr-3 bg-muted/50 border-none rounded-lg text-xs focus:ring-1 focus:ring-primary/30 outline-none"
           autofocus
         />
@@ -115,8 +118,8 @@ defineExpose({
             <Layers class="w-4 h-4" />
           </div>
           <div class="flex flex-col">
-            <span class="text-xs font-bold" :class="activeIndex === 0 ? 'text-primary' : ''">Summarize All Tabs</span>
-            <span class="text-[9px] text-muted-foreground uppercase tracking-tighter">{{ tabs.length }} Tabs currently open</span>
+            <span class="text-xs font-bold" :class="activeIndex === 0 ? 'text-primary' : ''">{{ $t('chat.tabs.summarizeAll') }}</span>
+            <span class="text-[9px] text-muted-foreground uppercase tracking-tighter">{{ $t('chat.tabs.tabsOpen', { n: tabs.length }) }}</span>
           </div>
         </button>
 
@@ -125,7 +128,7 @@ defineExpose({
         <!-- Single Tab List -->
         <div v-if="isLoading" class="p-8 flex flex-col items-center gap-2 opacity-50">
           <div class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span class="text-[10px] font-bold uppercase tracking-widest">Loading Tabs</span>
+          <span class="text-[10px] font-bold uppercase tracking-widest">{{ $t('chat.tabs.loadingTabs') }}</span>
         </div>
 
         <template v-else>
@@ -152,14 +155,14 @@ defineExpose({
           </button>
 
           <div v-if="filteredTabs.length === 0" class="p-8 text-center text-[10px] text-muted-foreground uppercase tracking-widest italic">
-            No tabs match your search
+            {{ $t('chat.tabs.noMatch') }}
           </div>
         </template>
       </div>
     </ScrollArea>
-    
+
     <div class="p-2 bg-muted/20 border-t flex justify-center">
-      <p class="text-[9px] text-muted-foreground font-medium italic">Tip: Use @ to reference specific tabs</p>
+      <p class="text-[9px] text-muted-foreground font-medium italic">{{ $t('chat.tabs.tip') }}</p>
     </div>
   </div>
 </template>

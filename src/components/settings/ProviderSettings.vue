@@ -299,17 +299,17 @@ watch(onlyFreeModels, () => {
     <!-- Master: Provider List -->
     <div class="w-60 flex flex-col gap-3">
       <div class="flex items-center justify-between px-2">
-        <h4 class="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">Providers</h4>
+        <h4 class="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">{{ $t('settings.providers.title') }}</h4>
         <Badge variant="outline" class="text-[9px] opacity-50 px-1.5 h-4">{{ allProviders.length }}</Badge>
       </div>
 
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         class="w-full justify-start gap-2 border-dashed h-10 rounded-xl bg-muted/5 group hover:border-primary/50 transition-all px-3"
         @click="isAddDialogOpen = true"
       >
         <Plus class="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-        <span class="text-xs font-semibold">Add Custom</span>
+        <span class="text-xs font-semibold">{{ $t('settings.providers.addCustom') }}</span>
       </Button>
       
       <ScrollArea class="flex-1 -mr-4 pr-4">
@@ -380,11 +380,11 @@ watch(onlyFreeModels, () => {
                 />
                 <h3 v-else class="text-xl font-black tracking-tighter text-foreground">{{ selectedProvider.name }}</h3>
               </div>
-              <p class="text-[9px] font-medium text-muted-foreground/60 mt-0.5 uppercase tracking-[0.15em]">Configuration</p>
+              <p class="text-[9px] font-medium text-muted-foreground/60 mt-0.5 uppercase tracking-[0.15em]">{{ $t('settings.providers.configuration') }}</p>
             </div>
           </div>
           <a href="#" class="text-[10px] font-bold text-primary flex items-center gap-1.5 hover:underline decoration-1 underline-offset-4 bg-primary/5 px-3 py-1.5 rounded-full border border-primary/20 transition-colors hover:bg-primary/10">
-            Guide <ExternalLink class="h-3 w-3" />
+            {{ $t('settings.providers.guide') }} <ExternalLink class="h-3 w-3" />
           </a>
         </div>
 
@@ -394,15 +394,15 @@ watch(onlyFreeModels, () => {
             <div class="space-y-6">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <Label class="text-sm font-extrabold tracking-tight">API Key Authentication</Label>
+                  <Label class="text-sm font-extrabold tracking-tight">{{ $t('settings.providers.apiKeyAuth') }}</Label>
                 </div>
-                <Badge variant="outline" class="text-[9px] uppercase tracking-widest bg-muted/20 px-2 py-0.5 border-muted/50">Encrypted Storage</Badge>
+                <Badge variant="outline" class="text-[9px] uppercase tracking-widest bg-muted/20 px-2 py-0.5 border-muted/50">{{ $t('settings.providers.encryptedStorage') }}</Badge>
               </div>
               <div class="relative group">
                 <Input
                   :type="showApiKey[selectedProviderId] ? 'text' : 'password'"
                   :model-value="settingsStore.getProviderConfig(selectedProviderId).apiKey as string"
-                  placeholder="Paste your private key..."
+                  :placeholder="$t('settings.providers.apiKeyPlaceholder')"
                   class="pr-14 h-15 bg-background border-muted/30 group-focus-within:border-primary/50 group-focus-within:ring-4 group-focus-within:ring-primary/10 transition-all rounded-2xl text-base shadow-sm"
                   @update:model-value="(value) => updateApiKey(selectedProviderId, String(value))"
                 />
@@ -422,7 +422,7 @@ watch(onlyFreeModels, () => {
             <div class="space-y-6">
               <div class="flex items-center gap-2">
                 <div class="w-1.5 h-1.5 rounded-full bg-primary" />
-                <Label class="text-sm font-extrabold tracking-tight">Base API Endpoint</Label>
+                <Label class="text-sm font-extrabold tracking-tight">{{ $t('settings.providers.baseEndpoint') }}</Label>
               </div>
               <div class="space-y-2">
                 <Input
@@ -432,7 +432,7 @@ watch(onlyFreeModels, () => {
                   @update:model-value="(value) => updateBaseUrl(selectedProviderId, String(value))"
                 />
                 <div class="flex items-center gap-2 px-1">
-                  <span class="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.1em]">Request URL:</span>
+                  <span class="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.1em]">{{ $t('settings.providers.requestUrl') }}</span>
                   <span class="text-[10px] font-mono text-muted-foreground/60 break-all">{{ actualRequestUrl }}</span>
                 </div>
               </div>
@@ -452,9 +452,9 @@ watch(onlyFreeModels, () => {
                 <Loader2 v-if="testingProvider === selectedProviderId" class="h-5 w-5 animate-spin" />
                 <Check v-else-if="testResult[selectedProviderId] === 'success'" class="h-5 w-5 text-white" />
                 <X v-else-if="testResult[selectedProviderId] === 'error'" class="h-5 w-5 text-white" />
-                <span v-if="testResult[selectedProviderId] === 'success'">Configuration Verified</span>
-                <span v-else-if="testResult[selectedProviderId] === 'error'">Connection Error</span>
-                <span v-else>Initialize Connection Test</span>
+                <span v-if="testResult[selectedProviderId] === 'success'">{{ $t('settings.providers.testSuccess') }}</span>
+                <span v-else-if="testResult[selectedProviderId] === 'error'">{{ $t('settings.providers.testError') }}</span>
+                <span v-else>{{ $t('settings.providers.testIdle') }}</span>
               </Button>
             </div>
 
@@ -463,22 +463,22 @@ watch(onlyFreeModels, () => {
               <div class="rounded-2xl border border-dashed border-primary/20 bg-primary/[0.03] p-4 space-y-4">
                 <div class="flex items-center gap-2">
                   <CirclePlus class="h-4 w-4 text-primary/80" />
-                  <Label class="text-sm font-semibold">Manual Models</Label>
+                  <Label class="text-sm font-semibold">{{ $t('settings.providers.manualModels') }}</Label>
                   <Badge variant="outline" class="text-[9px] uppercase tracking-widest bg-background/70 px-2 py-0.5">
-                    Optional
+                    {{ $t('common.optional') }}
                   </Badge>
                 </div>
 
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                   <Input
                     :model-value="getManualModelDraft(selectedProviderId).id"
-                    placeholder="Model ID"
+                    :placeholder="$t('settings.providers.modelIdPlaceholder')"
                     class="h-11 bg-background/80"
                     @update:model-value="(value) => updateManualModelId(selectedProviderId, String(value))"
                   />
                   <Input
                     :model-value="getManualModelDraft(selectedProviderId).name"
-                    placeholder="Model Name"
+                    :placeholder="$t('settings.providers.modelNamePlaceholder')"
                     class="h-11 bg-background/80"
                     @update:model-value="(value) => updateManualModelName(selectedProviderId, String(value))"
                   />
@@ -488,12 +488,12 @@ watch(onlyFreeModels, () => {
                     :disabled="!getManualModelDraft(selectedProviderId).id.trim()"
                     @click="addManualModel(selectedProviderId)"
                   >
-                    Add
+                    {{ $t('common.add') }}
                   </Button>
                 </div>
 
                 <p class="text-[10px] text-muted-foreground">
-                  Entering a Model ID will auto-fill the Model Name. You can edit the name before adding.
+                  {{ $t('settings.providers.manualHint') }}
                 </p>
 
                 <div v-if="currentManualModels.length > 0" class="space-y-2">
@@ -525,7 +525,7 @@ watch(onlyFreeModels, () => {
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
                     <BarChart3 class="w-4 h-4 text-primary/80" />
-                    <Label class="text-sm font-extrabold tracking-tight uppercase tracking-wider opacity-60">Engine Inventory</Label>
+                    <Label class="text-sm font-extrabold tracking-tight uppercase tracking-wider opacity-60">{{ $t('settings.providers.engineInventory') }}</Label>
                   </div>
                   <Button variant="ghost" size="sm" class="h-9 w-9 rounded-xl hover:bg-primary/5 transition-colors" @click="refreshModels(selectedProviderId)">
                     <RefreshCw :class="['h-4 w-4 text-primary', settingsStore.isProviderLoadingModels(selectedProviderId) ? 'animate-spin' : '']" />
@@ -539,13 +539,13 @@ watch(onlyFreeModels, () => {
                       :model-value="onlyFreeModels"
                       @update:model-value="setOnlyFreeModels"
                     />
-                    <span class="text-xs font-semibold text-muted-foreground">只看免费模型</span>
-                    <Badge variant="outline" class="text-[9px] uppercase tracking-widest bg-muted/20 px-2 py-0.5 border-muted/50">Zhipu</Badge>
+                    <span class="text-xs font-semibold text-muted-foreground">{{ $t('settings.providers.onlyFreeModels') }}</span>
+                    <Badge variant="outline" class="text-[9px] uppercase tracking-widest bg-muted/20 px-2 py-0.5 border-muted/50">{{ $t('settings.providers.zhipuBadge') }}</Badge>
                   </div>
                 </div>
 
                 <div v-if="filteredProviderModels.length === 0" class="py-6 text-center text-xs text-muted-foreground/60">
-                  没有匹配的模型（可关闭“只看免费模型”）
+                  {{ $t('settings.providers.noMatchingModels') }}
                 </div>
 
                 <div v-else class="grid grid-cols-2 gap-3">
@@ -565,7 +565,7 @@ watch(onlyFreeModels, () => {
                           variant="outline"
                           class="text-[9px] uppercase tracking-widest bg-muted/10 px-1.5 py-0.5 border-muted/40"
                         >
-                          FREE
+                          {{ $t('common.free') }}
                         </Badge>
                       </div>
                     </div>
@@ -598,18 +598,18 @@ watch(onlyFreeModels, () => {
                     </PaginationContent>
                   </Pagination>
                 </div>
-                <p class="text-[10px] text-center text-muted-foreground/30 font-medium uppercase tracking-[0.2em] pt-4">Synchronized with remote endpoint</p>
+                <p class="text-[10px] text-center text-muted-foreground/30 font-medium uppercase tracking-[0.2em] pt-4">{{ $t('settings.providers.synced') }}</p>
               </div>
             </transition>
 
             <!-- Delete Custom Provider -->
             <div v-if="selectedProvider.isCustom" class="pt-8 border-t border-muted/30 flex justify-end items-center gap-4 group/del">
-              <Button 
+              <Button
                 variant="destructive"
                 class="rounded-xl px-6 h-11 font-bold shadow-lg shadow-destructive/20 hover:scale-105 transition-all"
                 @click="handleDeleteCustomProvider(selectedProviderId)"
               >
-                Delete Provider
+                {{ $t('settings.providers.deleteProvider') }}
               </Button>
             </div>
           </div>
@@ -617,7 +617,7 @@ watch(onlyFreeModels, () => {
       </template>
       <div v-else class="flex-1 flex flex-col items-center justify-center text-muted-foreground/20 italic font-medium tracking-tighter">
         <Cpu class="w-32 h-32 mb-4 stroke-1 opacity-10" />
-        Select a provider to begin
+        {{ $t('settings.providers.selectToBegin') }}
       </div>
     </div>
   </div>

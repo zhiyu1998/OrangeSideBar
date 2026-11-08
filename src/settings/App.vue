@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watchEffect } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { 
-  Settings, 
-  Cpu, 
-  MessageSquare, 
-  BarChart3, 
+import {
+  Settings,
+  Cpu,
+  MessageSquare,
+  BarChart3,
 } from 'lucide-vue-next'
 import GeneralSettings from '@/components/settings/GeneralSettings.vue'
 import ProviderSettings from '@/components/settings/ProviderSettings.vue'
@@ -14,6 +14,8 @@ import ModelConfig from '@/components/settings/ModelConfig.vue'
 import PromptEditor from '@/components/settings/PromptEditor.vue'
 import InteractiveGridPattern from '@/components/inspira/ui/InteractiveGridPattern.vue'
 import { getVersionInfo } from '@/lib/version'
+import { useLocaleSync } from '@/locales/sync'
+import { t } from '@/locales'
 
 const settingsStore = useSettingsStore()
 const activeTab = ref('general')
@@ -21,12 +23,24 @@ const currentVersion = ref('...')
 const latestVersion = ref<string | null>(null)
 const updateAvailable = ref(false)
 
+// Keep vue-i18n locale in sync with the language setting
+useLocaleSync()
+
 const menuItems = [
-  { id: 'general', label: 'General', icon: Settings },
-  { id: 'providers', label: 'API Providers', icon: Cpu },
-  { id: 'model', label: 'Model Parameters', icon: BarChart3 },
-  { id: 'prompts', label: 'System Prompts', icon: MessageSquare },
+  { id: 'general', labelKey: 'settings.menuGeneral', icon: Settings },
+  { id: 'providers', labelKey: 'settings.menuProviders', icon: Cpu },
+  { id: 'model', labelKey: 'settings.menuModel', icon: BarChart3 },
+  { id: 'prompts', labelKey: 'settings.menuPrompts', icon: MessageSquare },
 ]
+
+const activeMenuLabel = computed(() => {
+  return menuItems.find((item) => item.id === activeTab.value)?.labelKey ?? activeTab.value
+})
+
+// Localize the options page tab title
+watchEffect(() => {
+  document.title = t('settings.pageTitle')
+})
 
 onMounted(async () => {
   settingsStore.applyTheme()
@@ -57,26 +71,26 @@ onMounted(async () => {
           <h1 class="text-base font-bold tracking-tight">OrangeSideBar</h1>
           <p class="text-[10px] text-primary font-mono uppercase tracking-widest">{{ currentVersion }}</p>
           <p v-if="updateAvailable && latestVersion" class="text-[10px] text-muted-foreground/70 font-mono uppercase tracking-widest">
-            Latest {{ latestVersion }}
+            {{ $t('settings.latestVersion', { version: latestVersion }) }}
           </p>
         </div>
       </div>
 
       <nav class="flex-1 px-4 space-y-2">
         <div class="px-4 mb-4">
-          <p class="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">Core Settings</p>
+          <p class="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">{{ $t('settings.coreSettings') }}</p>
         </div>
         <button
           v-for="item in menuItems"
           :key="item.id"
           class="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-semibold transition-all group relative overflow-hidden"
-          :class="activeTab === item.id 
-            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]' 
+          :class="activeTab === item.id
+            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]'
             : 'text-muted-foreground/70 hover:bg-accent/80 hover:text-foreground hover:scale-[1.01]'"
           @click="activeTab = item.id"
         >
           <component :is="item.icon" class="h-4.5 w-4.5" />
-          {{ item.label }}
+          {{ $t(item.labelKey) }}
           <div v-if="activeTab === item.id" class="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
         </button>
       </nav>
@@ -84,7 +98,7 @@ onMounted(async () => {
       <div class="p-6 border-t bg-muted/10">
         <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-background/50 border border-muted/50">
           <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-          <span class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Engine Ready</span>
+          <span class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{{ $t('settings.engineReady') }}</span>
         </div>
       </div>
     </aside>
@@ -93,8 +107,8 @@ onMounted(async () => {
     <main class="flex-1 flex flex-col min-w-0 bg-background/40 backdrop-blur-sm z-10 relative">
       <header class="h-20 border-b flex items-center px-12 bg-background/30 backdrop-blur-md">
         <h2 class="text-sm font-bold capitalize flex items-center gap-3 text-muted-foreground/60">
-          Settings <span class="text-muted-foreground/20 text-lg">/</span> 
-          <span class="text-foreground text-base tracking-tight font-extrabold">{{ activeTab.replace('-', ' ') }}</span>
+          {{ $t('settings.breadcrumbSettings') }} <span class="text-muted-foreground/20 text-lg">/</span>
+          <span class="text-foreground text-base tracking-tight font-extrabold">{{ $t(activeMenuLabel) }}</span>
         </h2>
       </header>
 

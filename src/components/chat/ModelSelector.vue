@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useSettingsStore } from '@/stores/settings'
 import { llmFactory } from '@/lib/llm/factory'
+import { t } from '@/locales'
 import type { ModelInfo } from '@/lib/llm/types'
 import type { ProviderId } from '@/types/provider'
 
@@ -32,7 +33,7 @@ const currentModelName = computed(() => {
   const model = availableModels.value.find((m) =>
     m.id === currentModel.value && (currentProviderId.value ? m.providerId === currentProviderId.value : true)
   ) || availableModels.value.find(m => m.id === currentModel.value)
-  return model?.name || currentModel.value || 'Select Model'
+  return model?.name || currentModel.value || t('chat.selectModel')
 })
 
 async function fetchModels() {

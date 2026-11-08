@@ -3,26 +3,31 @@
  * Handles cross-component communication and Chrome API interactions
  */
 
+import { hostT, initHostLocale } from '@/locales/host'
+
 const COPY_MARKDOWN_MENU_ID = 'copy-page-as-markdown'
 const SUMMARY_MENU_ID = 'summarize-page-with-default-model'
 const OFFSCREEN_DOCUMENT_PATH = 'src/offscreen/index.html'
 const PENDING_SIDE_PANEL_ACTION_KEY = 'orangesidebar_pending_sidepanel_action'
+const SETTINGS_STORAGE_KEY = 'orangesidebar_settings'
 
 function sleep(ms: number) {
   return new Promise((resolve) => globalThis.setTimeout(resolve, ms))
 }
 
 async function ensureContextMenu() {
+  // Load the user's language preference before composing menu titles
+  await initHostLocale()
   await chrome.contextMenus.removeAll()
   await chrome.contextMenus.create({
     id: COPY_MARKDOWN_MENU_ID,
-    title: 'Copy Page as Markdown',
+    title: hostT('background.copyPageAsMarkdown'),
     contexts: ['page'],
     documentUrlPatterns: ['http://*/*', 'https://*/*'],
   })
   await chrome.contextMenus.create({
     id: SUMMARY_MENU_ID,
-    title: 'Summarize Page',
+    title: hostT('background.summarizePage'),
     contexts: ['page'],
     documentUrlPatterns: ['http://*/*', 'https://*/*'],
   })
@@ -98,11 +103,11 @@ async function handleCopyPageAsMarkdown(tabId: number) {
   })
 
   if (!result?.html) {
-    throw new Error('Failed to read page HTML')
+    throw new Error(hostT('background.failedReadPageHtml'))
   }
 
   const markdownLength = await copyHtmlAsMarkdownToClipboard(result.html, result.url)
-  await notify('OrangeSideBar', `Markdown copied to clipboard (${markdownLength.toLocaleString()} chars)`)
+  await notify('OrangeSideBar', hostT('background.markdownCopied', { n: markdownLength.toLocaleString() }))
 }
 
 async function handleSummarizePage(tabId: number) {
@@ -124,6 +129,23 @@ chrome.runtime.onInstalled.addListener(() => {
 })
 
 chrome.runtime.onStartup.addListener(() => {
+  void ensureContextMenu()
+})
+
+// Recreate context menus when the user switches the interface language
+let lastSeenMenuLanguage: string | null = null
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return
+  const next = changes[SETTINGS_STORAGE_KEY]?.newValue as { language?: unknown } | undefined
+  if (!next || !('language' in next)) return
+  const language = typeof next.language === 'string' ? next.language : 'auto'
+  if (lastSeenMenuLanguage === null) {
+    // First observed snapshot — menus were just created from this value
+    lastSeenMenuLanguage = language
+    return
+  }
+  if (language === lastSeenMenuLanguage) return
+  lastSeenMenuLanguage = language
   void ensureContextMenu()
 })
 
@@ -149,9 +171,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     } catch (error) {
       await notify(
         'OrangeSideBar',
-        `${info.menuItemId === SUMMARY_MENU_ID ? 'Summary' : 'Copy Markdown'} failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        info.menuItemId === SUMMARY_MENU_ID
+          ? hostT('background.summaryFailed', { error: error instanceof Error ? error.message : String(error) })
+          : hostT('background.copyFailed', { error: error instanceof Error ? error.message : String(error) })
       )
     }
   })()
@@ -199,7 +221,7 @@ async function handleExecuteScript(
     const tabId = message.tabId || tab.id
 
     if (!tabId) {
-      sendResponse({ success: false, error: 'No active tab' })
+      sendResponse({ success: false, error: hostT('errors.noActiveTab') })
       return
     }
 
@@ -216,7 +238,7 @@ async function handleGetYouTubeSubtitles(sendResponse: (response: unknown) => vo
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
 
     if (!tab?.id) {
-      sendResponse({ success: false, error: 'No active tab' })
+      sendResponse({ success: false, error: hostT('errors.noActiveTab') })
       return
     }
 

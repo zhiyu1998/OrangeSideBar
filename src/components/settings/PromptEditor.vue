@@ -13,14 +13,14 @@ const activeMode = ref<PromptMode>('default')
 
 interface PromptInfo {
   mode: PromptMode
-  label: string
-  description: string
+  labelKey: string
+  descriptionKey: string
 }
 
 const promptModes: PromptInfo[] = [
-  { mode: 'default', label: 'Default', description: 'General-purpose system prompt.' },
-  { mode: 'paper', label: 'Academic', description: 'Optimized for paper analysis.' },
-  { mode: 'learning', label: 'Learning', description: 'Socratic tutoring mode.' },
+  { mode: 'default', labelKey: 'settings.prompts.modeDefault', descriptionKey: 'settings.prompts.modeDescDefault' },
+  { mode: 'paper', labelKey: 'settings.prompts.modeAcademic', descriptionKey: 'settings.prompts.modeDescAcademic' },
+  { mode: 'learning', labelKey: 'settings.prompts.modeLearning', descriptionKey: 'settings.prompts.modeDescLearning' },
 ]
 
 const prompts = computed(() => settingsStore.systemPrompts)
@@ -45,12 +45,12 @@ function getCharCount(mode: PromptMode): number {
       <div class="space-y-4">
         <div class="flex items-center gap-2">
           <Brain class="h-4 w-4 text-orange-500" />
-          <h3 class="text-sm font-bold tracking-tight">System Persona</h3>
+          <h3 class="text-sm font-bold tracking-tight">{{ $t('settings.prompts.persona') }}</h3>
         </div>
         <p class="text-xs text-muted-foreground leading-relaxed">
-          Define the AI's personality and rules. Choose a preset mode to edit its specific instructions below.
+          {{ $t('settings.prompts.personaDesc') }}
         </p>
-        
+
         <div class="flex flex-col gap-1">
           <button
             v-for="info in promptModes"
@@ -59,7 +59,7 @@ function getCharCount(mode: PromptMode): number {
             :class="activeMode === info.mode ? 'bg-primary/10 text-primary border-l-2 border-primary' : 'text-muted-foreground hover:bg-accent'"
             @click="activeMode = info.mode"
           >
-            {{ info.label }} Mode
+            {{ $t('settings.prompts.modeTitle', { label: $t(info.labelKey) }) }}
           </button>
         </div>
       </div>
@@ -68,11 +68,11 @@ function getCharCount(mode: PromptMode): number {
         <div class="bg-muted/20 border rounded-2xl p-6 space-y-4">
           <div class="flex items-center justify-between">
             <div class="space-y-0.5">
-              <Label class="text-sm font-semibold">{{ promptModes.find(p => p.mode === activeMode)?.label }} Instructions</Label>
-              <p class="text-[10px] text-muted-foreground">{{ promptModes.find(p => p.mode === activeMode)?.description }}</p>
+              <Label class="text-sm font-semibold">{{ $t('settings.prompts.instructions', { label: $t(promptModes.find(p => p.mode === activeMode)?.labelKey ?? '') }) }}</Label>
+              <p class="text-[10px] text-muted-foreground">{{ $t(promptModes.find(p => p.mode === activeMode)?.descriptionKey ?? '') }}</p>
             </div>
             <Button variant="ghost" size="sm" class="h-7 text-[10px]" @click="resetPrompt(activeMode)">
-              <RotateCcw class="mr-1 h-3 w-3" /> Reset
+              <RotateCcw class="mr-1 h-3 w-3" /> {{ $t('common.reset') }}
             </Button>
           </div>
 
@@ -84,9 +84,9 @@ function getCharCount(mode: PromptMode): number {
           
           <div class="flex justify-between items-center px-1">
             <span class="text-[10px] font-medium text-muted-foreground/60 tabular-nums">
-              {{ getCharCount(activeMode).toLocaleString() }} Chars
+              {{ $t('settings.prompts.chars', { n: getCharCount(activeMode).toLocaleString() }) }}
             </span>
-            <span class="text-[10px] text-primary/60 italic">Changes save automatically</span>
+            <span class="text-[10px] text-primary/60 italic">{{ $t('settings.prompts.autosave') }}</span>
           </div>
         </div>
       </div>
@@ -97,10 +97,10 @@ function getCharCount(mode: PromptMode): number {
       <div class="space-y-4">
         <div class="flex items-center gap-2">
           <MessageSquare class="h-4 w-4 text-muted-foreground" />
-          <h3 class="text-sm font-bold tracking-tight">Active Trigger</h3>
+          <h3 class="text-sm font-bold tracking-tight">{{ $t('settings.prompts.activeTrigger') }}</h3>
         </div>
         <p class="text-xs text-muted-foreground leading-relaxed">
-          The selected mode below will be used as the starting persona for all new chat sessions.
+          {{ $t('settings.prompts.activeTriggerDesc') }}
         </p>
       </div>
       
@@ -114,10 +114,10 @@ function getCharCount(mode: PromptMode): number {
         >
           <div class="flex flex-col gap-1">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-bold">{{ info.label }}</span>
+              <span class="text-xs font-bold">{{ $t(info.labelKey) }}</span>
               <div v-if="settingsStore.currentPromptMode === info.mode" class="w-2 h-2 rounded-full bg-primary" />
             </div>
-            <p class="text-[10px] text-muted-foreground leading-tight">{{ info.description }}</p>
+            <p class="text-[10px] text-muted-foreground leading-tight">{{ $t(info.descriptionKey) }}</p>
           </div>
         </div>
       </div>

@@ -5,7 +5,12 @@
 
 import type { ExtractedContent, ContentResponse } from '@/lib/content/types'
 import { extractFromDocument, getPlainText } from '@/lib/content/web'
+import { hostT, initHostLocale } from '@/locales/host'
 import Defuddle from 'defuddle/full'
+
+// Load the user's language preference for localized error messages;
+// falls back to the browser locale until it resolves.
+void initHostLocale()
 
 console.log('[OrangeSideBar] Content script loaded')
 
@@ -208,12 +213,12 @@ function getLinuxDoRequestHeaders(): HeadersInit {
 
 async function extractLinuxDoThreadText(options: LinuxDoThreadRequest = {}): Promise<string> {
   if (!isLinuxDoHost(window.location.hostname)) {
-    throw new Error('Not a Linux.do page')
+    throw new Error(hostT('content.notLinuxDoPage'))
   }
 
   const topicId = getLinuxDoTopicIdFromPath(window.location.pathname)
   if (!topicId) {
-    throw new Error('未检测到帖子ID')
+    throw new Error(hostT('content.noTopicId'))
   }
 
   const headers = getLinuxDoRequestHeaders()
@@ -239,7 +244,7 @@ async function extractLinuxDoThreadText(options: LinuxDoThreadRequest = {}): Pro
   }
 
   if (!Array.isArray(postIds) || postIds.length === 0) {
-    throw new Error('未获取到帖子内容')
+    throw new Error(hostT('content.noThreadContent'))
   }
 
   const totalFloors =
@@ -337,7 +342,7 @@ chrome.runtime.onMessage.addListener(
         if (content) {
           sendResponse({ success: true, data: content })
         } else {
-          sendResponse({ success: false, error: 'Failed to extract page content' })
+          sendResponse({ success: false, error: hostT('content.failedExtractPage') })
         }
         break
       }
@@ -353,7 +358,7 @@ chrome.runtime.onMessage.addListener(
         if (markdown) {
           sendResponse({ success: true, data: markdown })
         } else {
-          sendResponse({ success: false, error: 'Failed to extract markdown content' })
+          sendResponse({ success: false, error: hostT('content.failedExtractMarkdown') })
         }
         break
       }
@@ -366,7 +371,7 @@ chrome.runtime.onMessage.addListener(
           } catch (error) {
             sendResponse({
               success: false,
-              error: error instanceof Error ? error.message : 'Failed to extract Linux.do thread',
+              error: error instanceof Error ? error.message : hostT('content.failedExtractLinuxDo'),
             })
           }
         })()
@@ -395,7 +400,7 @@ chrome.runtime.onMessage.addListener(
         } else {
           sendResponse({
             success: false,
-            error: 'Not a supported video page (YouTube or Bilibili only)',
+            error: hostT('content.unsupportedVideoPage'),
           })
         }
         break

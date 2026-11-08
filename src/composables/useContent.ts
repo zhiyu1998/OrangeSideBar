@@ -6,6 +6,7 @@
 import { ref } from 'vue'
 import type { ExtractedContent, ContentType, PDFContent } from '@/lib/content/types'
 import { extractFromPDFFile, extractFromPDFUrl } from '@/lib/content/pdf'
+import { t } from '@/locales'
 import {
   isYouTubeUrl,
   isBilibiliUrl,
@@ -73,7 +74,7 @@ export function useContent() {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
       if (!tab?.id || !tab.url) {
-        throw new Error('No active tab found')
+        throw new Error(t('errors.noActiveTab'))
       }
 
       const contentType = detectContentType(tab.url)
@@ -81,7 +82,7 @@ export function useContent() {
       if (contentType === 'pdf') {
         const pdfContent = await extractFromPDFUrl(tab.url)
         if (!pdfContent) {
-          throw new Error('Failed to extract PDF content')
+          throw new Error(t('errors.failedExtractPdf'))
         }
         return {
           title: pdfContent.title,
@@ -101,16 +102,16 @@ export function useContent() {
         })
       } catch (err) {
         // Content script not loaded - likely a restricted page or needs refresh
-        throw new Error('Content script not available. Please refresh the page.')
+        throw new Error(t('errors.scriptNotAvailable'))
       }
 
       if (!response || !response.success) {
-        throw new Error(response?.error || 'Failed to extract page content')
+        throw new Error(response?.error || t('errors.failedExtractPage'))
       }
 
       return response.data
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Unknown error'
+      error.value = err instanceof Error ? err.message : t('errors.unknownError')
       console.error('[useContent] extractCurrentTab error:', err)
       return null
     } finally {
@@ -128,7 +129,7 @@ export function useContent() {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
       if (!tab?.id || !tab.url) {
-        throw new Error('No active tab found')
+        throw new Error(t('errors.noActiveTab'))
       }
 
       const contentType = detectContentType(tab.url)
@@ -146,16 +147,16 @@ export function useContent() {
         })
       } catch (err) {
         // Content script not loaded - likely a restricted page or needs refresh
-        throw new Error('Content script not available. Please refresh the page.')
+        throw new Error(t('errors.scriptNotAvailable'))
       }
 
       if (!response || !response.success) {
-        throw new Error(response?.error || 'Failed to extract text content')
+        throw new Error(response?.error || t('errors.failedExtractText'))
       }
 
       return response.data
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Unknown error'
+      error.value = err instanceof Error ? err.message : t('errors.unknownError')
       console.error('[useContent] extractCurrentTabText error:', err)
       return null
     } finally {
@@ -173,12 +174,12 @@ export function useContent() {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
       if (!tab?.id || !tab.url) {
-        throw new Error('No active tab found')
+        throw new Error(t('errors.noActiveTab'))
       }
 
       const contentType = detectContentType(tab.url)
       if (contentType !== 'web') {
-        throw new Error('Markdown export is only supported for regular web pages')
+        throw new Error(t('errors.markdownOnlyWeb'))
       }
 
       let response: ContentScriptResponse<string> | undefined
@@ -187,16 +188,16 @@ export function useContent() {
           action: 'FETCH_MARKDOWN_CONTENT',
         })
       } catch {
-        throw new Error('Content script not available. Please refresh the page.')
+        throw new Error(t('errors.scriptNotAvailable'))
       }
 
       if (!response || !response.success) {
-        throw new Error(response?.error || 'Failed to extract markdown content')
+        throw new Error(response?.error || t('errors.failedExtractMarkdown'))
       }
 
       return response.data
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Unknown error'
+      error.value = err instanceof Error ? err.message : t('errors.unknownError')
       console.error('[useContent] extractCurrentTabMarkdown error:', err)
       return null
     } finally {
@@ -218,12 +219,12 @@ export function useContent() {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
       if (!tab?.id || !tab.url) {
-        throw new Error('No active tab found')
+        throw new Error(t('errors.noActiveTab'))
       }
 
       const host = new URL(tab.url).hostname
       if (!isLinuxDoHost(host)) {
-        throw new Error('Not a Linux.do page')
+        throw new Error(t('content.notLinuxDoPage'))
       }
 
       let response: ContentScriptResponse<string> | undefined
@@ -233,16 +234,16 @@ export function useContent() {
           data,
         })
       } catch (err) {
-        throw new Error('Content script not available. Please refresh the page.')
+        throw new Error(t('errors.scriptNotAvailable'))
       }
 
       if (!response || !response.success) {
-        throw new Error(response?.error || 'Failed to extract Linux.do thread content')
+        throw new Error(response?.error || t('errors.failedExtractLinuxDoThread'))
       }
 
       return response.data
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Unknown error'
+      error.value = err instanceof Error ? err.message : t('errors.unknownError')
       console.error('[useContent] extractLinuxDoThreadText error:', err)
       return null
     } finally {
@@ -261,7 +262,7 @@ export function useContent() {
       const content = await extractFromPDFFile(file)
       return content
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to extract PDF'
+      error.value = err instanceof Error ? err.message : t('errors.failedExtractPdfFile')
       console.error('[useContent] extractPDF error:', err)
       return null
     } finally {
@@ -281,7 +282,7 @@ export function useContent() {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
       if (!tab?.id || !tab.url) {
-        throw new Error('No active tab found')
+        throw new Error(t('errors.noActiveTab'))
       }
 
       if (isBilibiliUrl(tab.url)) {
@@ -295,7 +296,7 @@ export function useContent() {
         })
 
         if (!response?.success) {
-          throw new Error(response?.error || 'Failed to get YouTube subtitles')
+          throw new Error(response?.error || t('errors.failedGetYoutubeSubtitles'))
         }
 
         const { cache, installed } = response.data as {
@@ -304,12 +305,12 @@ export function useContent() {
         }
 
         if (!installed) {
-          throw new Error('Subtitle interceptor not installed, please refresh the YouTube page')
+          throw new Error(t('errors.interceptorNotInstalled'))
         }
 
         const keys = Object.keys(cache)
         if (keys.length === 0) {
-          throw new Error('No cached subtitles found. Play the video or click CC button first')
+          throw new Error(t('errors.noCachedSubtitles'))
         }
 
         // Prefer non-auto-generated subtitles
@@ -322,9 +323,9 @@ export function useContent() {
         return formatYouTubeSubtitles(subtitleData, format)
       }
 
-      throw new Error('Current page is not a supported video platform')
+      throw new Error(t('errors.notVideoPlatform'))
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to extract subtitles'
+      error.value = err instanceof Error ? err.message : t('sidepanel.extractSubtitlesFailed', { detail: '' })
       console.error('[useContent] extractSubtitles error:', err)
       return null
     } finally {

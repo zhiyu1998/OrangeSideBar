@@ -28,9 +28,9 @@ const emit = defineEmits<{
 const settingsStore = useSettingsStore()
 
 const promptModeConfig = {
-  default: { label: 'Default', icon: MessageSquare },
-  paper: { label: 'Paper', icon: BookOpen },
-  learning: { label: 'Learning', icon: GraduationCap },
+  default: { labelKey: 'layout.promptModeDefault', icon: MessageSquare },
+  paper: { labelKey: 'layout.promptModePaper', icon: BookOpen },
+  learning: { labelKey: 'layout.promptModeLearning', icon: GraduationCap },
 }
 
 const currentPromptIcon = computed(() => promptModeConfig[settingsStore.currentPromptMode].icon)
@@ -76,7 +76,7 @@ function handleToggleHistory() {
         variant="ghost"
         size="icon"
         class="h-8 w-8 text-muted-foreground hover:text-foreground"
-        title="New conversation"
+        :title="$t('layout.newConversation')"
         @click="handleNewChat"
       >
         <Plus class="h-4 w-4" />
@@ -87,7 +87,7 @@ function handleToggleHistory() {
         size="icon"
         class="h-8 w-8 text-muted-foreground hover:text-foreground"
         :class="props.historyOpen ? 'bg-accent text-foreground' : ''"
-        title="Conversation history"
+        :title="$t('layout.conversationHistory')"
         @click="handleToggleHistory"
       >
         <History class="h-4 w-4" />
@@ -99,7 +99,7 @@ function handleToggleHistory() {
         variant="ghost"
         size="icon"
         class="h-8 w-8 text-muted-foreground hover:text-foreground"
-        title="Share as image"
+        :title="$t('layout.shareAsImage')"
         @click="handleShare"
       >
         <Share2 class="h-4 w-4" />
@@ -111,7 +111,7 @@ function handleToggleHistory() {
         variant="ghost"
         size="icon"
         class="h-8 w-8 text-muted-foreground hover:text-destructive"
-        title="Clear conversation"
+        :title="$t('layout.clearConversation')"
         @click="handleClear"
       >
         <Trash2 class="h-4 w-4" />
@@ -120,7 +120,7 @@ function handleToggleHistory() {
       <!-- Prompt Mode Toggle -->
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <Button variant="ghost" size="icon" class="h-8 w-8" title="Prompt Mode">
+          <Button variant="ghost" size="icon" class="h-8 w-8" :title="$t('layout.promptMode')">
             <component :is="currentPromptIcon" class="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -132,7 +132,7 @@ function handleToggleHistory() {
             @select="setPromptMode(mode as PromptMode)"
           >
             <component :is="config.icon" class="mr-2 h-4 w-4" />
-            {{ config.label }}
+            {{ $t(config.labelKey) }}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -149,15 +149,15 @@ function handleToggleHistory() {
         <DropdownMenuContent align="end">
           <DropdownMenuItem @select="setTheme('light')">
             <Sun class="mr-2 h-4 w-4" />
-            Light
+            {{ $t('layout.themeLight') }}
           </DropdownMenuItem>
           <DropdownMenuItem @select="setTheme('dark')">
             <Moon class="mr-2 h-4 w-4" />
-            Dark
+            {{ $t('layout.themeDark') }}
           </DropdownMenuItem>
           <DropdownMenuItem @select="setTheme('system')">
             <Monitor class="mr-2 h-4 w-4" />
-            System
+            {{ $t('layout.themeSystem') }}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
