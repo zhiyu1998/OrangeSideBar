@@ -7,11 +7,13 @@ import {
   Cpu,
   MessageSquare,
   BarChart3,
+  Info,
 } from 'lucide-vue-next'
 import GeneralSettings from '@/components/settings/GeneralSettings.vue'
 import ProviderSettings from '@/components/settings/ProviderSettings.vue'
 import ModelConfig from '@/components/settings/ModelConfig.vue'
 import PromptEditor from '@/components/settings/PromptEditor.vue'
+import AboutSettings from '@/components/settings/AboutSettings.vue'
 import InteractiveGridPattern from '@/components/inspira/ui/InteractiveGridPattern.vue'
 import { getVersionInfo } from '@/lib/version'
 import { useLocaleSync } from '@/locales/sync'
@@ -31,6 +33,7 @@ const menuItems = [
   { id: 'providers', labelKey: 'settings.menuProviders', icon: Cpu },
   { id: 'model', labelKey: 'settings.menuModel', icon: BarChart3 },
   { id: 'prompts', labelKey: 'settings.menuPrompts', icon: MessageSquare },
+  { id: 'about', labelKey: 'settings.menuAbout', icon: Info },
 ]
 
 const activeMenuLabel = computed(() => {
@@ -123,6 +126,7 @@ onMounted(async () => {
               <ProviderSettings v-if="activeTab === 'providers'" />
               <ModelConfig v-if="activeTab === 'model'" />
               <PromptEditor v-if="activeTab === 'prompts'" />
+              <AboutSettings v-if="activeTab === 'about'" />
             </div>
           </transition>
         </div>

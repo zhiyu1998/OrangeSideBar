@@ -149,6 +149,7 @@
     "menuProviders": "API 提供商",
     "menuModel": "模型参数",
     "menuPrompts": "系统提示词",
+    "menuAbout": "关于",
     "coreSettings": "核心设置",
     "engineReady": "引擎就绪",
     "breadcrumbSettings": "设置",
@@ -230,6 +231,24 @@
       "customIconHint": "留空则使用默认引擎图标",
       "baseEndpoint": "基础端点",
       "create": "创建提供商"
+    },
+    "about": {
+      "title": "关于",
+      "titleDesc": "版本信息、更新检查与项目链接。",
+      "tagline": "大橘侧边栏：开源的网页 AI 侧边栏，支持网页总结、多轮对话与翻译，兼容 OpenAI、Anthropic 及各类 OpenAI 兼容接口。",
+      "checkUpdates": "检查更新",
+      "checking": "正在检查更新…",
+      "upToDate": "已是最新版本。",
+      "updateAvailable": "发现新版本 {version}。",
+      "checkFailed": "无法检查更新，请稍后重试。",
+      "viewRelease": "查看发布页",
+      "links": "相关链接",
+      "linksDesc": "项目仓库、反馈渠道与相关文档。",
+      "github": "GitHub 仓库",
+      "issues": "问题反馈",
+      "releases": "版本发布",
+      "privacy": "隐私政策",
+      "copyright": "由 zhiyu1998 用 🧡 打造 · OrangeSideBar"
     },
     "general": {
       "appearance": "外观",

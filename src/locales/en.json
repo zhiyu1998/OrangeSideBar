@@ -149,6 +149,7 @@
     "menuProviders": "API Providers",
     "menuModel": "Model Parameters",
     "menuPrompts": "System Prompts",
+    "menuAbout": "About",
     "coreSettings": "Core Settings",
     "engineReady": "Engine Ready",
     "breadcrumbSettings": "Settings",
@@ -230,6 +231,24 @@
       "customIconHint": "Leave empty to use default engine icon",
       "baseEndpoint": "Base Endpoint",
       "create": "Create Provider"
+    },
+    "about": {
+      "title": "About",
+      "titleDesc": "Version information, update checks, and project links.",
+      "tagline": "An open-source AI sidebar for webpage summarization and chat — supports OpenAI, Anthropic and other OpenAI-compatible APIs, with multi-turn chat and translation built in.",
+      "checkUpdates": "Check for updates",
+      "checking": "Checking for updates…",
+      "upToDate": "You're on the latest version.",
+      "updateAvailable": "New version {version} is available.",
+      "checkFailed": "Couldn't check for updates. Please try again later.",
+      "viewRelease": "View release",
+      "links": "Links",
+      "linksDesc": "Project repository, feedback channels, and related documents.",
+      "github": "GitHub Repository",
+      "issues": "Feedback & Issues",
+      "releases": "Release Notes",
+      "privacy": "Privacy Policy",
+      "copyright": "Built with 🧡 by zhiyu1998 · OrangeSideBar"
     },
     "general": {
       "appearance": "Appearance",
