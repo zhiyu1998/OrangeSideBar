@@ -58,65 +58,64 @@ onMounted(async () => {
   <div class="flex h-screen bg-background text-foreground overflow-hidden relative selection:bg-orange-500/20">
     <!-- Interactive Background -->
     <InteractiveGridPattern 
-      className="absolute inset-0 opacity-15"
+      className="absolute inset-0 opacity-10"
       :width="80"
       :height="80"
       :squares="[40, 40]"
     />
 
     <!-- Sidebar -->
-    <aside class="w-72 border-r bg-muted/40 backdrop-blur-xl z-20 flex flex-col shadow-2xl">
-      <div class="p-8 mb-4 flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20 shadow-inner">
-          <img src="/logo_48.png" alt="OrangeSideBar" class="h-7 w-7 drop-shadow-md" />
+    <aside class="w-56 border-r bg-muted/40 backdrop-blur-xl z-20 flex flex-col shadow-sm">
+      <div class="px-4 py-4 mb-1 flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center border border-orange-500/20 shadow-inner flex-shrink-0">
+          <img src="/logo_48.png" alt="OrangeSideBar" class="h-5 w-5 drop-shadow-sm" />
         </div>
-        <div>
-          <h1 class="text-base font-bold tracking-tight">OrangeSideBar</h1>
-          <p class="text-[10px] text-primary font-mono uppercase tracking-widest">{{ currentVersion }}</p>
-          <p v-if="updateAvailable && latestVersion" class="text-[10px] text-muted-foreground/70 font-mono uppercase tracking-widest">
+        <div class="min-w-0">
+          <h1 class="text-sm font-bold tracking-tight truncate">OrangeSideBar</h1>
+          <p class="text-[10px] text-primary font-mono uppercase tracking-wider">{{ currentVersion }}</p>
+          <p v-if="updateAvailable && latestVersion" class="text-[10px] text-muted-foreground/70 font-mono uppercase tracking-wider truncate">
             {{ $t('settings.latestVersion', { version: latestVersion }) }}
           </p>
         </div>
       </div>
 
-      <nav class="flex-1 px-4 space-y-2">
-        <div class="px-4 mb-4">
-          <p class="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">{{ $t('settings.coreSettings') }}</p>
+      <nav class="flex-1 px-2.5 space-y-1">
+        <div class="px-2.5 mb-1.5">
+          <p class="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-[0.16em]">{{ $t('settings.coreSettings') }}</p>
         </div>
         <button
           v-for="item in menuItems"
           :key="item.id"
-          class="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-semibold transition-all group relative overflow-hidden"
+          class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors"
           :class="activeTab === item.id
-            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]'
-            : 'text-muted-foreground/70 hover:bg-accent/80 hover:text-foreground hover:scale-[1.01]'"
+            ? 'bg-primary/12 text-primary font-semibold'
+            : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground'"
           @click="activeTab = item.id"
         >
-          <component :is="item.icon" class="h-4.5 w-4.5" />
-          {{ $t(item.labelKey) }}
-          <div v-if="activeTab === item.id" class="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
+          <component :is="item.icon" class="h-4 w-4 flex-shrink-0" />
+          <span class="truncate">{{ $t(item.labelKey) }}</span>
         </button>
       </nav>
 
-      <div class="p-6 border-t bg-muted/10">
-        <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-background/50 border border-muted/50">
-          <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-          <span class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{{ $t('settings.engineReady') }}</span>
+      <div class="p-3 border-t bg-muted/10">
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-background/50 border border-muted/50">
+          <div class="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)] flex-shrink-0" />
+          <span class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{{ $t('settings.engineReady') }}</span>
         </div>
       </div>
     </aside>
 
     <!-- Content Area -->
     <main class="flex-1 flex flex-col min-w-0 bg-background/40 backdrop-blur-sm z-10 relative">
-      <header class="h-20 border-b flex items-center px-12 bg-background/30 backdrop-blur-md">
-        <h2 class="text-sm font-bold capitalize flex items-center gap-3 text-muted-foreground/60">
-          {{ $t('settings.breadcrumbSettings') }} <span class="text-muted-foreground/20 text-lg">/</span>
-          <span class="text-foreground text-base tracking-tight font-extrabold">{{ $t(activeMenuLabel) }}</span>
+      <header class="h-12 border-b flex items-center px-6 bg-background/30 backdrop-blur-md flex-shrink-0">
+        <h2 class="text-xs font-semibold capitalize flex items-center gap-2 text-muted-foreground/70">
+          {{ $t('settings.breadcrumbSettings') }} <span class="text-muted-foreground/30 text-sm">/</span>
+          <span class="text-foreground text-sm tracking-tight font-bold">{{ $t(activeMenuLabel) }}</span>
         </h2>
       </header>
 
       <ScrollArea class="flex-1 h-full min-h-0">
-        <div class="max-w-6xl mx-auto p-12 lg:p-20">
+        <div class="max-w-4xl mx-auto px-6 py-6 lg:px-8 lg:py-7">
           <transition 
             name="fade-slide" 
             mode="out-in"

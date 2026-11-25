@@ -172,18 +172,18 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-12">
+  <div class="space-y-6">
     <!-- Default Model Section -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-      <div class="space-y-2">
-        <h3 class="text-sm font-bold tracking-tight">{{ $t('settings.modelConfig.activeEngine') }}</h3>
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+      <div class="space-y-1.5">
+        <h3 class="text-sm font-semibold tracking-tight">{{ $t('settings.modelConfig.activeEngine') }}</h3>
         <p class="text-xs text-muted-foreground leading-relaxed">
           {{ $t('settings.modelConfig.activeEngineDesc') }}
         </p>
         <Button
           variant="outline"
           size="sm"
-          class="h-7 text-[10px]"
+          class="h-7 text-[11px]"
           :disabled="isLoadingModels"
           @click="fetchModels"
         >
@@ -193,15 +193,15 @@ onMounted(() => {
       </div>
 
       <div class="lg:col-span-2">
-        <div class="bg-muted/20 border rounded-2xl p-6 flex flex-col gap-6">
-          <div class="space-y-4">
+        <div class="bg-muted/20 border rounded-xl p-4 flex flex-col gap-4">
+          <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <Label class="text-sm font-semibold">{{ $t('settings.modelConfig.globalDefaultModel') }}</Label>
+              <Label class="text-xs font-semibold">{{ $t('settings.modelConfig.globalDefaultModel') }}</Label>
               <Badge variant="secondary" class="text-[10px]">{{ $t('settings.modelConfig.autoSynced') }}</Badge>
             </div>
 
             <Select :model-value="defaultModelSelectionValue" @update:model-value="selectModel">
-              <SelectTrigger class="h-12 bg-background/50 border-muted">
+              <SelectTrigger class="h-9 text-xs bg-background/60 border-muted">
                 <SelectValue :placeholder="$t('settings.modelConfig.selectModel')" />
               </SelectTrigger>
               <SelectContent>
@@ -214,7 +214,7 @@ onMounted(() => {
                       :value="`${model.providerId}::${model.id}`"
                     >
                       <div class="flex items-center gap-2">
-                        <span class="text-sm">{{ model.name }}</span>
+                        <span class="text-xs">{{ model.name }}</span>
                         <Badge v-if="model.supportsVision" variant="secondary" class="text-[9px] h-4 px-1">{{ $t('common.vision') }}</Badge>
                         <Badge v-if="model.isThinkingModel" variant="outline" class="text-[9px] h-4 px-1">{{ $t('common.thinking') }}</Badge>
                       </div>
@@ -228,42 +228,42 @@ onMounted(() => {
                 </template>
               </SelectContent>
             </Select>
-            <p class="text-[10px] text-muted-foreground">{{ $t('settings.modelConfig.checkProvidersHint') }}</p>
+            <p class="text-[11px] text-muted-foreground">{{ $t('settings.modelConfig.checkProvidersHint') }}</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- Parameters Section -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start border-t pt-12">
-      <div class="space-y-4">
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start border-t pt-6">
+      <div class="space-y-2">
         <div class="flex items-center gap-2">
           <Sliders class="h-4 w-4 text-orange-500" />
-          <h3 class="text-sm font-bold tracking-tight">{{ $t('settings.modelConfig.fineTuning') }}</h3>
+          <h3 class="text-sm font-semibold tracking-tight">{{ $t('settings.modelConfig.fineTuning') }}</h3>
         </div>
         <p class="text-xs text-muted-foreground leading-relaxed">
           {{ $t('settings.modelConfig.fineTuningDesc') }}
         </p>
-        <Button variant="ghost" size="sm" class="h-7 text-[10px] text-muted-foreground" @click="resetParams">
+        <Button variant="ghost" size="sm" class="h-7 text-[11px] text-muted-foreground" @click="resetParams">
           <RotateCcw class="mr-1 h-3 w-3" />
           {{ $t('settings.modelConfig.resetDefaults') }}
         </Button>
       </div>
       
-      <div class="lg:col-span-2 space-y-4">
-        <div class="bg-muted/20 border rounded-2xl p-6 space-y-8">
+      <div class="lg:col-span-2 space-y-3">
+        <div class="bg-muted/20 border rounded-xl p-4 space-y-5">
           <div
             v-for="config in paramConfigs"
             :key="config.key"
-            class="space-y-4"
+            class="space-y-3"
           >
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-4">
               <div class="space-y-0.5">
-                <Label :for="config.key" class="text-sm font-semibold">{{ $t(config.labelKey) }}</Label>
-                <p class="text-[10px] text-muted-foreground pr-4">{{ $t(config.descriptionKey) }}</p>
+                <Label :for="config.key" class="text-xs font-semibold">{{ $t(config.labelKey) }}</Label>
+                <p class="text-[11px] text-muted-foreground pr-4">{{ $t(config.descriptionKey) }}</p>
               </div>
-              <div class="bg-background/80 border rounded px-2 py-1 min-w-[3rem] text-center">
-                <span class="text-xs font-bold tabular-nums">{{ params[config.key] }}</span>
+              <div class="bg-background/80 border rounded px-2 py-0.5 min-w-[2.75rem] text-center">
+                <span class="text-xs font-semibold tabular-nums">{{ params[config.key] }}</span>
               </div>
             </div>
 
@@ -279,7 +279,7 @@ onMounted(() => {
               />
             </template>
             <template v-else>
-              <div v-if="config.key === 'maxTokens'" class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_11rem] gap-3">
+              <div v-if="config.key === 'maxTokens'" class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_10rem] gap-2.5">
                 <Input
                   :id="config.key"
                   type="number"
@@ -287,11 +287,11 @@ onMounted(() => {
                   :min="config.min"
                   :max="config.max"
                   :step="config.step"
-                  class="h-10 bg-background/50"
+                  class="h-8 text-xs bg-background/60"
                   @update:model-value="(val) => updateParam(config.key, Number(val))"
                 />
                 <Select :model-value="selectedMaxTokensPreset" @update:model-value="selectMaxTokensPreset">
-                  <SelectTrigger class="h-10 w-full min-w-0 bg-background/50 border-muted">
+                  <SelectTrigger class="h-8 text-xs w-full min-w-0 bg-background/60 border-muted">
                     <SelectValue as-child :placeholder="$t('settings.modelConfig.quickPickPlaceholder')">
                       <span class="truncate">{{ selectedMaxTokensLabel }}</span>
                     </SelectValue>
@@ -309,7 +309,7 @@ onMounted(() => {
                       >
                         <div class="flex flex-col gap-0.5 py-1">
                           <div class="flex items-center gap-2">
-                            <span class="text-sm font-semibold tabular-nums">{{ preset.label }}</span>
+                            <span class="text-xs font-semibold tabular-nums">{{ preset.label }}</span>
                             <span class="text-[10px] text-muted-foreground tabular-nums">{{ $t('settings.modelConfig.tokens', { n: preset.value.toLocaleString() }) }}</span>
                           </div>
                           <span class="text-[10px] text-muted-foreground">{{ $t(preset.descriptionKey) }}</span>
@@ -327,7 +327,7 @@ onMounted(() => {
                 :min="config.min"
                 :max="config.max"
                 :step="config.step"
-                class="h-10 bg-background/50"
+                class="h-8 text-xs bg-background/60"
                 @update:model-value="(val) => updateParam(config.key, Number(val))"
               />
             </template>

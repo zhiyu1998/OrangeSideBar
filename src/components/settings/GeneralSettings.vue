@@ -33,25 +33,25 @@ function handleOpenAIRequestModeChange(value: string | number | bigint | Record<
 </script>
 
 <template>
-  <div class="space-y-12">
+  <div class="space-y-6">
     <!-- Theme Selection -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-      <div class="space-y-2">
-        <h3 class="text-sm font-bold tracking-tight">{{ $t('settings.general.appearance') }}</h3>
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+      <div class="space-y-1.5">
+        <h3 class="text-sm font-semibold tracking-tight">{{ $t('settings.general.appearance') }}</h3>
         <p class="text-xs text-muted-foreground leading-relaxed">
           {{ $t('settings.general.appearanceDesc') }}
         </p>
       </div>
 
       <div class="lg:col-span-2">
-        <div class="bg-muted/20 border rounded-2xl p-6 flex flex-col gap-6">
-          <div class="flex items-center justify-between">
+        <div class="bg-muted/20 border rounded-xl p-4 flex flex-col gap-4">
+          <div class="flex items-center justify-between gap-4">
             <div class="space-y-0.5">
-              <Label class="text-sm font-semibold">{{ $t('settings.general.interfaceTheme') }}</Label>
-              <p class="text-[10px] text-muted-foreground">{{ $t('settings.general.interfaceThemeHint') }}</p>
+              <Label class="text-xs font-semibold">{{ $t('settings.general.interfaceTheme') }}</Label>
+              <p class="text-[11px] text-muted-foreground">{{ $t('settings.general.interfaceThemeHint') }}</p>
             </div>
             <Select :model-value="settingsStore.theme" @update:model-value="handleThemeChange">
-              <SelectTrigger class="w-[180px] bg-background/50">
+              <SelectTrigger class="w-[160px] h-8 text-xs bg-background/60">
                 <SelectValue :placeholder="$t('settings.general.selectTheme')" />
               </SelectTrigger>
               <SelectContent>
@@ -62,13 +62,13 @@ function handleOpenAIRequestModeChange(value: string | number | bigint | Record<
             </Select>
           </div>
 
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between gap-4">
             <div class="space-y-0.5">
-              <Label class="text-sm font-semibold">{{ $t('settings.general.language') }}</Label>
-              <p class="text-[10px] text-muted-foreground">{{ $t('settings.general.languageHint') }}</p>
+              <Label class="text-xs font-semibold">{{ $t('settings.general.language') }}</Label>
+              <p class="text-[11px] text-muted-foreground">{{ $t('settings.general.languageHint') }}</p>
             </div>
             <Select :model-value="settingsStore.language" @update:model-value="handleLanguageChange">
-              <SelectTrigger class="w-[180px] bg-background/50">
+              <SelectTrigger class="w-[160px] h-8 text-xs bg-background/60">
                 <SelectValue :placeholder="$t('settings.general.selectLanguage')" />
               </SelectTrigger>
               <SelectContent>
@@ -83,25 +83,25 @@ function handleOpenAIRequestModeChange(value: string | number | bigint | Record<
     </section>
 
     <!-- OpenAI Request API -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start border-t pt-12">
-      <div class="space-y-2">
-        <h3 class="text-sm font-bold tracking-tight">{{ $t('settings.general.openaiRequestApi') }}</h3>
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start border-t pt-6">
+      <div class="space-y-1.5">
+        <h3 class="text-sm font-semibold tracking-tight">{{ $t('settings.general.openaiRequestApi') }}</h3>
         <p class="text-xs text-muted-foreground leading-relaxed">
           {{ $t('settings.general.openaiRequestApiDesc') }}
         </p>
       </div>
 
       <div class="lg:col-span-2">
-        <div class="bg-muted/20 border rounded-2xl p-6 flex flex-col gap-6">
-          <div class="flex items-center justify-between gap-6">
+        <div class="bg-muted/20 border rounded-xl p-4 flex flex-col gap-4">
+          <div class="flex items-center justify-between gap-4">
             <div class="space-y-0.5 min-w-0">
-              <Label class="text-sm font-semibold">{{ $t('settings.general.requestMode') }}</Label>
-              <p class="text-[10px] text-muted-foreground">
+              <Label class="text-xs font-semibold">{{ $t('settings.general.requestMode') }}</Label>
+              <p class="text-[11px] text-muted-foreground">
                 {{ $t('settings.general.requestModeDesc') }}
               </p>
             </div>
             <Select :model-value="settingsStore.openAIRequestMode" @update:model-value="handleOpenAIRequestModeChange">
-              <SelectTrigger class="w-[190px] bg-background/50 flex-shrink-0">
+              <SelectTrigger class="w-[170px] h-8 text-xs bg-background/60 flex-shrink-0">
                 <SelectValue :placeholder="$t('settings.general.selectApi')" />
               </SelectTrigger>
               <SelectContent>
@@ -115,17 +115,17 @@ function handleOpenAIRequestModeChange(value: string | number | bigint | Record<
     </section>
 
     <!-- System Status -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start border-t pt-12">
-      <div class="space-y-2">
-        <h3 class="text-sm font-bold tracking-tight">{{ $t('settings.general.systemStatus') }}</h3>
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start border-t pt-6">
+      <div class="space-y-1.5">
+        <h3 class="text-sm font-semibold tracking-tight">{{ $t('settings.general.systemStatus') }}</h3>
         <p class="text-xs text-muted-foreground leading-relaxed">
           {{ $t('settings.general.systemStatusDesc') }}
         </p>
       </div>
 
-      <div class="lg:col-span-2 space-y-4">
-        <div class="bg-muted/20 border rounded-2xl p-6">
-          <div class="flex items-center justify-between opacity-50 outline-dotted outline-1 outline-muted rounded-lg p-4">
+      <div class="lg:col-span-2 space-y-3">
+        <div class="bg-muted/20 border rounded-xl p-4">
+          <div class="flex items-center justify-between opacity-50 outline-dotted outline-1 outline-muted rounded-lg p-3">
             <span class="text-xs font-medium italic">{{ $t('settings.general.comingSoonStats') }}</span>
           </div>
         </div>
