@@ -8,8 +8,14 @@ const STORAGE_PREFIX = 'orangesidebar_'
  * These are transient states that shouldn't survive a page reload
  */
 const EXCLUDED_KEYS: Record<string, string[]> = {
-  chat: ['isStreaming', 'abortController'],
+  chat: ['currentSessionId', 'isStreaming', 'abortController'],
   settings: ['isLoadingModels'],
+}
+
+const hydrationPromises = new Map<string, Promise<void>>()
+
+export function waitForStoreHydration(storeId: string): Promise<void> {
+  return hydrationPromises.get(storeId) ?? Promise.resolve()
 }
 
 /**
@@ -36,6 +42,22 @@ export function chromeStoragePlugin({ store }: PiniaPluginContext) {
   const storageKey = `${STORAGE_PREFIX}${store.$id}`
   let suppressSaves = 0
 
+  function serializeFilteredState(): string | null {
+    try {
+      return JSON.stringify(filterState(store.$id, store.$state))
+    } catch {
+      return null
+    }
+  }
+
+  let lastSavedSnapshot: string | null = serializeFilteredState()
+
+  let resolveHydration!: () => void
+  const hydrationPromise = new Promise<void>((resolve) => {
+    resolveHydration = resolve
+  })
+  hydrationPromises.set(store.$id, hydrationPromise)
+
   function withSuppressedSave(fn: () => void) {
     suppressSaves += 1
     try {
@@ -51,15 +73,20 @@ export function chromeStoragePlugin({ store }: PiniaPluginContext) {
   // Load initial state from Chrome storage
   if (typeof chrome !== 'undefined' && chrome.storage?.local) {
     chrome.storage.local.get(storageKey, (result) => {
-      if (result[storageKey]) {
-        try {
+      try {
+        if (result[storageKey]) {
           withSuppressedSave(() => {
             const filteredState = filterState(store.$id, result[storageKey] as StateTree)
             store.$patch(filteredState)
+            lastSavedSnapshot = serializeFilteredState()
           })
-        } catch (error) {
-          console.warn(`Failed to restore state for store "${store.$id}":`, error)
+        } else {
+          lastSavedSnapshot = serializeFilteredState()
         }
+      } catch (error) {
+        console.warn(`Failed to restore state for store "${store.$id}":`, error)
+      } finally {
+        resolveHydration()
       }
     })
 
@@ -73,6 +100,7 @@ export function chromeStoragePlugin({ store }: PiniaPluginContext) {
         withSuppressedSave(() => {
           const filteredState = filterState(store.$id, change.newValue as StateTree)
           store.$patch(filteredState)
+          lastSavedSnapshot = serializeFilteredState()
         })
       } catch (error) {
         console.warn(`Failed to sync state for store "${store.$id}":`, error)
@@ -87,12 +115,17 @@ export function chromeStoragePlugin({ store }: PiniaPluginContext) {
         // Filter out non-serializable and transient state before saving
         const filteredState = filterState(store.$id, state)
         try {
-          chrome.storage.local.set({ [storageKey]: JSON.parse(JSON.stringify(filteredState)) })
+          const serialized = JSON.stringify(filteredState)
+          if (serialized === lastSavedSnapshot) return
+          lastSavedSnapshot = serialized
+          chrome.storage.local.set({ [storageKey]: JSON.parse(serialized) })
         } catch (error) {
           console.warn(`Failed to save state for store "${store.$id}":`, error)
         }
       },
       { deep: true }
     )
+  } else {
+    resolveHydration()
   }
 }

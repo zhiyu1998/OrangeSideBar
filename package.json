@@ -5,7 +5,12 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build"
+    "build": "vue-tsc -b && vite build",
+    "cws:check": "node scripts/cws-publish.mjs --check-build",
+    "cws:status": "node scripts/cws-publish.mjs --status",
+    "cws:upload": "node scripts/cws-publish.mjs --upload-only",
+    "cws:publish": "node scripts/cws-publish.mjs",
+    "release": "node scripts/release.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",

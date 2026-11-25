@@ -239,28 +239,38 @@ export function useChat(options: UseChatOptions = {}) {
       })
 
       for await (const chunk of stream) {
-        // Check if streaming was aborted
-        if (!chatStore.isStreaming) {
+        // Check if streaming was aborted or superseded by a newer stream
+        if (
+          !chatStore.isStreaming ||
+          abortController.signal.aborted ||
+          chatStore.abortController !== abortController
+        ) {
           break
         }
         handleStreamChunk(chunk, assistantMessageId)
       }
     } catch (err) {
       console.error('[useChat] Stream error:', err)
-      if (err instanceof Error) {
-        if (err.name !== 'AbortError') {
-          error.value = err.message
-          chatStore.updateMessage(assistantMessageId, { error: err.message })
+      if (!abortController.signal.aborted) {
+        if (err instanceof Error) {
+          if (err.name !== 'AbortError') {
+            error.value = err.message
+            chatStore.updateMessage(assistantMessageId, { error: err.message })
+          }
+        } else {
+          error.value = t('errors.unknownErrorOccurred')
+          chatStore.updateMessage(assistantMessageId, { error: t('errors.unknownErrorOccurred') })
         }
-      } else {
-        error.value = t('errors.unknownErrorOccurred')
-        chatStore.updateMessage(assistantMessageId, { error: t('errors.unknownErrorOccurred') })
       }
     } finally {
-      // Always reset streaming state
-      isLoading.value = false
-      chatStore.setStreaming(false)
-      chatStore.setAbortController(null)
+      // Only reset streaming state if this stream wasn't superseded by a newer stream
+      if (chatStore.abortController === abortController) {
+        isLoading.value = false
+        chatStore.setStreaming(false)
+        chatStore.setAbortController(null)
+      } else if (chatStore.abortController === null) {
+        isLoading.value = false
+      }
 
       const assistantMessage = messages.value.find((message) => message.id === assistantMessageId)
       if (assistantMessage?.thinking && !assistantMessage.thinkingFinishedAt) {

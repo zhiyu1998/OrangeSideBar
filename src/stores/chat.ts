@@ -33,7 +33,7 @@ export const useChatStore = defineStore('chat', () => {
     [...sessions.value].sort((a, b) => b.updatedAt - a.updatedAt)
   )
 
-  const hasActiveSession = computed(() => currentSessionId.value !== null)
+  const hasActiveSession = computed(() => currentSession.value !== undefined)
 
   function deriveSessionTitleFromMessage(content: string): string {
     const normalized = content.replace(/\s+/g, ' ').trim()
@@ -65,6 +65,10 @@ export const useChatStore = defineStore('chat', () => {
     if (session) {
       currentSessionId.value = sessionId
     }
+  }
+
+  function clearActiveSession() {
+    currentSessionId.value = null
   }
 
   function deleteSession(sessionId: string) {
@@ -218,6 +222,7 @@ export const useChatStore = defineStore('chat', () => {
     // Actions
     createSession,
     selectSession,
+    clearActiveSession,
     deleteSession,
     addMessage,
     updateMessage,

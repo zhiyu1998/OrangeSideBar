@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useChatStore } from '@/stores/chat'
 import { useChat } from '@/composables/useChat'
 import { useContent } from '@/composables/useContent'
+import { useActivePage, type ActivePageSnapshot } from '@/composables/useActivePage'
+import { waitForStoreHydration } from '@/stores/plugins/chromeStorage'
 import type { ExtractedContent } from '@/lib/content/types'
 import type { ProviderId } from '@/types/provider'
 import { AppHeader, FeatureGrid, SessionHistoryPanel } from '@/components/layout'
@@ -45,13 +47,21 @@ const actionNotice = ref<{ type: 'success' | 'error'; text: string } | null>(nul
 let actionNoticeTimer: number | null = null
 const PENDING_SIDE_PANEL_ACTION_KEY = 'orangesidebar_pending_sidepanel_action'
 const SETTINGS_STORAGE_KEY = 'orangesidebar_settings'
+const PANEL_SESSION_CONTEXT_PREFIX = 'orangesidebar_panel_context_'
 let handledPendingActionId: string | null = null
+let isPanelContextReady = false
 
 interface PendingSidePanelAction {
   id?: string
   type?: string
   tabId?: number
   createdAt?: number
+}
+
+interface PanelSessionContext {
+  tabId: number | null
+  pageKey: string | null
+  sessionId: string | null
 }
 
 const sortedSessions = computed(() => chatStore.sortedSessions)
@@ -140,7 +150,10 @@ function showActionNotice(type: 'success' | 'error', text: string) {
 
 // Feature handlers
 async function handleSummary() {
+  const generation = getPageGeneration()
   const url = await getCurrentUrl()
+  if (getPageGeneration() !== generation) return
+
   const isLinuxDoThread = (() => {
     if (!url) return false
     try {
@@ -160,11 +173,15 @@ async function handleSummary() {
   const extracted = isLinuxDoThread
     ? null
     : await extractCurrentTab()
+  if (getPageGeneration() !== generation) return
+
   const content = isLinuxDoThread
     ? await extractLinuxDoThreadText({ maxPosts: 40, headPosts: 15, maxPostChars: 1200 })
     : extracted
       ? formatSummaryContext(extracted)
       : await extractCurrentTabText()
+  if (getPageGeneration() !== generation) return
+
   if (content) {
     const truncatedContent = content.length > 15000
       ? content.slice(0, 15000) + '\n\n' + t('sidepanel.contentTruncated')
@@ -187,7 +204,10 @@ function extractFailedDetail(): string {
 }
 
 async function handleTranslate() {
+  const generation = getPageGeneration()
   const content = await extractCurrentTabText()
+  if (getPageGeneration() !== generation) return
+
   if (content) {
     const truncatedContent = content.length > 15000
       ? content.slice(0, 15000) + '\n\n' + t('sidepanel.contentTruncated')
@@ -201,7 +221,10 @@ async function handleTranslate() {
 }
 
 async function handlePdf() {
+  const generation = getPageGeneration()
   const content = await extractCurrentTabText()
+  if (getPageGeneration() !== generation) return
+
   if (content) {
     const truncatedContent = content.length > 20000
       ? content.slice(0, 20000) + '\n\n' + t('sidepanel.contentTruncated')
@@ -218,13 +241,18 @@ async function handlePdf() {
 }
 
 async function handleSubtitles() {
+  const generation = getPageGeneration()
   const subtitles = await extractSubtitles('text_with_timestamps')
+  if (getPageGeneration() !== generation) return
+
   if (subtitles) {
     const truncatedSubtitles = subtitles.length > 20000
       ? subtitles.slice(0, 20000) + '\n\n' + t('sidepanel.subtitlesTruncated')
       : subtitles
 
     const url = await getCurrentUrl()
+    if (getPageGeneration() !== generation) return
+
     const isBilibili = url?.includes('bilibili.com')
     const subtitlePrompt = isBilibili
       ? BILIBILI_SUBTITLE_SUMMARY_PROMPT
@@ -246,9 +274,13 @@ async function handleSubtitles() {
 }
 
 async function handleMarkdown() {
+  const generation = getPageGeneration()
   const markdown = await extractCurrentTabMarkdown()
+  if (getPageGeneration() !== generation) return
+
   if (markdown) {
     await copyToClipboard(markdown)
+    if (getPageGeneration() !== generation) return
     showActionNotice('success', t('sidepanel.markdownCopied', { n: markdown.length.toLocaleString() }))
   } else {
     const detail = contentError.value
@@ -362,9 +394,113 @@ function handleNewChat() {
   if (chatStore.isStreaming) {
     stopStreaming()
   }
-  chatStore.createSession(settingsStore.defaultModel, undefined, settingsStore.defaultModelProviderId)
+  chatStore.clearActiveSession()
   historyOpen.value = false
 }
+
+function handlePageSwitch() {
+  if (chatStore.isStreaming) {
+    stopStreaming()
+  }
+  chatStore.clearActiveSession()
+  historyOpen.value = false
+  shareOpen.value = false
+  actionNotice.value = null
+  if (actionNoticeTimer !== null) {
+    window.clearTimeout(actionNoticeTimer)
+    actionNoticeTimer = null
+  }
+}
+
+const { activeTabId, activePageKey, getSnapshot, getPageGeneration } = useActivePage({
+  onPageChange: () => {
+    handlePageSwitch()
+  },
+  onReady: (initial) => {
+    void initPanelSessionContext(initial)
+  },
+})
+
+function persistPanelSessionContext(snapshot: ActivePageSnapshot, sessionId: string | null) {
+  if (snapshot.windowId === null || typeof chrome === 'undefined' || !chrome.storage?.session) {
+    return
+  }
+
+  const key = `${PANEL_SESSION_CONTEXT_PREFIX}${snapshot.windowId}`
+  const context: PanelSessionContext = {
+    tabId: snapshot.tabId,
+    pageKey: snapshot.pageKey,
+    sessionId,
+  }
+
+  void chrome.storage.session.set({ [key]: context }).catch((error) => {
+    console.warn('[sidepanel] Failed to persist panel session context:', error)
+  })
+}
+
+async function initPanelSessionContext(initial: ActivePageSnapshot) {
+  try {
+    if (
+      initial.windowId === null ||
+      initial.tabId === null ||
+      !initial.pageKey ||
+      typeof chrome === 'undefined' ||
+      !chrome.storage?.session
+    ) {
+      return
+    }
+
+    if (handledPendingActionId !== null || chatStore.currentSessionId !== null) {
+      return
+    }
+
+    const startGeneration = getPageGeneration()
+    const key = `${PANEL_SESSION_CONTEXT_PREFIX}${initial.windowId}`
+    const [sessionResult, pendingResult] = await Promise.all([
+      chrome.storage.session.get(key),
+      chrome.storage.local.get(PENDING_SIDE_PANEL_ACTION_KEY),
+    ])
+
+    if (
+      pendingResult[PENDING_SIDE_PANEL_ACTION_KEY] ||
+      handledPendingActionId !== null ||
+      getPageGeneration() !== startGeneration ||
+      chatStore.currentSessionId !== null
+    ) {
+      return
+    }
+
+    const saved = sessionResult[key] as PanelSessionContext | undefined
+    if (
+      saved?.sessionId &&
+      saved.tabId === initial.tabId &&
+      saved.pageKey === initial.pageKey
+    ) {
+      await waitForStoreHydration('chat')
+      if (
+        handledPendingActionId !== null ||
+        getPageGeneration() !== startGeneration ||
+        chatStore.currentSessionId !== null
+      ) {
+        return
+      }
+      chatStore.selectSession(saved.sessionId)
+    }
+  } catch (error) {
+    console.warn('[sidepanel] Failed to restore panel session context:', error)
+  } finally {
+    isPanelContextReady = true
+    persistPanelSessionContext(getSnapshot(), chatStore.currentSessionId)
+  }
+}
+
+watch(
+  [() => chatStore.currentSessionId, activeTabId, activePageKey],
+  ([sessionId]) => {
+    if (!isPanelContextReady) return
+    persistPanelSessionContext(getSnapshot(), sessionId)
+  }
+)
 
 function handleToggleHistory() {
   historyOpen.value = !historyOpen.value
@@ -389,7 +525,7 @@ async function consumePendingSidePanelAction(action: PendingSidePanelAction | nu
 
   handledPendingActionId = action.id
   await chrome.storage.local.remove(PENDING_SIDE_PANEL_ACTION_KEY)
-  await hydrateSettingsFromStorage()
+  await Promise.all([hydrateSettingsFromStorage(), waitForStoreHydration('chat')])
 
   if (chatStore.isStreaming) {
     stopStreaming()
@@ -431,6 +567,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   chrome.storage.onChanged.removeListener(handlePendingActionStorageChange)
+  if (actionNoticeTimer !== null) {
+    window.clearTimeout(actionNoticeTimer)
+    actionNoticeTimer = null
+  }
 })
 </script>
 

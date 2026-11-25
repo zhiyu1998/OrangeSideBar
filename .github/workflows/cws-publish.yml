@@ -1,0 +1,83 @@
+name: Publish to Chrome Web Store
+
+# 打 tag（2.0.5 / v2.0.5）即自动构建 → 上传 → 提交审核
+on:
+  push:
+    tags:
+      - '[0-9]*.[0-9]*.[0-9]*'
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+  workflow_dispatch:
+    inputs:
+      status_only:
+        description: '只查询商店状态，不发布'
+        type: boolean
+        default: false
+
+# 同一时间只允许一个发布任务，避免两次上传互相覆盖草稿包
+concurrency:
+  group: cws-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build extension
+        run: bun run build
+
+      - name: 校验版本一致性（package.json / dist / tag）
+        run: |
+          PKG=$(node -pe "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
+          DIST=$(node -pe "JSON.parse(require('fs').readFileSync('dist/manifest.json','utf8')).version")
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "package.json=$PKG  dist=$DIST  tag=${TAG:-<none>}"
+          [ "$PKG" = "$DIST" ] || { echo "::error::package.json 与 dist/manifest.json 版本不一致"; exit 1; }
+          if [ -n "$TAG" ] && [ "$TAG" != "$PKG" ]; then
+            echo "::error::tag $TAG 与构建版本 $PKG 不一致，先改 package.json 再打 tag"
+            exit 1
+          fi
+
+      - name: 查找构建产物 zip
+        id: zip
+        run: |
+          V=$(node -pe "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
+          ZIP=$(ls -1 release/*-"$V".zip 2>/dev/null | head -1)
+          [ -n "$ZIP" ] || ZIP=$(ls -1t release/*.zip 2>/dev/null | head -1)
+          [ -n "$ZIP" ] || { echo "::error::release/ 下没有 zip"; exit 1; }
+          echo "path=$ZIP" >> "$GITHUB_OUTPUT"
+          echo "产物: $ZIP"
+
+      - name: 上传并提交审核
+        env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+          CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+        run: |
+          if [ "${{ inputs.status_only }}" = "true" ]; then
+            node scripts/cws-publish.mjs --status
+          else
+            node scripts/cws-publish.mjs --zip "${{ steps.zip.outputs.path }}"
+          fi
+
+      - name: 留存构建产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cws-build-${{ github.ref_name }}
+          path: ${{ steps.zip.outputs.path }}
+          if-no-files-found: ignore
