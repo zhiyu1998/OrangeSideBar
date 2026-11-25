@@ -72,8 +72,7 @@ const assistantAvatarSvg = computed(() => {
   if (!modelId) return ''
 
   if (preferredProviderId) {
-    const customProvider = settingsStore.customProviders.find((provider) => provider.id === preferredProviderId)
-    const preferredIcon = customProvider?.iconSvg || PROVIDER_ICONS[preferredProviderId] || ''
+    const preferredIcon = settingsStore.getProviderConfig(preferredProviderId).iconSvg || PROVIDER_ICONS[preferredProviderId] || ''
     if (preferredIcon) {
       return preferredIcon
     }
@@ -84,16 +83,14 @@ const assistantAvatarSvg = computed(() => {
   >) {
     if (preferredProviderId && providerId !== preferredProviderId) continue
     if (models?.some((model) => model.id === modelId)) {
-      const customProvider = settingsStore.customProviders.find((provider) => provider.id === providerId)
-      return customProvider?.iconSvg || PROVIDER_ICONS[providerId] || ''
+      return settingsStore.getProviderConfig(providerId).iconSvg || PROVIDER_ICONS[providerId] || ''
     }
   }
 
   const detectedProviderId = detectProvider(modelId)
   if (!detectedProviderId) return ''
 
-  const customProvider = settingsStore.customProviders.find((provider) => provider.id === detectedProviderId)
-  return customProvider?.iconSvg || PROVIDER_ICONS[detectedProviderId] || ''
+  return settingsStore.getProviderConfig(detectedProviderId).iconSvg || PROVIDER_ICONS[detectedProviderId] || ''
 })
 
 function formatSummaryContext(extracted: ExtractedContent): string {

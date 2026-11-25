@@ -16,8 +16,13 @@ import {
   ChevronRight, 
   Hash,
   Link as LinkIcon,
+  Loader2,
+  X,
 } from 'lucide-vue-next'
 import type { ApiSpec, CustomProvider } from '@/types/provider'
+import { fetchWebsiteIcon } from '@/lib/providerIcon'
+import { t } from '@/locales'
+import ProviderIcon from '@/components/ProviderIcon.vue'
 
 const props = defineProps<{
   open: boolean
@@ -33,6 +38,9 @@ const selectedSpec = ref<ApiSpec>('openai')
 const providerName = ref('')
 const customIconSvg = ref('')
 const baseUrl = ref('https://api.openai.com/v1')
+const isFetchingIcon = ref(false)
+const iconFetchNotice = ref<{ type: 'success' | 'error'; text: string } | null>(null)
+let iconFetchSeq = 0
 
 const specs = [
   { id: 'openai', name: 'OpenAI', descriptionKey: 'settings.addProvider.specOpenaiDesc', icon: Globe, enabled: true },
@@ -57,6 +65,51 @@ function reset() {
   customIconSvg.value = ''
   selectedSpec.value = 'openai'
   baseUrl.value = 'https://api.openai.com/v1'
+  iconFetchSeq += 1
+  isFetchingIcon.value = false
+  iconFetchNotice.value = null
+}
+
+function handleDialogOpenChange(val: boolean) {
+  emit('update:open', val)
+  if (!val) {
+    reset()
+  }
+}
+
+async function handleAutoFetchIcon() {
+  const targetUrl = baseUrl.value.trim()
+  if (!targetUrl) {
+    iconFetchNotice.value = {
+      type: 'error',
+      text: t('settings.providers.fetchIconNoUrl'),
+    }
+    return
+  }
+
+  const seq = ++iconFetchSeq
+  isFetchingIcon.value = true
+  iconFetchNotice.value = null
+
+  try {
+    const icon = await fetchWebsiteIcon(targetUrl)
+    if (seq !== iconFetchSeq) return
+    customIconSvg.value = icon
+    iconFetchNotice.value = {
+      type: 'success',
+      text: t('settings.providers.fetchIconSuccess'),
+    }
+  } catch {
+    if (seq !== iconFetchSeq) return
+    iconFetchNotice.value = {
+      type: 'error',
+      text: t('settings.providers.fetchIconFailed'),
+    }
+  } finally {
+    if (seq === iconFetchSeq) {
+      isFetchingIcon.value = false
+    }
+  }
 }
 
 function handleSave() {
@@ -65,7 +118,7 @@ function handleSave() {
   const newProvider: CustomProvider = {
     id: `custom_${Date.now()}`,
     name: providerName.value,
-    iconSvg: customIconSvg.value || undefined,
+    iconSvg: customIconSvg.value.trim() || undefined,
     apiSpec: selectedSpec.value,
     baseUrl: baseUrl.value,
     apiKey: '',
@@ -79,7 +132,7 @@ function handleSave() {
 </script>
 
 <template>
-  <Dialog :open="open" @update:open="(val) => emit('update:open', val)">
+  <Dialog :open="open" @update:open="handleDialogOpenChange">
     <DialogContent class="sm:max-w-[500px] p-0 overflow-hidden border-none bg-background/80 backdrop-blur-2xl shadow-2xl rounded-[2.5rem]">
       <!-- Header with Progress -->
       <div class="p-8 pb-4">
@@ -143,20 +196,6 @@ function handleSave() {
             </div>
 
             <div class="space-y-2">
-              <Label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">{{ $t('settings.addProvider.customIcon') }}</Label>
-              <div class="relative group">
-                <Input
-                  v-model="customIconSvg"
-                  :placeholder="$t('settings.addProvider.customIconPlaceholder')"
-                  class="h-14 bg-background border-muted/30 group-focus-within:border-primary/50 group-focus-within:ring-4 group-focus-within:ring-primary/10 transition-all rounded-2xl text-xs font-mono pr-12"
-                />
-                <Cpu v-if="!customIconSvg" class="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30 pointer-events-none" />
-                <div v-else v-html="customIconSvg" class="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center opacity-50 provider-logo pointer-events-none" />
-              </div>
-              <p class="text-[9px] text-muted-foreground/40 px-1 italic">{{ $t('settings.addProvider.customIconHint') }}</p>
-            </div>
-
-            <div class="space-y-2">
               <Label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">{{ $t('settings.addProvider.baseEndpoint') }}</Label>
               <div class="relative group">
                 <Input 
@@ -166,6 +205,53 @@ function handleSave() {
                 />
                 <LinkIcon class="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30 pointer-events-none" />
               </div>
+            </div>
+
+            <div class="space-y-2">
+              <Label class="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">{{ $t('settings.addProvider.customIcon') }}</Label>
+              <div class="flex items-center gap-2">
+                <div class="relative group flex-1">
+                  <Input
+                    v-model="customIconSvg"
+                    :placeholder="$t('settings.addProvider.customIconPlaceholder')"
+                    class="h-14 bg-background border-muted/30 group-focus-within:border-primary/50 group-focus-within:ring-4 group-focus-within:ring-primary/10 transition-all rounded-2xl text-xs font-mono pr-16"
+                    @update:model-value="iconFetchNotice = null"
+                  />
+                  <button
+                    v-if="customIconSvg"
+                    type="button"
+                    class="absolute right-10 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted/40 transition-colors"
+                    :aria-label="$t('settings.providers.clearIcon')"
+                    @click="customIconSvg = ''; iconFetchNotice = null"
+                  >
+                    <X class="h-3.5 w-3.5" />
+                  </button>
+                  <div class="absolute right-3.5 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center pointer-events-none">
+                    <ProviderIcon :icon="customIconSvg">
+                      <Cpu class="h-5 w-5 text-muted-foreground/30" />
+                    </ProviderIcon>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  class="h-14 px-3.5 rounded-2xl border-muted/30 bg-background hover:bg-primary/5 hover:border-primary/40 transition-all gap-1.5 flex-shrink-0 text-xs font-semibold"
+                  :disabled="isFetchingIcon || !baseUrl.trim()"
+                  @click="handleAutoFetchIcon"
+                >
+                  <Loader2 v-if="isFetchingIcon" class="h-4 w-4 animate-spin text-primary" />
+                  <Globe v-else class="h-4 w-4 text-primary" />
+                  <span>{{ isFetchingIcon ? $t('settings.providers.fetchingIcon') : $t('settings.providers.autoFetchIcon') }}</span>
+                </Button>
+              </div>
+              <p class="text-[9px] text-muted-foreground/60 px-1 italic">{{ $t('settings.addProvider.customIconHint') }}</p>
+              <p
+                v-if="iconFetchNotice"
+                class="text-[11px] px-1 font-medium"
+                :class="iconFetchNotice.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'"
+              >
+                {{ iconFetchNotice.text }}
+              </p>
             </div>
           </div>
         </div>
@@ -203,8 +289,4 @@ function handleSave() {
 </template>
 
 <style scoped>
-:deep(.provider-logo svg) {
-  width: 100%;
-  height: 100%;
-}
 </style>

@@ -4,6 +4,7 @@ import { User, Bot, Copy, RotateCcw, ChevronDown, ChevronUp, Check } from 'lucid
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import MarkdownRenderer from './MarkdownRenderer.vue'
+import ProviderIcon from '@/components/ProviderIcon.vue'
 
 interface Props {
   id: string
@@ -186,15 +187,18 @@ onBeforeUnmount(() => {
   >
     <!-- Avatar -->
     <div
-      class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+      class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center overflow-hidden"
       :class="[isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground']"
     >
       <User v-if="isUser" class="w-4 h-4" />
       <div
         v-else-if="role === 'assistant' && assistantAvatarSvg"
-        class="h-4 w-4 flex items-center justify-center provider-avatar"
-        v-html="assistantAvatarSvg"
-      />
+        class="h-4 w-4 flex items-center justify-center"
+      >
+        <ProviderIcon :icon="assistantAvatarSvg" :alt="assistantLabel">
+          <Bot class="w-4 h-4" />
+        </ProviderIcon>
+      </div>
       <Bot v-else class="w-4 h-4" />
     </div>
 
@@ -328,12 +332,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-:deep(.provider-avatar svg) {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
 .thinking-text-base {
   color: #475569;
   transition: opacity 0.3s ease;

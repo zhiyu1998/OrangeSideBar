@@ -210,7 +210,8 @@ export const useSettingsStore = defineStore('settings', () => {
       return {
         apiKey: custom?.apiKey || '',
         baseUrl: custom?.baseUrl || '',
-        enabled: custom?.enabled ?? false
+        enabled: custom?.enabled ?? false,
+        iconSvg: custom?.iconSvg,
       }
     }
 
@@ -230,22 +231,31 @@ export const useSettingsStore = defineStore('settings', () => {
     if (String(providerId).startsWith('custom_')) {
       const index = customProviders.value.findIndex(p => p.id === providerId)
       if (index !== -1) {
-        if (config.apiKey !== undefined) customProviders.value[index].apiKey = config.apiKey as string
-        if (config.baseUrl !== undefined) customProviders.value[index].baseUrl = config.baseUrl
-        if (config.enabled !== undefined) customProviders.value[index].enabled = config.enabled
+        const nextCustom: CustomProvider = { ...customProviders.value[index] }
+        if (config.apiKey !== undefined) nextCustom.apiKey = config.apiKey as string
+        if (config.baseUrl !== undefined) nextCustom.baseUrl = config.baseUrl
+        if (config.enabled !== undefined) nextCustom.enabled = config.enabled
+        if ('iconSvg' in config) nextCustom.iconSvg = config.iconSvg || undefined
+        customProviders.value[index] = nextCustom
       }
       return
     }
 
     if (!providers.value[providerId]) {
       // Initialize missing provider (migration / newly added built-in)
-      providers.value[providerId] = DEFAULT_PROVIDERS[providerId] ?? { apiKey: '', baseUrl: '', enabled: false }
+      providers.value[providerId] = {
+        ...(DEFAULT_PROVIDERS[providerId] ?? { apiKey: '', baseUrl: '', enabled: false }),
+      }
     }
 
-    providers.value[providerId] = {
+    const nextConfig: ProviderConfig = {
       ...providers.value[providerId],
       ...config,
     }
+    if ('iconSvg' in config && !config.iconSvg) {
+      delete nextConfig.iconSvg
+    }
+    providers.value[providerId] = nextConfig
   }
 
   function setProviderEnabled(providerId: ProviderId, enabled: boolean) {

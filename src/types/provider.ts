@@ -14,6 +14,7 @@ export interface ProviderConfig {
   apiKey: string | string[]
   baseUrl: string
   enabled: boolean
+  iconSvg?: string
 }
 
 export interface CustomProvider {

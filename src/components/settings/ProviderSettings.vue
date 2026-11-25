@@ -14,6 +14,8 @@ import {
   Plus,
   Cpu,
   BarChart3,
+  Globe,
+  RotateCcw,
 } from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
 import { llmFactory } from '@/lib/llm/factory'
@@ -33,6 +35,9 @@ import BorderBeam from '@/components/inspira/ui/BorderBeam.vue'
 import type { ProviderId, CustomProvider } from '@/types/provider'
 import { PROVIDER_ICONS } from '@/assets/icons/providerIcons'
 import { PROVIDERS } from '@/constants/providers'
+import { fetchWebsiteIcon } from '@/lib/providerIcon'
+import { t } from '@/locales'
+import ProviderIcon from '@/components/ProviderIcon.vue'
 import AddProviderDialog from './AddProviderDialog.vue'
 
 const settingsStore = useSettingsStore()
@@ -58,6 +63,10 @@ const builtInProviders: ProviderInfo[] = [
 ]
 
 const allProviders = computed<ProviderInfo[]>(() => {
+  const builtIn: ProviderInfo[] = builtInProviders.map((p) => ({
+    ...p,
+    iconSvg: settingsStore.getProviderConfig(p.id).iconSvg || p.iconSvg,
+  }))
   const custom: ProviderInfo[] = settingsStore.customProviders.map(p => ({
     id: p.id as ProviderId,
     name: p.name,
@@ -66,7 +75,7 @@ const allProviders = computed<ProviderInfo[]>(() => {
     iconSvg: p.iconSvg,
     isCustom: true
   }))
-  return [...builtInProviders, ...custom]
+  return [...builtIn, ...custom]
 })
 
 const isAddDialogOpen = ref(false)
@@ -82,6 +91,8 @@ watch(selectedProviderId, () => {
 const showApiKey = ref<Record<ProviderId, boolean>>({} as Record<ProviderId, boolean>)
 const testingProvider = ref<ProviderId | null>(null)
 const testResult = ref<Record<ProviderId, 'success' | 'error' | null>>({} as Record<ProviderId, 'success' | 'error' | null>)
+const fetchingIconProvider = ref<ProviderId | null>(null)
+const iconFetchNotice = ref<Record<ProviderId, { type: 'success' | 'error'; text: string } | null>>({} as Record<ProviderId, { type: 'success' | 'error'; text: string } | null>)
 const manualModelDrafts = ref<Record<ProviderId, { id: string; name: string }>>({} as Record<ProviderId, { id: string; name: string }>)
 
 const selectedProvider = computed(() => allProviders.value.find(p => p.id === selectedProviderId.value))
@@ -212,6 +223,53 @@ function updateCustomProviderName(id: string, name: string) {
   settingsStore.updateCustomProvider(id, { name })
 }
 
+function updateProviderIcon(providerId: ProviderId, value: string) {
+  settingsStore.updateProviderConfig(providerId, { iconSvg: value.trim() || undefined })
+  iconFetchNotice.value[providerId] = null
+}
+
+function clearProviderIcon(providerId: ProviderId) {
+  updateProviderIcon(providerId, '')
+}
+
+async function autoFetchProviderIcon(providerId: ProviderId) {
+  const providerMeta = allProviders.value.find((p) => p.id === providerId)
+  const targetUrl = (
+    settingsStore.getProviderConfig(providerId).baseUrl ||
+    providerMeta?.defaultBaseUrl ||
+    ''
+  ).trim()
+
+  if (!targetUrl) {
+    iconFetchNotice.value[providerId] = {
+      type: 'error',
+      text: t('settings.providers.fetchIconNoUrl'),
+    }
+    return
+  }
+
+  fetchingIconProvider.value = providerId
+  iconFetchNotice.value[providerId] = null
+
+  try {
+    const icon = await fetchWebsiteIcon(targetUrl)
+    settingsStore.updateProviderConfig(providerId, { iconSvg: icon })
+    iconFetchNotice.value[providerId] = {
+      type: 'success',
+      text: t('settings.providers.fetchIconSuccess'),
+    }
+  } catch {
+    iconFetchNotice.value[providerId] = {
+      type: 'error',
+      text: t('settings.providers.fetchIconFailed'),
+    }
+  } finally {
+    if (fetchingIconProvider.value === providerId) {
+      fetchingIconProvider.value = null
+    }
+  }
+}
+
 function getManualModelDraft(providerId: ProviderId) {
   if (!manualModelDrafts.value[providerId]) {
     manualModelDrafts.value[providerId] = { id: '', name: '' }
@@ -325,12 +383,12 @@ watch(onlyFreeModels, () => {
           >
             <div class="flex items-center gap-3">
               <div 
-                class="w-8 h-8 rounded-lg bg-muted/10 border flex items-center justify-center transition-all group-hover:scale-105 shadow-inner overflow-hidden"
+                class="w-8 h-8 rounded-lg bg-muted/10 border flex items-center justify-center transition-all group-hover:scale-105 shadow-inner overflow-hidden p-1.5 flex-shrink-0"
                 :class="{ 'border-primary/20 bg-primary/5': selectedProviderId === provider.id }"
               >
-                <div v-if="provider.iconSvg" v-html="provider.iconSvg" class="w-5 h-5 flex items-center justify-center provider-logo" />
-                <img v-else-if="provider.icon" :src="provider.icon" class="w-5 h-5 flex-shrink-0" />
-                <Cpu v-else class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <ProviderIcon :icon="provider.iconSvg || provider.icon" :alt="provider.name">
+                  <Cpu class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                </ProviderIcon>
               </div>
               <div class="flex flex-col min-w-0">
                 <span class="text-sm font-semibold tracking-tight text-foreground">{{ provider.name }}</span>
@@ -364,11 +422,11 @@ watch(onlyFreeModels, () => {
         <div class="flex items-center justify-between border-b border-muted/30 pb-8">
           <div class="flex items-center gap-4">
             <div 
-              v-if="selectedProvider.iconSvg || selectedProvider.icon"
-              class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center border border-primary/20 shadow-sm transition-transform hover:scale-105 overflow-hidden"
+              class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center border border-primary/20 shadow-sm transition-transform hover:scale-105 overflow-hidden p-2.5 flex-shrink-0"
             >
-              <div v-if="selectedProvider.iconSvg" v-html="selectedProvider.iconSvg" class="w-7 h-7 flex items-center justify-center provider-logo" />
-              <img v-else :src="selectedProvider.icon" class="w-7 h-7" />
+              <ProviderIcon :icon="selectedProvider.iconSvg || selectedProvider.icon" :alt="selectedProvider.name">
+                <Cpu class="w-6 h-6 text-muted-foreground" />
+              </ProviderIcon>
             </div>
             <div>
               <div class="flex items-center gap-2">
@@ -435,6 +493,66 @@ watch(onlyFreeModels, () => {
                   <span class="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.1em]">{{ $t('settings.providers.requestUrl') }}</span>
                   <span class="text-[10px] font-mono text-muted-foreground/60 break-all">{{ actualRequestUrl }}</span>
                 </div>
+              </div>
+            </div>
+
+            <!-- Provider Icon Section -->
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-1.5 h-1.5 rounded-full bg-primary" />
+                  <Label class="text-sm font-extrabold tracking-tight">{{ $t('settings.providers.providerIcon') }}</Label>
+                </div>
+                <Button
+                  v-if="settingsStore.getProviderConfig(selectedProviderId).iconSvg"
+                  variant="ghost"
+                  size="sm"
+                  class="h-7 px-2.5 text-[11px] text-muted-foreground hover:text-foreground gap-1.5 rounded-lg"
+                  @click="clearProviderIcon(selectedProviderId)"
+                >
+                  <RotateCcw v-if="!selectedProvider.isCustom" class="h-3 w-3" />
+                  <X v-else class="h-3 w-3" />
+                  {{ selectedProvider.isCustom ? $t('settings.providers.clearIcon') : $t('settings.providers.resetIcon') }}
+                </Button>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <div class="w-14 h-14 rounded-2xl bg-background border border-muted/30 flex items-center justify-center overflow-hidden p-3 flex-shrink-0 shadow-sm">
+                  <ProviderIcon :icon="selectedProvider.iconSvg || selectedProvider.icon" :alt="selectedProvider.name">
+                    <Cpu class="w-6 h-6 text-muted-foreground/50" />
+                  </ProviderIcon>
+                </div>
+
+                <Input
+                  :model-value="settingsStore.getProviderConfig(selectedProviderId).iconSvg || ''"
+                  :placeholder="$t('settings.providers.providerIconPlaceholder')"
+                  class="h-14 flex-1 bg-background border-muted/30 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all rounded-2xl text-xs font-mono shadow-sm"
+                  @update:model-value="(value) => updateProviderIcon(selectedProviderId, String(value))"
+                />
+
+                <Button
+                  variant="outline"
+                  class="h-14 px-4 rounded-2xl border-muted/30 bg-background hover:bg-primary/5 hover:border-primary/40 transition-all gap-2 flex-shrink-0 font-semibold text-xs shadow-sm"
+                  :disabled="fetchingIconProvider === selectedProviderId"
+                  @click="autoFetchProviderIcon(selectedProviderId)"
+                >
+                  <Loader2 v-if="fetchingIconProvider === selectedProviderId" class="h-4 w-4 animate-spin text-primary" />
+                  <Globe v-else class="h-4 w-4 text-primary" />
+                  <span>{{ fetchingIconProvider === selectedProviderId ? $t('settings.providers.fetchingIcon') : $t('settings.providers.autoFetchIcon') }}</span>
+                </Button>
+              </div>
+
+              <div class="space-y-1 px-1">
+                <p class="text-[11px] text-muted-foreground/60">
+                  {{ $t('settings.providers.providerIconHint') }}
+                </p>
+                <p
+                  v-if="iconFetchNotice[selectedProviderId]"
+                  class="text-[11px] font-medium"
+                  :class="iconFetchNotice[selectedProviderId]?.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'"
+                >
+                  {{ iconFetchNotice[selectedProviderId]?.text }}
+                </p>
               </div>
             </div>
 
@@ -629,11 +747,6 @@ watch(onlyFreeModels, () => {
 </template>
 
 <style scoped>
-:deep(.provider-logo svg) {
-  width: 100%;
-  height: 100%;
-}
-
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
