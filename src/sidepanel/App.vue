@@ -142,7 +142,7 @@ function showActionNotice(type: 'success' | 'error', text: string) {
   actionNoticeTimer = window.setTimeout(() => {
     actionNotice.value = null
     actionNoticeTimer = null
-  }, 2400)
+  }, type === 'error' ? 4000 : 2400)
 }
 
 // Feature handlers
@@ -179,10 +179,11 @@ async function handleSummary() {
       : await extractCurrentTabText()
   if (getPageGeneration() !== generation) return
 
-  if (content) {
-    const truncatedContent = content.length > 15000
-      ? content.slice(0, 15000) + '\n\n' + t('sidepanel.contentTruncated')
-      : content
+  const normalizedContent = content?.trim()
+  if (normalizedContent) {
+    const truncatedContent = normalizedContent.length > 15000
+      ? normalizedContent.slice(0, 15000) + '\n\n' + t('sidepanel.contentTruncated')
+      : normalizedContent
     const prompt = isLinuxDoThread ? LINUX_DO_SUMMARY_PROMPT : SUMMARY_PROMPT
     const llmContent = `${prompt}${truncatedContent}`
     const displayContent = isLinuxDoThread
@@ -190,7 +191,7 @@ async function handleSummary() {
       : t('sidepanel.summaryWebDisplay', { n: truncatedContent.length.toLocaleString() })
     sendMessage(displayContent, undefined, llmContent)
   } else {
-    sendMessage(t('sidepanel.extractPageFailed', { detail: extractFailedDetail() }))
+    showActionNotice('error', t('sidepanel.extractPageFailed', { detail: extractFailedDetail() }))
   }
 }
 
@@ -205,15 +206,16 @@ async function handleTranslate() {
   const content = await extractCurrentTabText()
   if (getPageGeneration() !== generation) return
 
-  if (content) {
-    const truncatedContent = content.length > 15000
-      ? content.slice(0, 15000) + '\n\n' + t('sidepanel.contentTruncated')
-      : content
+  const normalizedContent = content?.trim()
+  if (normalizedContent) {
+    const truncatedContent = normalizedContent.length > 15000
+      ? normalizedContent.slice(0, 15000) + '\n\n' + t('sidepanel.contentTruncated')
+      : normalizedContent
     const llmContent = `请将以下内容翻译成中文：\n\n${truncatedContent}`
     const displayContent = t('sidepanel.translateDisplay', { n: truncatedContent.length.toLocaleString() })
     sendMessage(displayContent, undefined, llmContent)
   } else {
-    sendMessage(t('sidepanel.extractPageFailed', { detail: extractFailedDetail() }))
+    showActionNotice('error', t('sidepanel.extractPageFailed', { detail: extractFailedDetail() }))
   }
 }
 
@@ -222,10 +224,11 @@ async function handlePdf() {
   const content = await extractCurrentTabText()
   if (getPageGeneration() !== generation) return
 
-  if (content) {
-    const truncatedContent = content.length > 20000
-      ? content.slice(0, 20000) + '\n\n' + t('sidepanel.contentTruncated')
-      : content
+  const normalizedContent = content?.trim()
+  if (normalizedContent) {
+    const truncatedContent = normalizedContent.length > 20000
+      ? normalizedContent.slice(0, 20000) + '\n\n' + t('sidepanel.contentTruncated')
+      : normalizedContent
     const llmContent = `请帮我分析以下 PDF 文档内容：\n\n${truncatedContent}`
     const displayContent = t('sidepanel.pdfDisplay', { n: truncatedContent.length.toLocaleString() })
     sendMessage(displayContent, undefined, llmContent)
@@ -233,7 +236,7 @@ async function handlePdf() {
     const detail = contentError.value
       ? t('sidepanel.failedReason', { error: contentError.value })
       : t('sidepanel.extractPdfFailedHint')
-    sendMessage(t('sidepanel.extractPdfFailed', { detail }))
+    showActionNotice('error', t('sidepanel.extractPdfFailed', { detail }))
   }
 }
 
@@ -242,10 +245,11 @@ async function handleSubtitles() {
   const subtitles = await extractSubtitles('text_with_timestamps')
   if (getPageGeneration() !== generation) return
 
-  if (subtitles) {
-    const truncatedSubtitles = subtitles.length > 20000
-      ? subtitles.slice(0, 20000) + '\n\n' + t('sidepanel.subtitlesTruncated')
-      : subtitles
+  const normalizedSubtitles = subtitles?.trim()
+  if (normalizedSubtitles) {
+    const truncatedSubtitles = normalizedSubtitles.length > 20000
+      ? normalizedSubtitles.slice(0, 20000) + '\n\n' + t('sidepanel.subtitlesTruncated')
+      : normalizedSubtitles
 
     const url = await getCurrentUrl()
     if (getPageGeneration() !== generation) return
@@ -266,7 +270,7 @@ async function handleSubtitles() {
     const detail = contentError.value
       ? t('sidepanel.failedReason', { error: contentError.value })
       : t('sidepanel.extractSubtitlesFailedHint')
-    sendMessage(t('sidepanel.extractSubtitlesFailed', { detail }))
+    showActionNotice('error', t('sidepanel.extractSubtitlesFailed', { detail }))
   }
 }
 
@@ -528,7 +532,7 @@ async function consumePendingSidePanelAction(action: PendingSidePanelAction | nu
     stopStreaming()
   }
 
-  chatStore.createSession(settingsStore.defaultModel, t('sidepanel.pageSummary'), settingsStore.defaultModelProviderId)
+  chatStore.clearActiveSession()
   await handleSummary()
 }
 
@@ -627,10 +631,10 @@ onBeforeUnmount(() => {
 
     <div
       v-if="actionNotice"
-      class="pointer-events-none absolute left-1/2 top-[4.5rem] z-40 -translate-x-1/2 rounded-xl px-3 py-2 text-xs shadow-lg backdrop-blur-sm"
+      class="pointer-events-none absolute left-1/2 top-[4.5rem] z-40 -translate-x-1/2 max-w-[calc(100%-1.5rem)] w-max text-center rounded-xl px-3 py-2 text-xs shadow-lg backdrop-blur-sm"
       :class="actionNotice.type === 'success'
-        ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-        : 'border border-destructive/30 bg-destructive/10 text-destructive'"
+        ? 'border border-emerald-500/30 bg-emerald-50/95 dark:bg-emerald-950/90 text-emerald-700 dark:text-emerald-300'
+        : 'border border-destructive/30 bg-red-50/95 dark:bg-red-950/90 text-destructive'"
     >
       {{ actionNotice.text }}
     </div>
