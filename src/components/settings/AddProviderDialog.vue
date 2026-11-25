@@ -20,7 +20,7 @@ import {
   X,
 } from 'lucide-vue-next'
 import type { ApiSpec, CustomProvider } from '@/types/provider'
-import { fetchWebsiteIcon } from '@/lib/providerIcon'
+import { BUILTIN_PROVIDER_ICON_PRESETS, fetchWebsiteIcon } from '@/lib/providerIcon'
 import { t } from '@/locales'
 import ProviderIcon from '@/components/ProviderIcon.vue'
 
@@ -243,6 +243,21 @@ function handleSave() {
                   <Globe v-else class="h-4 w-4 text-primary" />
                   <span>{{ isFetchingIcon ? $t('settings.providers.fetchingIcon') : $t('settings.providers.autoFetchIcon') }}</span>
                 </Button>
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                <button
+                  v-for="preset in BUILTIN_PROVIDER_ICON_PRESETS"
+                  :key="preset.id"
+                  type="button"
+                  class="w-8 h-8 rounded-lg border p-1.5 flex items-center justify-center transition-all cursor-pointer"
+                  :class="customIconSvg === preset.icon
+                    ? 'border-primary bg-primary/10 shadow-sm'
+                    : 'border-muted/40 bg-background hover:bg-muted/30 hover:border-primary/40'"
+                  :title="preset.label"
+                  @click="customIconSvg = preset.icon; iconFetchNotice = null"
+                >
+                  <ProviderIcon :icon="preset.icon" :alt="preset.label" />
+                </button>
               </div>
               <p class="text-[9px] text-muted-foreground/60 px-1 italic">{{ $t('settings.addProvider.customIconHint') }}</p>
               <p

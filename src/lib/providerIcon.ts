@@ -1,9 +1,29 @@
 import DOMPurify from 'dompurify'
+import { PROVIDER_ICONS } from '@/assets/icons/providerIcons'
 
 export type ProviderIconRender =
   | { type: 'svg'; content: string }
   | { type: 'image'; src: string }
   | null
+
+export interface BuiltInIconPreset {
+  id: string
+  label: string
+  icon: string
+}
+
+export const BUILTIN_PROVIDER_ICON_PRESETS: BuiltInIconPreset[] = [
+  { id: 'openai', label: 'OpenAI', icon: PROVIDER_ICONS.openai },
+  { id: 'anthropic', label: 'Claude', icon: PROVIDER_ICONS.anthropic },
+  { id: 'deepseek', label: 'DeepSeek', icon: PROVIDER_ICONS.deepseek },
+  { id: 'zhipu', label: 'GLM', icon: PROVIDER_ICONS.zhipu },
+  { id: 'siliconflow', label: 'SiliconFlow', icon: PROVIDER_ICONS.siliconflow },
+  { id: 'openrouter', label: 'OpenRouter', icon: PROVIDER_ICONS.openrouter },
+  { id: 'groq', label: 'Groq', icon: PROVIDER_ICONS.groq },
+  { id: 'ollama', label: 'Ollama', icon: PROVIDER_ICONS.ollama },
+  { id: 'mistral', label: 'Mistral', icon: '/mistral.png' },
+  { id: 'poe', label: 'Poe', icon: '/poe-color.svg' },
+]
 
 const MAX_ICON_BYTES = 2 * 1024 * 1024
 const MAX_STORED_ICON_CHARS = 64 * 1024
@@ -109,6 +129,14 @@ export function classifyProviderIcon(raw?: string | null): ProviderIconRender {
   }
 
   if (/^(?:data:image\/|https?:\/\/)/i.test(trimmed)) {
+    return { type: 'image', src: trimmed }
+  }
+
+  if (
+    !trimmed.startsWith('//') &&
+    !trimmed.includes('..') &&
+    /^\/[a-zA-Z0-9._/-]+\.(?:png|svg|webp|jpg|jpeg|ico|gif)$/i.test(trimmed)
+  ) {
     return { type: 'image', src: trimmed }
   }
 

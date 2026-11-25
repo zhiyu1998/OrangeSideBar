@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { 
   Check, 
   ChevronRight,
@@ -16,6 +16,7 @@ import {
   BarChart3,
   Globe,
   RotateCcw,
+  Pencil,
 } from 'lucide-vue-next'
 import { useSettingsStore } from '@/stores/settings'
 import { llmFactory } from '@/lib/llm/factory'
@@ -35,7 +36,11 @@ import BorderBeam from '@/components/inspira/ui/BorderBeam.vue'
 import type { ProviderId, CustomProvider } from '@/types/provider'
 import { PROVIDER_ICONS } from '@/assets/icons/providerIcons'
 import { PROVIDERS } from '@/constants/providers'
-import { fetchWebsiteIcon } from '@/lib/providerIcon'
+import {
+  BUILTIN_PROVIDER_ICON_PRESETS,
+  fetchWebsiteIcon,
+  type BuiltInIconPreset,
+} from '@/lib/providerIcon'
 import { t } from '@/locales'
 import ProviderIcon from '@/components/ProviderIcon.vue'
 import AddProviderDialog from './AddProviderDialog.vue'
@@ -79,13 +84,29 @@ const allProviders = computed<ProviderInfo[]>(() => {
 })
 
 const isAddDialogOpen = ref(false)
+const isIconPickerOpen = ref(false)
 const selectedProviderId = ref<ProviderId>('openai')
 const modelPage = ref(1)
 const modelsPerPage = 10
 
-// Reset page when provider changes
+// Reset page and close icon picker when provider changes
 watch(selectedProviderId, () => {
   modelPage.value = 1
+  isIconPickerOpen.value = false
+})
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && isIconPickerOpen.value) {
+    isIconPickerOpen.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown)
 })
 
 const showApiKey = ref<Record<ProviderId, boolean>>({} as Record<ProviderId, boolean>)
@@ -230,6 +251,16 @@ function updateProviderIcon(providerId: ProviderId, value: string) {
 
 function clearProviderIcon(providerId: ProviderId) {
   updateProviderIcon(providerId, '')
+}
+
+function selectBuiltInIcon(providerId: ProviderId, preset: BuiltInIconPreset) {
+  const providerMeta = allProviders.value.find((p) => p.id === providerId)
+  if (providerMeta && !providerMeta.isCustom && preset.id === providerId) {
+    clearProviderIcon(providerId)
+  } else {
+    updateProviderIcon(providerId, preset.icon)
+  }
+  isIconPickerOpen.value = false
 }
 
 async function autoFetchProviderIcon(providerId: ProviderId) {
@@ -417,16 +448,118 @@ watch(onlyFreeModels, () => {
     </div>
 
     <!-- Detail: Provider Configuration -->
-    <div class="flex-1 bg-muted/5 border border-muted/50 rounded-[2rem] p-8 overflow-hidden flex flex-col gap-8 relative shadow-inner">
+    <div class="flex-1 bg-muted/5 border border-muted/50 rounded-[2rem] p-8 overflow-visible flex flex-col gap-8 relative shadow-inner">
       <template v-if="selectedProvider">
         <div class="flex items-center justify-between border-b border-muted/30 pb-8">
           <div class="flex items-center gap-4">
-            <div 
-              class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center border border-primary/20 shadow-sm transition-transform hover:scale-105 overflow-hidden p-2.5 flex-shrink-0"
-            >
-              <ProviderIcon :icon="selectedProvider.iconSvg || selectedProvider.icon" :alt="selectedProvider.name">
-                <Cpu class="w-6 h-6 text-muted-foreground" />
-              </ProviderIcon>
+            <div class="relative">
+              <button
+                type="button"
+                class="group/icon relative w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center border border-primary/20 shadow-sm transition-all hover:scale-105 hover:border-primary/40 overflow-hidden p-2.5 flex-shrink-0 cursor-pointer"
+                :class="{ 'ring-4 ring-primary/15 border-primary/50': isIconPickerOpen }"
+                :title="$t('settings.providers.clickToChangeIcon')"
+                @click="isIconPickerOpen = !isIconPickerOpen"
+              >
+                <ProviderIcon :icon="selectedProvider.iconSvg || selectedProvider.icon" :alt="selectedProvider.name">
+                  <Cpu class="w-6 h-6 text-muted-foreground" />
+                </ProviderIcon>
+                <span class="absolute inset-0 flex items-center justify-center bg-background/75 opacity-0 group-hover/icon:opacity-100 transition-opacity">
+                  <Pencil class="w-3.5 h-3.5 text-primary" />
+                </span>
+              </button>
+
+              <div
+                v-if="isIconPickerOpen"
+                class="fixed inset-0 z-20"
+                @click="isIconPickerOpen = false"
+              />
+
+              <div
+                v-if="isIconPickerOpen"
+                class="absolute left-0 top-[calc(100%+0.75rem)] z-30 w-[360px] max-w-[calc(100vw-4rem)] rounded-2xl border bg-background/95 backdrop-blur-xl shadow-2xl p-4 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+                @click.stop
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-xs font-bold tracking-tight">{{ $t('settings.providers.chooseIcon') }}</span>
+                  <div class="flex items-center gap-1">
+                    <Button
+                      v-if="settingsStore.getProviderConfig(selectedProviderId).iconSvg"
+                      variant="ghost"
+                      size="sm"
+                      class="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground gap-1 rounded-lg"
+                      @click="clearProviderIcon(selectedProviderId)"
+                    >
+                      <RotateCcw v-if="!selectedProvider.isCustom" class="h-3 w-3" />
+                      <X v-else class="h-3 w-3" />
+                      {{ selectedProvider.isCustom ? $t('settings.providers.clearIcon') : $t('settings.providers.resetIcon') }}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
+                      @click="isIconPickerOpen = false"
+                    >
+                      <X class="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div class="space-y-2">
+                  <span class="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                    {{ $t('settings.providers.builtInIcons') }}
+                  </span>
+                  <div class="grid grid-cols-5 gap-2">
+                    <button
+                      v-for="preset in BUILTIN_PROVIDER_ICON_PRESETS"
+                      :key="preset.id"
+                      type="button"
+                      class="flex flex-col items-center gap-1 rounded-xl border p-2 transition-all cursor-pointer"
+                      :class="(selectedProvider.iconSvg || selectedProvider.icon || '') === preset.icon
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                        : 'border-muted/40 bg-muted/10 hover:bg-muted/30 hover:border-primary/40'"
+                      :title="preset.label"
+                      @click="selectBuiltInIcon(selectedProviderId, preset)"
+                    >
+                      <div class="w-6 h-6 flex items-center justify-center overflow-hidden">
+                        <ProviderIcon :icon="preset.icon" :alt="preset.label" />
+                      </div>
+                      <span class="w-full truncate text-center text-[10px] font-medium leading-tight">
+                        {{ preset.label }}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="space-y-2 border-t border-muted/30 pt-3">
+                  <span class="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                    {{ $t('settings.providers.customIconOrFetch') }}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    class="w-full h-9 rounded-xl border-muted/40 bg-background hover:bg-primary/5 hover:border-primary/40 transition-all gap-2 font-semibold text-xs"
+                    :disabled="fetchingIconProvider === selectedProviderId"
+                    @click="autoFetchProviderIcon(selectedProviderId)"
+                  >
+                    <Loader2 v-if="fetchingIconProvider === selectedProviderId" class="h-3.5 w-3.5 animate-spin text-primary" />
+                    <Globe v-else class="h-3.5 w-3.5 text-primary" />
+                    <span>{{ fetchingIconProvider === selectedProviderId ? $t('settings.providers.fetchingIcon') : $t('settings.providers.autoFetchIcon') }}</span>
+                  </Button>
+                  <Input
+                    :model-value="settingsStore.getProviderConfig(selectedProviderId).iconSvg || ''"
+                    :placeholder="$t('settings.providers.providerIconPlaceholder')"
+                    class="h-9 bg-background border-muted/40 focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl text-xs font-mono"
+                    @update:model-value="(value) => updateProviderIcon(selectedProviderId, String(value))"
+                  />
+                  <p
+                    v-if="iconFetchNotice[selectedProviderId]"
+                    class="text-[11px] font-medium"
+                    :class="iconFetchNotice[selectedProviderId]?.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'"
+                  >
+                    {{ iconFetchNotice[selectedProviderId]?.text }}
+                  </p>
+                </div>
+              </div>
             </div>
             <div>
               <div class="flex items-center gap-2">
@@ -493,66 +626,6 @@ watch(onlyFreeModels, () => {
                   <span class="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.1em]">{{ $t('settings.providers.requestUrl') }}</span>
                   <span class="text-[10px] font-mono text-muted-foreground/60 break-all">{{ actualRequestUrl }}</span>
                 </div>
-              </div>
-            </div>
-
-            <!-- Provider Icon Section -->
-            <div class="space-y-4">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <div class="w-1.5 h-1.5 rounded-full bg-primary" />
-                  <Label class="text-sm font-extrabold tracking-tight">{{ $t('settings.providers.providerIcon') }}</Label>
-                </div>
-                <Button
-                  v-if="settingsStore.getProviderConfig(selectedProviderId).iconSvg"
-                  variant="ghost"
-                  size="sm"
-                  class="h-7 px-2.5 text-[11px] text-muted-foreground hover:text-foreground gap-1.5 rounded-lg"
-                  @click="clearProviderIcon(selectedProviderId)"
-                >
-                  <RotateCcw v-if="!selectedProvider.isCustom" class="h-3 w-3" />
-                  <X v-else class="h-3 w-3" />
-                  {{ selectedProvider.isCustom ? $t('settings.providers.clearIcon') : $t('settings.providers.resetIcon') }}
-                </Button>
-              </div>
-
-              <div class="flex items-center gap-3">
-                <div class="w-14 h-14 rounded-2xl bg-background border border-muted/30 flex items-center justify-center overflow-hidden p-3 flex-shrink-0 shadow-sm">
-                  <ProviderIcon :icon="selectedProvider.iconSvg || selectedProvider.icon" :alt="selectedProvider.name">
-                    <Cpu class="w-6 h-6 text-muted-foreground/50" />
-                  </ProviderIcon>
-                </div>
-
-                <Input
-                  :model-value="settingsStore.getProviderConfig(selectedProviderId).iconSvg || ''"
-                  :placeholder="$t('settings.providers.providerIconPlaceholder')"
-                  class="h-14 flex-1 bg-background border-muted/30 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all rounded-2xl text-xs font-mono shadow-sm"
-                  @update:model-value="(value) => updateProviderIcon(selectedProviderId, String(value))"
-                />
-
-                <Button
-                  variant="outline"
-                  class="h-14 px-4 rounded-2xl border-muted/30 bg-background hover:bg-primary/5 hover:border-primary/40 transition-all gap-2 flex-shrink-0 font-semibold text-xs shadow-sm"
-                  :disabled="fetchingIconProvider === selectedProviderId"
-                  @click="autoFetchProviderIcon(selectedProviderId)"
-                >
-                  <Loader2 v-if="fetchingIconProvider === selectedProviderId" class="h-4 w-4 animate-spin text-primary" />
-                  <Globe v-else class="h-4 w-4 text-primary" />
-                  <span>{{ fetchingIconProvider === selectedProviderId ? $t('settings.providers.fetchingIcon') : $t('settings.providers.autoFetchIcon') }}</span>
-                </Button>
-              </div>
-
-              <div class="space-y-1 px-1">
-                <p class="text-[11px] text-muted-foreground/60">
-                  {{ $t('settings.providers.providerIconHint') }}
-                </p>
-                <p
-                  v-if="iconFetchNotice[selectedProviderId]"
-                  class="text-[11px] font-medium"
-                  :class="iconFetchNotice[selectedProviderId]?.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'"
-                >
-                  {{ iconFetchNotice[selectedProviderId]?.text }}
-                </p>
               </div>
             </div>
 
